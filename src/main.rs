@@ -1,4 +1,5 @@
 mod state;
+mod structs;
 
 use crate::state::State;
 use pollster::FutureExt;

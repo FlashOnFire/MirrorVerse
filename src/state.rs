@@ -1,10 +1,13 @@
 use std::sync::Arc;
+use wgpu::util::DeviceExt;
 use wgpu::{
     CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits,
     PresentMode, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,
 };
 use winit::event::WindowEvent;
 use winit::window::Window;
+
+use crate::structs::{Vertex, INDICES, VERTICES};
 
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
@@ -14,6 +17,12 @@ pub struct State<'a> {
     pub(crate) size: winit::dpi::PhysicalSize<u32>,
     window: Arc<Window>,
     render_pipeline: wgpu::RenderPipeline,
+
+    vertex_buffer: wgpu::Buffer,
+    num_vertices: u32,
+
+    index_buffer: wgpu::Buffer,
+    num_indices: u32,
 }
 
 impl<'a> State<'a> {
@@ -81,7 +90,7 @@ impl<'a> State<'a> {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[],
+                buffers: &[Vertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -110,6 +119,21 @@ impl<'a> State<'a> {
             multiview: None,
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let num_vertices = VERTICES.len() as u32;
+
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(INDICES),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+        let num_indices = INDICES.len() as u32;
+
         Self {
             surface,
             device,
@@ -118,6 +142,10 @@ impl<'a> State<'a> {
             size,
             window,
             render_pipeline,
+            vertex_buffer,
+            num_vertices,
+            index_buffer,
+            num_indices,
         }
     }
 
@@ -174,8 +202,10 @@ impl<'a> State<'a> {
                 timestamp_writes: None,
             });
 
-            render_pass.set_pipeline(&self.render_pipeline); // 2.
-            render_pass.draw(0..3, 0..1); // 3.
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16); // 1.
+            render_pass.draw_indexed(0..self.num_indices, 0, 0..1); // 2.
         }
 
         // submit will accept anything that implements IntoIter

@@ -12,3 +12,4 @@ nalgebra = "0.32.3"
 pollster = "0.3.0"
 wgpu = "0.19.1"
 winit = "0.29.10"
+bytemuck = { version = "1.12", features = [ "derive" ] }
