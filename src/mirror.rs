@@ -17,6 +17,48 @@ impl Mirror for CompositeMirror {
     }
 }
 
+impl CompositeMirror {
+    fn from_json(json: &serde_json::Value) -> Self {
+        /* example json
+        {
+            "mirrors": [
+                {
+                    "type": "plane",
+                    "points": [
+                        [1.0, 2.0, 3.0, ...],
+                        [4.0, 5.0, 6.0, ...],
+                        [7.0, 8.0, 9.0, ...],
+                        ...
+                    ]
+                },
+                {
+                    "type": "sphere",
+                    "center": [1.0, 2.0, 3.0],
+                    "radius": 4.0
+                },
+                ...
+            ]
+        }
+         */
+        let mirrors = json["mirrors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|mirror| {
+                let mirror_type = mirror["type"].as_str().unwrap();
+
+                match mirror_type {
+                    "plane" => Box::new(PlaneMirror::from_json(mirror)) as Box<dyn Mirror>,
+                    "sphere" => Box::new(SphereMirror::from_json(mirror)) as Box<dyn Mirror>,
+                    _ => panic!("Unknown mirror type: {}", mirror_type),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        Self { mirrors }
+    }
+}
+
 #[derive(Clone, Copy)]
 struct PlaneMirror {
     points: [Point<f32, DIM>; DIM],
@@ -25,6 +67,45 @@ struct PlaneMirror {
 impl Mirror for PlaneMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
         vec![]
+    }
+}
+
+impl PlaneMirror {
+    fn from_json(json: &serde_json::Value) -> Self {
+        /* example json
+        {
+            "points": [
+                [1.0, 2.0, 3.0, ...],
+                [4.0, 5.0, 6.0, ...],
+                [7.0, 8.0, 9.0, ...],
+                ...
+            ]
+        }
+         */
+        let points = json["points"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|point| {
+                let point = point
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_f64().unwrap() as f32)
+                    .collect::<Vec<_>>();
+
+                Point::from_slice(&point)
+            })
+            .collect::<Vec<_>>();
+
+        let mut mirror_points = [Point::origin(); DIM];
+        for (i, point) in points.iter().enumerate() {
+            mirror_points[i] = *point;
+        }
+
+        Self {
+            points: mirror_points,
+        }
     }
 }
 
@@ -37,5 +118,29 @@ struct SphereMirror {
 impl Mirror for SphereMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
         vec![]
+    }
+}
+
+impl SphereMirror {
+    fn from_json(json: &serde_json::Value) -> Self {
+        /* example json
+        {
+            "center": [1.0, 2.0, 3.0],
+            "radius": 4.0
+        }
+         */
+        let center = json["center"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_f64().unwrap() as f32)
+            .collect::<Vec<_>>();
+
+        let radius = json["radius"].as_f64().unwrap() as f32;
+
+        Self {
+            center: Point::from_slice(&center),
+            radius,
+        }
     }
 }

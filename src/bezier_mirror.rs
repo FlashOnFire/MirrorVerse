@@ -48,6 +48,36 @@ impl BezierMirror {
 
         tangent.normalize()
     }
+
+    fn from_json(json: &serde_json::Value) -> Self {
+        /* example json
+        {
+            "control_points": [
+                [1.0, 2.0, 3.0, ...],
+                [4.0, 5.0, 6.0, ...],
+                [7.0, 8.0, 9.0, ...],
+                ...
+            ]
+        }
+         */
+        let control_points = json["control_points"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|point| {
+                let point = point
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_f64().unwrap() as f32)
+                    .collect::<Vec<_>>();
+
+                Point::from_slice(&point)
+            })
+            .collect::<Vec<_>>();
+
+        Self { control_points }
+    }
 }
 
 // Function to calculate binomial coefficients
