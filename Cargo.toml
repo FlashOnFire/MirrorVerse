@@ -1,5 +1,5 @@
 [package]
-name = "MirrorVerse"
+name = "mirror_verse"
 version = "0.1.0"
 edition = "2021"
 
