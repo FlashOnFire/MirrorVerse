@@ -10,10 +10,9 @@ use std::sync::Arc;
 use winit::event::*;
 use winit::event_loop::EventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::platform::x11::WindowBuilderExtX11;
 use winit::window::WindowBuilder;
 
-const DIM: usize = 2;
+pub const DIM: usize = 2;
 
 fn main() {
     run().block_on();
@@ -25,7 +24,7 @@ async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = Arc::new(
         WindowBuilder::new()
-            .with_name("MirrorVerse", "MirrorVerse")
+            .with_title("MirrorVerse")
             .build(&event_loop)
             .unwrap(),
     );
@@ -42,6 +41,7 @@ async fn run() {
             }
 
             #[allow(clippy::single_match)]
+            #[allow(clippy::collapsible_match)]
             match event {
                 Event::WindowEvent {
                     ref event,
@@ -57,16 +57,12 @@ async fn run() {
                                 ..
                             },
                         ..
-                    } =>
-                    {
-                        #[allow(clippy::collapsible_match)]
-                        match keycode {
-                            KeyCode::Escape => {
-                                target.exit();
-                            }
-                            _ => {}
+                    } => match keycode {
+                        KeyCode::Escape => {
+                            target.exit();
                         }
-                    }
+                        _ => {}
+                    },
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
