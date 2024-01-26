@@ -2,7 +2,7 @@ use nalgebra::{Point, SMatrix, Unit};
 
 use crate::{ray::Ray, DIM};
 
-trait Mirror {
+pub trait Mirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)>;
 }
 
@@ -24,7 +24,7 @@ struct PlaneMirror {
 
 impl Mirror for PlaneMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
-        vec![Ray { ..ray }]
+        vec![]
     }
 }
 
@@ -36,6 +36,6 @@ struct SphereMirror {
 
 impl Mirror for SphereMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
-        vec![Ray { ..ray }]
+        vec![]
     }
 }

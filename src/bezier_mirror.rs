@@ -1,15 +1,19 @@
-use nalgebra::{Point, SVector};
+use nalgebra::{Point, SMatrix, SVector, Unit};
 
-use crate::{ray::Ray, DIM};
+use crate::{mirror::Mirror, ray::Ray, DIM};
 
 struct BezierMirror {
     control_points: Vec<Point<f32, DIM>>,
 }
 
-impl BezierMirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray> {
-        Some(Ray { ..ray })
+impl Mirror for BezierMirror {
+    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
+        // use the other mirror to reflect the ray
+        vec![]
     }
+}
+
+impl BezierMirror {
     // Method to calculate a point on the Bezier curve
     fn calculate_point(&self, t: f32) -> Point<f32, DIM> {
         let mut point: Point<f32, DIM> = Point::origin();
