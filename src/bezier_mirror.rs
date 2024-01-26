@@ -1,15 +1,19 @@
-use nalgebra::{Point, SVector};
+use nalgebra::{Point, SMatrix, SVector, Unit};
 
-use crate::{ray::Ray, DIM};
+use crate::{mirror::Mirror, ray::Ray, DIM};
 
 struct BezierMirror {
     control_points: Vec<Point<f32, DIM>>,
 }
 
-impl BezierMirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray> {
-        Some(Ray { ..ray })
+impl Mirror for BezierMirror {
+    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
+        // use the other mirror to reflect the ray
+        vec![]
     }
+}
+
+impl BezierMirror {
     // Method to calculate a point on the Bezier curve
     fn calculate_point(&self, t: f32) -> Point<f32, DIM> {
         let mut point: Point<f32, DIM> = Point::origin();
@@ -43,6 +47,36 @@ impl BezierMirror {
         }
 
         tangent.normalize()
+    }
+
+    fn from_json(json: &serde_json::Value) -> Self {
+        /* example json
+        {
+            "control_points": [
+                [1.0, 2.0, 3.0, ...],
+                [4.0, 5.0, 6.0, ...],
+                [7.0, 8.0, 9.0, ...],
+                ...
+            ]
+        }
+         */
+        let control_points = json["control_points"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|point| {
+                let point = point
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_f64().unwrap() as f32)
+                    .collect::<Vec<_>>();
+
+                Point::from_slice(&point)
+            })
+            .collect::<Vec<_>>();
+
+        Self { control_points }
     }
 }
 
