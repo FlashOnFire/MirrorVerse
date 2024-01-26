@@ -1,3 +1,4 @@
+mod bezier_mirror;
 mod mirror;
 mod ray;
 mod state;

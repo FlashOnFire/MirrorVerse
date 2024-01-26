@@ -3,19 +3,6 @@
 version = 3
 
 [[package]]
-name = "MirrorVerse"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "env_logger",
- "log",
- "nalgebra",
- "pollster",
- "wgpu",
- "winit",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,6 +867,19 @@ dependencies = [
  "log",
  "objc",
  "paste",
+]
+
+[[package]]
+name = "mirror_verse"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "log",
+ "nalgebra",
+ "pollster",
+ "wgpu",
+ "winit",
 ]
 
 [[package]]
