@@ -1,3 +1,5 @@
+mod mirror;
+mod ray;
 mod state;
 mod structs;
 
@@ -9,6 +11,8 @@ use winit::event_loop::EventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::platform::x11::WindowBuilderExtX11;
 use winit::window::WindowBuilder;
+
+const DIM: usize = 2;
 
 fn main() {
     run().block_on();
