@@ -34,17 +34,25 @@
       });
     in
     {
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell {
+      devShells = forEachSupportedSystem ({ pkgs }:
+        let
           packages = with pkgs; [
-            rustToolchain
-            openssl
-            pkg-config
-            cargo-deny
-            cargo-edit
-            cargo-watch
-            rust-analyzer
+          rustToolchain
+          openssl
+          pkg-config
+          cargo-deny
+          cargo-edit
+          cargo-watch
+          rust-analyzer
+          libxkbcommon
+          libGL
+          wayland
           ];
+        in
+       {
+        default = pkgs.mkShell {
+          inherit packages;
+          LD_LIBRARY_PATH = "${nixpkgs.lib.makeLibraryPath packages}";
         };
       });
     };
