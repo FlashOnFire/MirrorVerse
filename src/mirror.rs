@@ -3,7 +3,7 @@ use nalgebra::Point;
 use crate::{ray::Ray, DIM};
 
 trait Mirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray>;
+    fn reflect(&self, ray: Ray) -> Vec<Ray>;
 }
 
 struct CompositeMirror {
@@ -11,9 +11,9 @@ struct CompositeMirror {
 }
 
 impl Mirror for CompositeMirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray> {
+    fn reflect(&self, ray: Ray) -> Vec<Ray> {
         // use the other mirror to reflect the ray
-        Some(Ray { ..ray })
+        vec![]
     }
 }
 
@@ -23,8 +23,8 @@ struct PlaneMirror {
 }
 
 impl Mirror for PlaneMirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray> {
-        Some(Ray { ..ray })
+    fn reflect(&self, ray: Ray) -> Vec<Ray> {
+        vec![Ray { ..ray }]
     }
 }
 
@@ -35,7 +35,7 @@ struct SphereMirror {
 }
 
 impl Mirror for SphereMirror {
-    fn reflect(&self, ray: Ray) -> Option<Ray> {
-        Some(Ray { ..ray })
+    fn reflect(&self, ray: Ray) -> Vec<Ray> {
+        vec![Ray { ..ray }]
     }
 }
