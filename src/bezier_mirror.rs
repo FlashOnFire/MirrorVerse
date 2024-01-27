@@ -240,9 +240,9 @@ mod tests {
     fn test_from_json() {
         let json = serde_json::json!({
             "control_points": [
-                [1.0, 2.0, 3.0],
-                [4.0, 5.0, 6.0],
-                [7.0, 8.0, 9.0],
+                complete_with_0(vec![1.0, 2.0, 3.0]),
+                complete_with_0(vec![4.0, 5.0, 6.0]),
+                    complete_with_0(vec![7.0, 8.0, 9.0]),
             ]
         });
         assert_eq!(
