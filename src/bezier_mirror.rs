@@ -13,6 +13,9 @@ impl Mirror for BezierMirror {
         // use the other mirror to reflect the ray
         vec![]
     }
+    fn get_type(&self) -> String {
+        "bezier".to_string()
+    }
 }
 
 impl BezierMirror {

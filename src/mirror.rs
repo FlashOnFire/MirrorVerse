@@ -4,6 +4,7 @@ use crate::{ray::Ray, DIM};
 
 pub trait Mirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)>;
+    fn get_type(&self) -> String;
 }
 
 struct CompositeMirror {
@@ -14,6 +15,9 @@ impl Mirror for CompositeMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
         // use the other mirror to reflect the ray
         vec![]
+    }
+    fn get_type(&self) -> String {
+        "composite".to_string()
     }
 }
 
@@ -68,6 +72,9 @@ impl Mirror for PlaneMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
         vec![]
     }
+    fn get_type(&self) -> String {
+        "plane".to_string()
+    }
 }
 
 impl PlaneMirror {
@@ -119,6 +126,9 @@ impl Mirror for SphereMirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
         vec![]
     }
+    fn get_type(&self) -> String {
+        "sphere".to_string()
+    }
 }
 
 impl SphereMirror {
@@ -144,8 +154,11 @@ impl SphereMirror {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
+    use std::any::Any;
+
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
@@ -196,4 +209,31 @@ mod tests {
 
     #[test]
     fn test_sphere_mirror_reflect() {}
+
+    #[test]
+    fn test_composite_mirror_from_json() {
+        let json = serde_json::json!({
+            "mirrors": [
+                {
+                    "type": "plane",
+                    "points": [
+                        complete_with_0(vec![1.0, 2.0]),
+                        complete_with_0(vec![3.0, 4.0]),
+                    ]
+                },
+                {
+                    "type": "sphere",
+                    "center": complete_with_0(vec![5.0, 6.0]),
+                    "radius": 7.0
+                },
+            ]
+        });
+
+        let mirror = CompositeMirror::from_json(&json);
+
+        assert_eq!(mirror.mirrors.len(), 2);
+        //check the first is a plane mirror
+        assert_eq!(mirror.mirrors[0].get_type(), "plane");
+        assert_eq!(mirror.mirrors[1].get_type(), "sphere");
+    }
 }
