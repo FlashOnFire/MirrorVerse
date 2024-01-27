@@ -144,3 +144,56 @@ impl SphereMirror {
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
+        vec.resize(DIM, 0.0);
+        vec
+    }
+
+    #[test]
+    fn test_plane_mirror_from_json() {
+        let json = serde_json::json!({
+            "points": [
+                complete_with_0(vec![1.0, 2.0]),
+                complete_with_0(vec![3.0, 4.0]),
+            ]
+        });
+
+        let mirror = PlaneMirror::from_json(&json);
+
+        assert_eq!(
+            mirror.points[0],
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
+        );
+        assert_eq!(
+            mirror.points[1],
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![3.0, 4.0]))
+        );
+    }
+
+    #[test]
+    fn test_plane_mirror_reflect() {}
+
+    #[test]
+    fn test_sphere_mirror_from_json() {
+        println!("oucou");
+        let json = serde_json::json!({
+            "center": complete_with_0(vec![1.0, 2.0]),
+            "radius": 4.0
+        });
+
+        let mirror = SphereMirror::from_json(&json);
+
+        assert_eq!(
+            mirror.center,
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
+        );
+        assert_eq!(mirror.radius, 4.0);
+    }
+
+    #[test]
+    fn test_sphere_mirror_reflect() {}
+}
