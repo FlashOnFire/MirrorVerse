@@ -1,59 +1,47 @@
 {
-  description = "A Nix-flake-based Rust development environment";
-
   inputs = {
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+    nixpkgs.url = "nixpkgs";
+
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, rust-overlay }:
-    let
-      overlays = [
-        rust-overlay.overlays.default
-        (final: prev: {
-          rustToolchain =
-            let
-              rust = prev.rust-bin;
-            in
-            if builtins.pathExists ./rust-toolchain.toml then
-              rust.fromRustupToolchainFile ./rust-toolchain.toml
-            else if builtins.pathExists ./rust-toolchain then
-              rust.fromRustupToolchainFile ./rust-toolchain
-            else
-              rust.stable.latest.default.override {
-                extensions = [ "rust-src" "rustfmt" ];
-              };
-        })
-      ];
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      forEachSupportedSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f {
-        pkgs = import nixpkgs { inherit overlays system; };
-      });
-    in
-    {
-      devShells = forEachSupportedSystem ({ pkgs }:
-        let
-          packages = with pkgs; [
-          rustToolchain
-          openssl
-          pkg-config
-          cargo-deny
-          cargo-edit
-          cargo-watch
-          rust-analyzer
-          libxkbcommon
-          libGL
-          wayland
-          ];
-        in
-       {
-        default = pkgs.mkShell {
-          inherit packages;
-          LD_LIBRARY_PATH = "${nixpkgs.lib.makeLibraryPath packages}";
+  outputs = {
+    self,
+    nixpkgs,
+    flake-parts,
+    rust-overlay,
+    ...
+  } @ inputs:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
+
+      perSystem = {lib, system, ...}: let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [(import rust-overlay)];
         };
-      });
+      in {
+        devShells.default = with pkgs; pkgs.mkShell {
+          buildInputs = [
+            (rust-bin.stable.latest.default.override {
+              extensions = ["rust-analyzer" "rust-src"];
+            })
+          ];
+
+          LD_LIBRARY_PATH = lib.makeLibraryPath [
+            vulkan-loader libxkbcommon wayland
+          ];
+        };
+
+        formatter = pkgs.alejandra;
+      };
     };
 }
