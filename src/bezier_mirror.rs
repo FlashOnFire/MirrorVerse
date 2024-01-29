@@ -102,8 +102,6 @@ fn binomial_coefficient(n: usize, k: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
