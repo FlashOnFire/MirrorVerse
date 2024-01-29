@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use nalgebra::{Point3, Vector3};
 use wgpu::util::DeviceExt;
 use wgpu::{
     CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits,
@@ -8,12 +9,13 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 use crate::structs::{Vertex, INDICES, VERTICES};
+use crate::camera::{Camera, CameraUniform};
 
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
+    config: SurfaceConfiguration,
     pub(crate) size: winit::dpi::PhysicalSize<u32>,
     window: Arc<Window>,
     render_pipeline: wgpu::RenderPipeline,
@@ -23,6 +25,11 @@ pub struct State<'a> {
 
     index_buffer: wgpu::Buffer,
     num_indices: u32,
+
+    camera: Camera,
+    camera_uniform: CameraUniform,
+    camera_buffer: wgpu::Buffer,
+    camera_bind_group: wgpu::BindGroup,
 }
 
 impl<'a> State<'a> {
@@ -77,10 +84,60 @@ impl<'a> State<'a> {
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
+        let camera = Camera {
+            eye: Point3::new(0.0, 1.0, 2.0),
+            target: Point3::new(0.0, 0.0, 0.0),
+            up: Vector3::y(),
+            aspect: config.width as f32 / config.height as f32,
+            fovy: 45.0,
+            znear: 0.1,
+            zfar: 100.0,
+        };
+
+        let mut camera_uniform = CameraUniform::new();
+        camera_uniform.update_view_proj(&camera);
+
+        let camera_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Camera Buffer"),
+                contents: bytemuck::cast_slice(&[camera_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("camera_bind_group_layout"),
+        });
+
+        let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: camera_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("camera_bind_group"),
+        });
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &[
+                    &camera_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -134,6 +191,7 @@ impl<'a> State<'a> {
         });
         let num_indices = INDICES.len() as u32;
 
+
         Self {
             surface,
             device,
@@ -146,6 +204,10 @@ impl<'a> State<'a> {
             num_vertices,
             index_buffer,
             num_indices,
+            camera,
+            camera_uniform,
+            camera_buffer,
+            camera_bind_group
         }
     }
 
@@ -203,8 +265,9 @@ impl<'a> State<'a> {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16); // 1.
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..self.num_indices, 0, 0..1); // 2.
         }
 
