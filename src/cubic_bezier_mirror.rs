@@ -188,7 +188,7 @@ mod tests {
             ],
         };
 
-        let mut file = std::fs::File::create("bezier.csv").unwrap();
+        let mut file = std::fs::File::create("points.csv").unwrap();
         for i in 0..100 {
             let t = i as f32 / 100.0;
             let point = bezier_mirror.calculate_point(t);
