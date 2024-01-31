@@ -1,9 +1,10 @@
 mod bezier_mirror;
+mod camera;
+mod cubic_bezier_mirror;
 mod mirror;
 mod ray;
 mod state;
 mod structs;
-mod camera;
 
 use crate::state::State;
 use pollster::FutureExt;
