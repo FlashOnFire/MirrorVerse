@@ -2,11 +2,13 @@ use super::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlaneMirror<const D: usize = DIM> {
+    // TODO: this should probably be a Vec of points
     points: [Point<f32, D>; D],
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+        // TODO: implement plane reflection
         vec![]
     }
     fn get_type(&self) -> &str {

@@ -1,13 +1,15 @@
 use super::*;
 use std::io::Write;
 
+// TODO: fix bezier mirror implementations
+
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {
     control_points: Vec<Point<f32, DIM>>,
 }
 
 impl Mirror for BezierMirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Plane)> {
+    fn reflect(&self, ray: &Ray) -> Vec<(f32, Plane)> {
         vec![]
     }
     fn get_type(&self) -> &str {

@@ -1,5 +1,8 @@
 use super::*;
 
+// TODO: explore the possbility of using generalising the definition
+// of a sphere to other p-norms (for strictly positive p)
+
 #[derive(Clone, Copy)]
 pub struct SphereMirror<const D: usize = DIM> {
     center: Point<f32, D>,
@@ -7,7 +10,8 @@ pub struct SphereMirror<const D: usize = DIM> {
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+        // TODO: implement spherical mirror reflection
         vec![]
     }
 
