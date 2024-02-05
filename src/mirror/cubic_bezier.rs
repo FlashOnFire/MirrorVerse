@@ -184,7 +184,8 @@ mod tests {
         );
     }
 
-    #[test]
+    // this test is only relevant if crate::DIM == 3
+    // #[test]
     fn test_ease_in_out_point_3d() {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
