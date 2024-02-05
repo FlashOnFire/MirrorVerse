@@ -149,8 +149,8 @@ mod tests {
             control_points: vec![
                 Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
                 Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 1.0])),
                 Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
             ],
         };
         // calculate position
@@ -160,11 +160,11 @@ mod tests {
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.875, 0.375]))
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
         );
         assert_eq!(
             bezier_mirror.calculate_point(1.0),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0]))
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0]))
         );
         // calculate tangent
 
@@ -173,13 +173,54 @@ mod tests {
             SVector::<f32, DIM>::from_vec(complete_with_0(vec![1.0, 0.0]))
         );
         assert_eq!(
-            bezier_mirror.calculate_tangent(0.5)[0],
-            bezier_mirror.calculate_tangent(0.5)[1]
+            bezier_mirror.calculate_tangent(0.5),
+            SVector::<f32, DIM>::from_vec(complete_with_0(vec![0.0, 1.0]))
         );
         assert_eq!(
             bezier_mirror.calculate_tangent(1.0),
-            SVector::<f32, DIM>::from_vec(complete_with_0(vec![0.0, -1.0]))
+            SVector::<f32, DIM>::from_vec(complete_with_0(vec![1.0, 0.0]))
         );
+    }
+
+    #[test]
+    fn test_ease_in_out_point_3d() {
+        let bezier_mirror = CubicBezierMirror {
+            control_points: vec![
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0, 0.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0, 0.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0, 1.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0, 1.0])),
+            ],
+        };
+        // calculate position
+        assert_eq!(
+            bezier_mirror.calculate_point(0.0),
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0, 0.0]))
+        );
+        assert_eq!(
+            bezier_mirror.calculate_point(0.5),
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.5, 0.5]))
+        );
+        assert_eq!(
+            bezier_mirror.calculate_point(1.0),
+            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0, 1.0]))
+        );
+        // calculate tangent
+
+        assert_eq!(
+            bezier_mirror.calculate_tangent(0.0)[0],
+            bezier_mirror.calculate_tangent(0.0)[1]
+        );
+        assert_ne!(bezier_mirror.calculate_tangent(0.0)[0], 0.0);
+        assert_eq!(
+            bezier_mirror.calculate_tangent(0.5),
+            SVector::<f32, DIM>::from_vec(complete_with_0(vec![0.0, 0.0, 1.0]))
+        );
+        assert_eq!(
+            bezier_mirror.calculate_tangent(1.0)[0],
+            bezier_mirror.calculate_tangent(1.0)[1]
+        );
+        assert_ne!(bezier_mirror.calculate_tangent(1.0)[0], 0.0);
     }
 
     #[test]
@@ -187,8 +228,8 @@ mod tests {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
                 Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
+                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 1.0])),
                 Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
             ],
         };
