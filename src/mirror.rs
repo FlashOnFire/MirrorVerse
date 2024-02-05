@@ -9,64 +9,81 @@ use crate::DIM;
 
 /// A light ray
 pub struct Ray<const D: usize = DIM> {
-    /// current position of the ray
+    /// Current position of the ray
     pub origin: Point<f32, D>,
-    /// current direction of the ray
+    /// Current direction of the ray
     pub direction: Unit<SVector<f32, D>>,
 }
 
 /// An up to N-1-dimensional, affine euclidean space
 pub struct Plane<const D: usize = DIM> {
-    /// the first element of this array is the plane's "starting point" (i. e. v_0)
-    /// the remaining N-1 vectors are a set spanning it's associated subspace
-    /// Note that an expression like `[T ; N - 1]``
+    /// The first element of this array is the plane's "starting point" (i. e. v_0).
+    /// The remaining N-1 vectors are a family spanning it's associated subspace.
+    /// 
+    /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
     vectors: [SVector<f32, D>; D],
 }
 
+// Important Note: this implementation is only valid of D >= 2.
 impl<const D: usize> Plane<D> {
-    /// the plane's starting point
-    fn v_0(&self) -> &SVector<f32, D> {
+    /// The plane's starting point
+    pub fn v_0(&self) -> &SVector<f32, D> {
         self.vectors.first().unwrap()
     }
-    /// a reference to the stored basis of the plane's associated hyperplane
-    fn spanning_set(&self) -> &[SVector<f32, D>] {
+    /// A mutable reference to the plane's starting point
+    pub fn v_0_mut(&mut self) -> &mut SVector<f32, D> {
+        self.vectors.first_mut().unwrap()
+    }
+    /// A reference to the stored basis of the plane's associated hyperplane
+    pub fn spanning_set(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
-    /// a mutable reference to the stored basis of the plane's associated hyperplane
-    fn spanning_set_mut(&mut self) -> &mut [SVector<f32, D>] {
+    /// A mutable reference to the stored basis of the plane's associated hyperplane
+    pub fn spanning_set_mut(&mut self) -> &mut [SVector<f32, D>] {
         &mut self.vectors[1..]
     }
-    /// orthonormalize the plane's spanning set, returns a reference to it if
-    /// the size of it's largest free family of vectors is exactly N-1
-    fn orthonormalize_spanning_set(&mut self) -> Option<&[SVector<f32, D>]> {
-        (SVector::orthonormalize(self.spanning_set_mut()) == D - 1).then_some(self.spanning_set())
+    /// Orthonormalize the plane's spanning set, Returns
+    /// a reference to it's (orthonormalised) largest free family
+    pub fn orthonormalize_spanning_set(&mut self) -> &[SVector<f32, D>] {
+        let n = SVector::orthonormalize(self.spanning_set_mut());
+        &self.spanning_set()[..n]
+    }
+    /// Project a vector using the orthonormal basis projection formula.
+    /// 
+    /// Assumes `b` is an orthonormal family. If such isn't
+    /// the case, the result is unspecified.
+    pub fn orthogonal_projection(v: SVector<f32, D>, b: &[SVector<f32, D>]) -> SVector<f32, D> {
+        b.iter().map(|e| v.dot(e) * e).sum()
     }
 }
 
 pub trait Mirror<const D: usize = DIM> {
-    /// returns a brightness gain and a plane
+    /// Returns a brightness gain and a plane
     /// the laser is expected to:
     ///     - move forward until it intersects the plane
     ///     - adjust it's brightness according to the provided gain value
     ///     - orthognoally reflect it's direction vector with
     ///       repect to the plane's hyperplane/subspace
-    /// returns None if the laser doesn't interact with the mirror
+    ///
+    /// Returns None if the laser doesn't interact with the mirror
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)>;
-    /// returns a string slice, unique to the type
+    /// Returns a string slice, unique to the type
     /// (or inner type if type-erased) and coherent with it's json representation
     // TODO: should this be 'static ?
     fn get_type(&self) -> &str;
-    /// deserialises the mirror's data from the provided json string, returns None in case of error
+    /// Deserialises the mirror's data from the provided json string, returns None in case of error
     // TODO: use Result
     fn from_json(json: &serde_json::Value) -> Option<Self>
     where
         Self: Sized;
 }
 
-// Surprisingly doesn't break the orphan rules, because Box is #[fundamental]
-// Note that T is implicitly Sized
-// this impl might not be necessary for the time being
+// Surprisingly doesn't break the orphan rules, because `Box`` is `#[fundamental]``
+//
+// Note that `T`` is implicitly `Sized``
+//
+// This impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
