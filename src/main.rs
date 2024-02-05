@@ -1,5 +1,4 @@
 mod mirror;
-mod ray;
 mod render;
 
 use pollster::FutureExt;

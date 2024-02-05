@@ -1,6 +1,7 @@
 use nalgebra::{Point, SMatrix, SVector, Unit};
 
-use crate::{mirror::Mirror, ray::Ray, DIM};
+use super::{Mirror, Ray};
+use crate::DIM;
 
 pub struct CubicBezierMirror {
     control_points: Vec<Point<f32, DIM>>,
@@ -13,6 +14,41 @@ impl Mirror for CubicBezierMirror {
     }
     fn get_type(&self) -> String {
         "cubicBezier".to_string()
+    }
+
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        /* example json
+        {
+            "control_points": [
+                [1.0, 2.0, 3.0, ...],
+                [4.0, 5.0, 6.0, ...],
+                [7.0, 8.0, 9.0, ...],
+                ...
+            ]
+        }
+         */
+        let control_points = json
+            .get("control_points")?
+            .as_array()?
+            .iter()
+            .filter_map(|point| {
+                let point: [_; DIM] = point
+                    .as_array()?
+                    .iter()
+                    .filter_map(serde_json::Value::as_f64)
+                    .map(|val| val as f32)
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .ok()?;
+
+                Some(Point::from_slice(&point))
+            })
+            .collect();
+
+        Some(Self { control_points })
     }
 }
 
@@ -71,36 +107,6 @@ impl CubicBezierMirror {
 
         //divise all the components by the pgcd
         result.normalize()
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self {
-        /* example json
-        {
-            "control_points": [
-                [1.0, 2.0, 3.0, ...],
-                [4.0, 5.0, 6.0, ...],
-                [7.0, 8.0, 9.0, ...],
-                ...
-            ]
-        }
-         */
-        let control_points = json["control_points"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|point| {
-                let point = point
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|value| value.as_f64().unwrap() as f32)
-                    .collect::<Vec<_>>();
-
-                Point::from_slice(&point)
-            })
-            .collect::<Vec<_>>();
-
-        Self { control_points }
     }
 }
 
@@ -206,7 +212,8 @@ mod tests {
             ]
         });
 
-        let bezier_mirror = CubicBezierMirror::from_json(&json);
+        let bezier_mirror =
+            CubicBezierMirror::from_json(&json).expect("json deserialisation failed");
 
         assert_eq!(bezier_mirror.control_points.len(), 3);
         assert_eq!(

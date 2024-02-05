@@ -1,6 +1,8 @@
-use crate::{mirror::Mirror, ray::Ray, DIM};
+use crate::{
+    mirror::{Mirror, Ray},
+    DIM,
+};
 use nalgebra::{Point, SMatrix, SVector, Unit};
-use std::io::Write;
 
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {
@@ -14,6 +16,41 @@ impl Mirror for BezierMirror {
     }
     fn get_type(&self) -> String {
         "bezier".to_string()
+    }
+
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        /* example json
+        {
+            "control_points": [
+                [1.0, 2.0, 3.0, ...],
+                [4.0, 5.0, 6.0, ...],
+                [7.0, 8.0, 9.0, ...],
+                ...
+            ]
+        }
+         */
+        let control_points = json
+            .get("control_points")?
+            .as_array()?
+            .iter()
+            .filter_map(|point| {
+                let point: [_; DIM] = point
+                    .as_array()?
+                    .iter()
+                    .filter_map(serde_json::Value::as_f64)
+                    .map(|val| val as f32)
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .ok()?;
+
+                Some(Point::from_slice(&point))
+            })
+            .collect();
+
+        Some(Self { control_points })
     }
 }
 
@@ -51,36 +88,6 @@ impl BezierMirror {
         }
 
         tangent.normalize()
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self {
-        /* example json
-        {
-            "control_points": [
-                [1.0, 2.0, 3.0, ...],
-                [4.0, 5.0, 6.0, ...],
-                [7.0, 8.0, 9.0, ...],
-                ...
-            ]
-        }
-         */
-        let control_points = json["control_points"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|point| {
-                let point = point
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|value| value.as_f64().unwrap() as f32)
-                    .collect::<Vec<_>>();
-
-                Point::from_slice(&point)
-            })
-            .collect::<Vec<_>>();
-
-        Self { control_points }
     }
 }
 
@@ -246,7 +253,8 @@ mod tests {
             ]
         });
         assert_eq!(
-            BezierMirror::from_json(&serde_json::to_value(json).unwrap()),
+            BezierMirror::from_json(&serde_json::to_value(json).unwrap())
+                .expect("json deserialisation failed"),
             BezierMirror {
                 control_points: vec![
                     Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0, 3.0])),

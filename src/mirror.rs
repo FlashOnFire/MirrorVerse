@@ -1,36 +1,117 @@
-use nalgebra::{Point, SMatrix, Unit, SVector};
+use nalgebra::{Point, SMatrix, SVector, Unit};
 
 pub mod bezier;
 pub mod cubic_bezier;
+pub mod plane;
+pub mod sphere;
 
 use crate::DIM;
 
-pub struct Ray {
-    pub origin: Point<f32, DIM>,
-    pub direction: Unit<SVector<f32, DIM>>,
+/// A light ray
+pub struct Ray<const D: usize = DIM> {
+    /// current position of the ray
+    pub origin: Point<f32, D>,
+    /// current direction of the ray
+    pub direction: Unit<SVector<f32, D>>,
 }
 
-pub trait Mirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)>;
+/// An up to N-1-dimensional, affine euclidean space
+pub struct Plane<const D: usize = DIM> {
+    /// the first element of this array is the plane's "starting point" (i. e. v_0)
+    /// the remaining N-1 vectors are a set spanning it's associated subspace
+    /// Note that an expression like `[T ; N - 1]``
+    /// is locked under `#[feature(const_generic_exprs)]`
+    vectors: [SVector<f32, D>; D],
+}
+
+impl<const D: usize> Plane<D> {
+    /// the plane's starting point
+    fn v_0(&self) -> &SVector<f32, D> {
+        self.vectors.first().unwrap()
+    }
+    /// a reference to the stored basis of the plane's associated hyperplane
+    fn spanning_set(&self) -> &[SVector<f32, D>] {
+        &self.vectors[1..]
+    }
+    /// a mutable reference to the stored basis of the plane's associated hyperplane
+    fn spanning_set_mut(&mut self) -> &mut [SVector<f32, D>] {
+        &mut self.vectors[1..]
+    }
+    /// orthonormalize the plane's spanning set, returns a reference to it if
+    /// the size of it's largest free family of vectors is exactly N-1
+    fn orthonormalize_spanning_set(&mut self) -> Option<&[SVector<f32, D>]> {
+        (SVector::orthonormalize(self.spanning_set_mut()) == D - 1).then_some(self.spanning_set())
+    }
+}
+
+pub trait Mirror<const D: usize = DIM> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)>;
     fn get_type(&self) -> String;
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized;
 }
 
-struct CompositeMirror {
-    mirrors: Vec<Box<dyn Mirror>>,
+impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
+        self.as_ref().reflect(ray)
+    }
+
+    fn get_type(&self) -> String {
+        self.as_ref().get_type()
+    }
+
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        T::from_json(json).map(Box::new)
+    }
 }
 
-impl Mirror for CompositeMirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
+impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
+        self.as_ref().reflect(ray)
+    }
+
+    fn get_type(&self) -> String {
+        self.as_ref().get_type()
+    }
+
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let mirror_type = json.get("type")?.as_str()?;
+
+        match mirror_type {
+            "plane" => plane::PlaneMirror::<D>::from_json(json)
+                .map(|mirror| Box::new(mirror) as Box<dyn Mirror<D>>),
+            "sphere" => {
+                sphere::SphereMirror::<D>::from_json(json).map(|mirror| Box::new(mirror) as _)
+            }
+            _ => None,
+        }
+    }
+}
+
+struct CompositeMirror<T: Mirror<D>, const D: usize = DIM> {
+    mirrors: Vec<T>,
+}
+
+impl<const D: usize, T: Mirror<D>> Mirror<D> for CompositeMirror<T, D> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
         // use the other mirror to reflect the ray
         vec![]
     }
     fn get_type(&self) -> String {
         "composite".to_string()
     }
-}
 
-impl CompositeMirror {
-    fn from_json(json: &serde_json::Value) -> Self {
+    fn from_json(json: &serde_json::Value) -> Option<Self>
+    where
+        Self: Sized,
+    {
         /* example json
         {
             "mirrors": [
@@ -52,194 +133,17 @@ impl CompositeMirror {
             ]
         }
          */
-        let mirrors = json["mirrors"]
-            .as_array()
-            .unwrap()
+
+        // TODO: return a Result with clearer errors
+
+        // fail if the deserialisation of _one_ mirror fails
+        let mirrors = json
+            .get("mirrors")?
+            .as_array()?
             .iter()
-            .map(|mirror| {
-                let mirror_type = mirror["type"].as_str().unwrap();
+            .filter_map(T::from_json)
+            .collect();
 
-                match mirror_type {
-                    "plane" => Box::new(PlaneMirror::from_json(mirror)),
-                    "sphere" => Box::new(SphereMirror::from_json(mirror)) as Box<dyn Mirror>,
-                    _ => panic!("Unknown mirror type: {}", mirror_type),
-                }
-            })
-            .collect::<Vec<_>>();
-
-        Self { mirrors }
-    }
-}
-
-#[derive(Clone, Copy)]
-struct PlaneMirror {
-    points: [Point<f32, DIM>; DIM],
-}
-
-impl Mirror for PlaneMirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
-        vec![]
-    }
-    fn get_type(&self) -> String {
-        "plane".to_string()
-    }
-}
-
-impl PlaneMirror {
-    fn from_json(json: &serde_json::Value) -> Self {
-        /* example json
-        {
-            "points": [
-                [1.0, 2.0, 3.0, ...],
-                [4.0, 5.0, 6.0, ...],
-                [7.0, 8.0, 9.0, ...],
-                ...
-            ]
-        }
-         */
-        let points = json["points"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|point| {
-                let point = point
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|value| value.as_f64().unwrap() as f32)
-                    .collect::<Vec<_>>();
-
-                Point::from_slice(&point)
-            })
-            .collect::<Vec<_>>();
-
-        let mut mirror_points = [Point::origin(); DIM];
-        for (i, point) in points.iter().enumerate() {
-            mirror_points[i] = *point;
-        }
-
-        Self {
-            points: mirror_points,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-struct SphereMirror {
-    center: Point<f32, DIM>,
-    radius: f32,
-}
-
-impl Mirror for SphereMirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
-        vec![]
-    }
-    fn get_type(&self) -> String {
-        "sphere".to_string()
-    }
-}
-
-impl SphereMirror {
-    fn from_json(json: &serde_json::Value) -> Self {
-        /* example json
-        {
-            "center": [1.0, 2.0, 3.0],
-            "radius": 4.0
-        }
-         */
-        let center = json["center"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|value| value.as_f64().unwrap() as f32)
-            .collect::<Vec<_>>();
-
-        let radius = json["radius"].as_f64().unwrap() as f32;
-
-        Self {
-            center: Point::from_slice(&center),
-            radius,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DIM, 0.0);
-        vec
-    }
-
-    #[test]
-    fn test_plane_mirror_from_json() {
-        let json = serde_json::json!({
-            "points": [
-                complete_with_0(vec![1.0, 2.0]),
-                complete_with_0(vec![3.0, 4.0]),
-            ]
-        });
-
-        let mirror = PlaneMirror::from_json(&json);
-
-        assert_eq!(
-            mirror.points[0],
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
-        );
-        assert_eq!(
-            mirror.points[1],
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![3.0, 4.0]))
-        );
-    }
-
-    #[test]
-    fn test_plane_mirror_reflect() {}
-
-    #[test]
-    fn test_sphere_mirror_from_json() {
-        println!("oucou");
-        let json = serde_json::json!({
-            "center": complete_with_0(vec![1.0, 2.0]),
-            "radius": 4.0
-        });
-
-        let mirror = SphereMirror::from_json(&json);
-
-        assert_eq!(
-            mirror.center,
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
-        );
-        assert_eq!(mirror.radius, 4.0);
-    }
-
-    #[test]
-    fn test_sphere_mirror_reflect() {}
-
-    #[test]
-    fn test_composite_mirror_from_json() {
-        let json = serde_json::json!({
-            "mirrors": [
-                {
-                    "type": "plane",
-                    "points": [
-                        complete_with_0(vec![1.0, 2.0]),
-                        complete_with_0(vec![3.0, 4.0]),
-                    ]
-                },
-                {
-                    "type": "sphere",
-                    "center": complete_with_0(vec![5.0, 6.0]),
-                    "radius": 7.0
-                },
-            ]
-        });
-
-        let mirror = CompositeMirror::from_json(&json);
-
-        assert_eq!(mirror.mirrors.len(), 2);
-        //check the first is a plane mirror
-        assert_eq!(mirror.mirrors[0].get_type(), "plane");
-        assert_eq!(mirror.mirrors[1].get_type(), "sphere");
+        Some(Self { mirrors })
     }
 }
