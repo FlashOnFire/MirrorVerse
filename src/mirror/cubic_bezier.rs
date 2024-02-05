@@ -5,8 +5,8 @@ pub struct CubicBezierMirror {
 }
 
 impl Mirror for CubicBezierMirror {
-    fn reflect(&self, ray: Ray) -> Option<(f32, Plane)> {
-        None
+    fn reflect(&self, ray: Ray) -> Vec<(f32, Plane)> {
+        vec![]
     }
     fn get_type(&self) -> &str {
         "cubicBezier"

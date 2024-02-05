@@ -7,8 +7,8 @@ pub struct SphereMirror<const D: usize = DIM> {
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
-    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
-        None
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
+        vec![]
     }
 
     fn get_type(&self) -> &str {

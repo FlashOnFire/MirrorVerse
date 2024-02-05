@@ -8,6 +8,7 @@ pub mod sphere;
 use crate::DIM;
 
 /// A light ray
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray<const D: usize = DIM> {
     /// Current position of the ray
     pub origin: Point<f32, D>,
@@ -59,15 +60,23 @@ impl<const D: usize> Plane<D> {
 }
 
 pub trait Mirror<const D: usize = DIM> {
-    /// Returns a brightness gain and a plane
-    /// the laser is expected to:
-    ///     - move forward until it intersects the plane
-    ///     - adjust it's brightness according to the provided gain value
-    ///     - orthognoally reflect it's direction vector with
-    ///       repect to the plane's hyperplane/subspace
+    /// Returns a set of brightness gains and planes, in no particular order.
+    /// 
+    /// The laser is expected to "bounce" off the closest plane.
+    /// 
+    /// Here, "bounce" refers to the process of:
+    ///     - moving forward until it intersects the plane
+    ///     - adjusting it's brightness according to the provided gain value
+    ///     - then, orthognoally reflecting it's direction vector with
+    ///       respect to the plane's hyperplane/subspace
     ///
-    /// Returns None if the laser doesn't interact with the mirror
-    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)>;
+    /// Returns an empty list if the vector doesn't intersect with the mirror.
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)>;
+    /// An optimised version of `Self::reflect` that potentially saves
+    /// an allocation by writing into another `Vec`. Override this if needed.
+    fn append_reflections(&self, ray: Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+        list.append(&mut self.reflect(ray))
+    }
     /// Returns a string slice, unique to the type
     /// (or inner type if type-erased) and coherent with it's json representation
     // TODO: should this be 'static ?
@@ -85,7 +94,7 @@ pub trait Mirror<const D: usize = DIM> {
 //
 // This impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
-    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
     }
 
@@ -102,7 +111,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
     }
 
@@ -128,8 +137,15 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
-        None
+
+    fn append_reflections(&self, ray: Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+        self.iter().for_each(|mirror| mirror.append_reflections(ray, list));
+    }
+
+    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Plane<D>)> {
+        let mut list = vec![];
+        self.append_reflections(ray, &mut list);
+        list
     }
 
     fn get_type(&self) -> &str {

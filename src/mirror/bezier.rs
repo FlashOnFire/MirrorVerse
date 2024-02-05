@@ -7,8 +7,8 @@ pub struct BezierMirror {
 }
 
 impl Mirror for BezierMirror {
-    fn reflect(&self, ray: Ray) -> Option<(f32, Plane)> {
-        None
+    fn reflect(&self, ray: Ray) -> Vec<(f32, Plane)> {
+        vec![]
     }
     fn get_type(&self) -> &str {
         "bezier"
