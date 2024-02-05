@@ -45,13 +45,28 @@ impl<const D: usize> Plane<D> {
 }
 
 pub trait Mirror<const D: usize = DIM> {
+    /// returns a brightness gain and a plane
+    /// the laser is expected to:
+    ///     - move forward until it intersects the plane
+    ///     - adjust it's brightness according to the provided gain value
+    ///     - orthognoally reflect it's direction vector with
+    ///       repect to the plane's hyperplane/subspace
+    /// returns None if the laser doesn't interact with the mirror
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)>;
+    /// returns a string slice, unique to the type
+    /// (or inner type if type-erased) and coherent with it's json representation
+    // TODO: should this be 'static ?
     fn get_type(&self) -> &str;
+    /// deserialises the mirror's data from the provided json string, returns None in case of error
+    // TODO: use Result
     fn from_json(json: &serde_json::Value) -> Option<Self>
     where
         Self: Sized;
 }
 
+// Surprisingly doesn't break the orphan rules, because Box is #[fundamental]
+// Note that T is implicitly Sized
+// this impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
@@ -101,7 +116,6 @@ struct CompositeMirror<T: Mirror<D>, const D: usize = DIM> {
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for CompositeMirror<T, D> {
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
-        // use the other mirror to reflect the ray
         None
     }
     fn get_type(&self) -> &str {
