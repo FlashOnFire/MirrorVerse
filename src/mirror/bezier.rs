@@ -1,5 +1,4 @@
 use super::*;
-use std::io::Write;
 
 // TODO: fix bezier mirror implementations
 
@@ -111,6 +110,7 @@ fn binomial_coefficient(n: usize, k: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
         vec.resize(DIM, 0.0);
