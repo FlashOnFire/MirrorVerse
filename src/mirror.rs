@@ -52,7 +52,7 @@ impl CompositeMirror {
                 let mirror_type = mirror["type"].as_str().unwrap();
 
                 match mirror_type {
-                    "plane" => Box::new(PlaneMirror::from_json(mirror)) as Box<dyn Mirror>,
+                    "plane" => Box::new(PlaneMirror::from_json(mirror)),
                     "sphere" => Box::new(SphereMirror::from_json(mirror)) as Box<dyn Mirror>,
                     _ => panic!("Unknown mirror type: {}", mirror_type),
                 }
