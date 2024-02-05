@@ -76,32 +76,4 @@ mod tests {
 
     #[test]
     fn test_sphere_mirror_reflect() {}
-
-    #[test]
-    fn test_composite_mirror_from_json() {
-        let json = serde_json::json!({
-            "mirrors": [
-                {
-                    "type": "plane",
-                    "points": [
-                        complete_with_0(vec![1.0, 2.0]),
-                        complete_with_0(vec![3.0, 4.0]),
-                    ]
-                },
-                {
-                    "type": "sphere",
-                    "center": complete_with_0(vec![5.0, 6.0]),
-                    "radius": 7.0
-                },
-            ]
-        });
-
-        let mirror = CompositeMirror::<Box<dyn Mirror<DIM>>, DIM>::from_json(&json)
-            .expect("json deserialisation failed");
-
-        assert_eq!(mirror.mirrors.len(), 2);
-        //check the first is a plane mirror
-        assert_eq!(mirror.mirrors[0].get_type(), "plane");
-        assert_eq!(mirror.mirrors[1].get_type(), "sphere");
-    }
 }

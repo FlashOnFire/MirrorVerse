@@ -15,11 +15,11 @@ pub struct Ray<const D: usize = DIM> {
     pub direction: Unit<SVector<f32, D>>,
 }
 
-/// An up to N-1-dimensional, affine euclidean space
+/// An up to N-1-dimensional, euclidean affine subspace
 pub struct Plane<const D: usize = DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
     /// The remaining N-1 vectors are a family spanning it's associated subspace.
-    /// 
+    ///
     /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
     vectors: [SVector<f32, D>; D],
@@ -50,7 +50,7 @@ impl<const D: usize> Plane<D> {
         &self.spanning_set()[..n]
     }
     /// Project a vector using the orthonormal basis projection formula.
-    /// 
+    ///
     /// Assumes `b` is an orthonormal family. If such isn't
     /// the case, the result is unspecified.
     pub fn orthogonal_projection(v: SVector<f32, D>, b: &[SVector<f32, D>]) -> SVector<f32, D> {
@@ -127,14 +127,11 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 }
 
-struct CompositeMirror<T: Mirror<D>, const D: usize = DIM> {
-    mirrors: Vec<T>,
-}
-
-impl<const D: usize, T: Mirror<D>> Mirror<D> for CompositeMirror<T, D> {
+impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         None
     }
+
     fn get_type(&self) -> &str {
         "composite"
     }
@@ -168,13 +165,50 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for CompositeMirror<T, D> {
         // TODO: return a Result with clearer errors
 
         // fail if the deserialisation of _one_ mirror fails
-        let mirrors = json
-            .get("mirrors")?
-            .as_array()?
-            .iter()
-            .filter_map(T::from_json)
-            .collect();
+        Some(
+            json.get("mirrors")?
+                .as_array()?
+                .iter()
+                .filter_map(T::from_json)
+                .collect(),
+        )
+    }
+}
 
-        Some(Self { mirrors })
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
+        vec.resize(DIM, 0.0);
+        vec
+    }
+
+    #[test]
+    fn test_composite_mirror_from_json() {
+        let json = serde_json::json!({
+            "mirrors": [
+                {
+                    "type": "plane",
+                    "points": [
+                        complete_with_0(vec![1.0, 2.0]),
+                        complete_with_0(vec![3.0, 4.0]),
+                    ]
+                },
+                {
+                    "type": "sphere",
+                    "center": complete_with_0(vec![5.0, 6.0]),
+                    "radius": 7.0
+                },
+            ]
+        });
+
+        let mirrors =
+            Vec::<Box<dyn Mirror<DIM>>>::from_json(&json).expect("json deserialisation failed");
+
+        assert_eq!(mirrors.len(), 2);
+        //check the first is a plane mirror
+        assert_eq!(mirrors[0].get_type(), "plane");
+        assert_eq!(mirrors[1].get_type(), "sphere");
     }
 }
