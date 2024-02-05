@@ -1,9 +1,14 @@
-use nalgebra::{Point, SMatrix, Unit};
+use nalgebra::{Point, SMatrix, Unit, SVector};
 
 pub mod bezier;
 pub mod cubic_bezier;
 
-use crate::{ray::Ray, DIM};
+use crate::DIM;
+
+pub struct Ray {
+    pub origin: Point<f32, DIM>,
+    pub direction: Unit<SVector<f32, DIM>>,
+}
 
 pub trait Mirror {
     fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)>;
