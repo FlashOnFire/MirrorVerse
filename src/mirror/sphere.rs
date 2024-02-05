@@ -1,6 +1,6 @@
 use super::*;
 
-// TODO: explore the possbility of using generalising the definition
+// TODO: explore the possbility of generalising the definition
 // of a sphere to other p-norms (for strictly positive p)
 
 #[derive(Clone, Copy)]

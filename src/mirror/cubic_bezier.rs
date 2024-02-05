@@ -1,5 +1,7 @@
 use super::*;
 
+// TODO: fix bezier mirror implementations
+
 pub struct CubicBezierMirror {
     control_points: Vec<Point<f32, DIM>>,
 }
