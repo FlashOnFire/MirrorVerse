@@ -1,5 +1,8 @@
 use nalgebra::{Point, SMatrix, Unit};
 
+pub mod bezier;
+pub mod cubic_bezier;
+
 use crate::{ray::Ray, DIM};
 
 pub trait Mirror {
@@ -157,8 +160,6 @@ impl SphereMirror {
 
 #[cfg(test)]
 mod tests {
-    use std::any::Any;
-
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {

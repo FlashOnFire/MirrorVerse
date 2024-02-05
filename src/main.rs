@@ -1,13 +1,9 @@
-mod bezier_mirror;
-mod camera;
-mod cubic_bezier_mirror;
 mod mirror;
 mod ray;
-mod state;
-mod structs;
+mod render;
 
-use crate::state::State;
 use pollster::FutureExt;
+use render::state::State;
 use std::sync::Arc;
 use winit::event::*;
 use winit::event_loop::EventLoop;

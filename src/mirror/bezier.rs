@@ -1,7 +1,6 @@
+use crate::{mirror::Mirror, ray::Ray, DIM};
 use nalgebra::{Point, SMatrix, SVector, Unit};
 use std::io::Write;
-
-use crate::{mirror::Mirror, ray::Ray, DIM};
 
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {

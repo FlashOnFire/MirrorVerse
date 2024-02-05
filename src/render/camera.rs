@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, MatrixView3, Perspective3, Point3, SMatrix, Transform3, Vector3};
+use nalgebra::{Matrix4, Perspective3, Point3, SMatrix, Vector3};
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: SMatrix<f32, 4, 4> = Matrix4::new(
@@ -44,4 +44,3 @@ impl CameraUniform {
         self.view_proj = camera.build_view_projection_matrix().into();
     }
 }
-
