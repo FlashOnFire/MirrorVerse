@@ -1,19 +1,15 @@
-use nalgebra::{Point, SMatrix, SVector, Unit};
-
-use super::{Mirror, Ray};
-use crate::DIM;
+use super::*;
 
 pub struct CubicBezierMirror {
     control_points: Vec<Point<f32, DIM>>,
 }
 
 impl Mirror for CubicBezierMirror {
-    fn reflect(&self, ray: Ray) -> Vec<(f32, Unit<SMatrix<f32, DIM, DIM>>)> {
-        // use the other mirror to reflect the ray
-        vec![]
+    fn reflect(&self, ray: Ray) -> Option<(f32, Plane)> {
+        None
     }
-    fn get_type(&self) -> String {
-        "cubicBezier".to_string()
+    fn get_type(&self) -> &str {
+        "cubicBezier"
     }
 
     fn from_json(json: &serde_json::Value) -> Option<Self>
@@ -30,6 +26,9 @@ impl Mirror for CubicBezierMirror {
             ]
         }
          */
+
+        // TODO: return a Result with clearer errors
+
         let control_points = json
             .get("control_points")?
             .as_array()?
@@ -40,6 +39,7 @@ impl Mirror for CubicBezierMirror {
                     .iter()
                     .filter_map(serde_json::Value::as_f64)
                     .map(|val| val as f32)
+                    // TODO: optimize out this allocation
                     .collect::<Vec<_>>()
                     .try_into()
                     .ok()?;

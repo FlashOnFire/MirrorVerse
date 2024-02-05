@@ -6,11 +6,11 @@ pub(crate) struct PlaneMirror<const D: usize = DIM> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
-        vec![]
+    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
+        None
     }
-    fn get_type(&self) -> String {
-        "plane".to_string()
+    fn get_type(&self) -> &str {
+        "plane"
     }
 
     fn from_json(json: &serde_json::Value) -> Option<Self>

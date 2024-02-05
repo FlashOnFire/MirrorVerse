@@ -1,4 +1,4 @@
-use nalgebra::{Point, SMatrix, SVector, Unit};
+use nalgebra::{Point, SVector, Unit};
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -45,19 +45,19 @@ impl<const D: usize> Plane<D> {
 }
 
 pub trait Mirror<const D: usize = DIM> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)>;
-    fn get_type(&self) -> String;
+    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)>;
+    fn get_type(&self) -> &str;
     fn from_json(json: &serde_json::Value) -> Option<Self>
     where
         Self: Sized;
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
+    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
     }
 
-    fn get_type(&self) -> String {
+    fn get_type(&self) -> &str {
         self.as_ref().get_type()
     }
 
@@ -70,11 +70,11 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
+    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         self.as_ref().reflect(ray)
     }
 
-    fn get_type(&self) -> String {
+    fn get_type(&self) -> &str {
         self.as_ref().get_type()
     }
 
@@ -100,12 +100,12 @@ struct CompositeMirror<T: Mirror<D>, const D: usize = DIM> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for CompositeMirror<T, D> {
-    fn reflect(&self, ray: Ray<D>) -> Vec<(f32, Unit<SMatrix<f32, D, D>>)> {
+    fn reflect(&self, ray: Ray<D>) -> Option<(f32, Plane<D>)> {
         // use the other mirror to reflect the ray
-        vec![]
+        None
     }
-    fn get_type(&self) -> String {
-        "composite".to_string()
+    fn get_type(&self) -> &str {
+        "composite"
     }
 
     fn from_json(json: &serde_json::Value) -> Option<Self>
