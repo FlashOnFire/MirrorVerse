@@ -28,14 +28,8 @@ async fn run() {
 
     let mut state = State::new(window.clone()).await;
 
-    let mut redrawn = false;
-
     event_loop
         .run(|event, target| {
-            if !redrawn {
-                state.window().request_redraw();
-                redrawn = true;
-            }
 
             #[allow(clippy::single_match)]
             #[allow(clippy::collapsible_match)]
@@ -76,9 +70,12 @@ async fn run() {
                             // All other errors (Outdated, Timeout) should be resolved by the next frame
                             Err(e) => eprintln!("{:?}", e),
                         }
-                    }
+                    },
                     _ => {}
                 },
+                Event::AboutToWait => {
+                    state.window().request_redraw();
+                }
                 _ => {}
             }
         })

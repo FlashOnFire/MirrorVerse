@@ -8,7 +8,7 @@ use wgpu::{
 use winit::event::WindowEvent;
 use winit::window::Window;
 
-use super::camera::{Camera, CameraUniform};
+use super::camera::{Camera, CameraController, CameraUniform};
 use super::structs::{Vertex, INDICES, VERTICES};
 
 pub struct State<'a> {
@@ -30,6 +30,8 @@ pub struct State<'a> {
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
+
+    camera_controller: CameraController,
 }
 
 impl<'a> State<'a> {
@@ -184,6 +186,9 @@ impl<'a> State<'a> {
         });
         let num_indices = INDICES.len() as u32;
 
+
+        let camera_controller = CameraController::new(0.2);
+
         Self {
             surface,
             device,
@@ -200,6 +205,7 @@ impl<'a> State<'a> {
             camera_uniform,
             camera_buffer,
             camera_bind_group,
+            camera_controller,
         }
     }
 
@@ -218,10 +224,14 @@ impl<'a> State<'a> {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        self.camera_controller.process_events(event)
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        self.camera_controller.update_camera(&mut self.camera);
+        self.camera_uniform.update_view_proj(&self.camera);
+        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+    }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
