@@ -187,7 +187,7 @@ impl<'a> State<'a> {
         let num_indices = INDICES.len() as u32;
 
 
-        let camera_controller = CameraController::new(0.2);
+        let camera_controller = CameraController::new(0.1);
 
         Self {
             surface,
