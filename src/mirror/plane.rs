@@ -1,9 +1,17 @@
 use super::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct PlaneMirror<const D: usize = DIM> {
-    // TODO: this should probably be a Vec of points
-    points: [Point<f32, D>; D],
+    /// The plane this mirror belongs to.
+    plane: Plane<D>,
+    /// Bounds `(mu_i_min, mu_i_max)` for the scalars in the linear combination of the
+    /// basis vectors of the associated hyperplane. 
+    /// 
+    /// Formally, for all vectors `v = sum mu_i * v_i` of
+    /// the hyperplane, `v` is in this plane mirror iff for all `i`, `mu_i_min <= mu_i <= mu_i_max`
+    /// 
+    /// Note: the first value of this array is irrelevant
+    scalar_bounds: [(f32, f32) ; D],
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {

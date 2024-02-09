@@ -17,6 +17,7 @@ pub struct Ray<const D: usize = DIM> {
 }
 
 /// An up to N-1-dimensional, euclidean affine subspace
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize = DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
     /// The remaining N-1 vectors are a family spanning it's associated subspace.
