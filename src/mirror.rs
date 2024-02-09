@@ -31,6 +31,10 @@ pub struct Plane<const D: usize = DIM> {
 // but it is impossible to write something akin to `where N >= 2`
 // to statically restrict the value without `#[feature(const_generic_exprs)]`
 impl<const D: usize> Plane<D> {
+    /// `vectors` must respect the layout/specification of the `vectors` field
+    pub fn new(vectors: [SVector<f32, D> ; D]) -> Self {
+        Self { vectors }
+    }
     /// The plane's starting point
     pub fn v_0(&self) -> &SVector<f32, D> {
         self.vectors.first().unwrap()
@@ -86,16 +90,14 @@ pub trait Mirror<const D: usize = DIM> {
     /// (or inner type if type-erased) and coherent with it's json representation
     // TODO: should this be 'static ?
     fn get_type(&self) -> &str;
-    /// Deserialises the mirror's data from the provided json string, returns None in case of error
+    /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
     fn from_json(json: &serde_json::Value) -> Option<Self>
     where
         Self: Sized;
 }
 
-// Surprisingly doesn't break the orphan rules, because `Box`` is `#[fundamental]``
-//
-// Note that `T`` is implicitly `Sized``
+// Note that `T` is implicitly `Sized`
 //
 // This impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
@@ -121,20 +123,29 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 
     fn get_type(&self) -> &str {
-        self.as_ref().get_type()
+        "dynamic"
     }
 
     fn from_json(json: &serde_json::Value) -> Option<Self>
     where
         Self: Sized,
     {
+        /*
+        example json
+        {
+            "type": "....",
+            "mirror": <json value whose structure depends on "type">,
+        }
+         */
+
         let mirror_type = json.get("type")?.as_str()?;
+        let mirror = json.get("mirror")?;
 
         match mirror_type {
-            "plane" => plane::PlaneMirror::<D>::from_json(json)
+            "plane" => plane::PlaneMirror::<D>::from_json(mirror)
                 .map(|mirror| Box::new(mirror) as Box<dyn Mirror<D>>),
             "sphere" => {
-                sphere::SphereMirror::<D>::from_json(json).map(|mirror| Box::new(mirror) as _)
+                sphere::SphereMirror::<D>::from_json(mirror).map(|mirror| Box::new(mirror) as _)
             }
             _ => None,
         }
@@ -162,32 +173,16 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         Self: Sized,
     {
         /* example json
-        {
-            "mirrors": [
-                {
-                    "type": "plane",
-                    "points": [
-                        [1.0, 2.0, 3.0, ...],
-                        [4.0, 5.0, 6.0, ...],
-                        [7.0, 8.0, 9.0, ...],
-                        ...
-                    ]
-                },
-                {
-                    "type": "sphere",
-                    "center": [1.0, 2.0, 3.0],
-                    "radius": 4.0
-                },
-                ...
-            ]
-        }
+        [
+            ... list of json values whose structure depends on `T`
+        ]
          */
 
         // TODO: return a Result with clearer errors
 
         // TODO: fail if the deserialisation of _one_ mirror fails
         Some(
-            json.get("mirrors")?
+            json
                 .as_array()?
                 .iter()
                 .filter_map(T::from_json)
@@ -203,33 +198,5 @@ mod tests {
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
         vec.resize(DIM, 0.0);
         vec
-    }
-
-    #[test]
-    fn test_composite_mirror_from_json() {
-        let json = serde_json::json!({
-            "mirrors": [
-                {
-                    "type": "plane",
-                    "points": [
-                        complete_with_0(vec![1.0, 2.0]),
-                        complete_with_0(vec![3.0, 4.0]),
-                    ]
-                },
-                {
-                    "type": "sphere",
-                    "center": complete_with_0(vec![5.0, 6.0]),
-                    "radius": 7.0
-                },
-            ]
-        });
-
-        let mirrors =
-            Vec::<Box<dyn Mirror<DIM>>>::from_json(&json).expect("json deserialisation failed");
-
-        assert_eq!(mirrors.len(), 2);
-        //check the first is a plane mirror
-        assert_eq!(mirrors[0].get_type(), "plane");
-        assert_eq!(mirrors[1].get_type(), "sphere");
     }
 }

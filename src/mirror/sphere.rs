@@ -28,7 +28,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             "center": [1.0, 2.0, 3.0],
             "radius": 4.0
         }
-            */
+         */
 
         // TODO: optimize out the allocations
         // TODO: return a Result with clearer errors
