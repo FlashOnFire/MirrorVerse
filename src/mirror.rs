@@ -2,6 +2,7 @@ use nalgebra::{Point, SVector, Unit};
 
 pub mod bezier;
 pub mod cubic_bezier;
+pub mod new_bezier;
 pub mod plane;
 pub mod sphere;
 
