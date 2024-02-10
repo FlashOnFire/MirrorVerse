@@ -1,4 +1,4 @@
-use nalgebra::{Point, SVector, Unit};
+use nalgebra::{ArrayStorage, Point, SVector, Unit};
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -43,19 +43,23 @@ impl<const D: usize> Plane<D> {
     pub fn v_0_mut(&mut self) -> &mut SVector<f32, D> {
         self.vectors.first_mut().unwrap()
     }
-    /// A reference to the stored basis of the plane's associated hyperplane
-    pub fn spanning_set(&self) -> &[SVector<f32, D>] {
+    /// A reference to the stored basis of the plane's associated hyperplane.
+    /// 
+    /// The returned slice is garanteed to be of length D - 1.
+    pub fn basis(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
-    /// A mutable reference to the stored basis of the plane's associated hyperplane
-    pub fn spanning_set_mut(&mut self) -> &mut [SVector<f32, D>] {
+    /// A mutable reference to the stored basis of the plane's associated hyperplane.
+    /// 
+    /// The returned slice is garanteed to be of length D - 1.
+    pub fn basis_mut(&mut self) -> &mut [SVector<f32, D>] {
         &mut self.vectors[1..]
     }
     /// Orthonormalize the plane's spanning set, Returns
     /// a reference to it's largest (orthonormalised) free family
     pub fn orthonormalize_spanning_set(&mut self) -> &[SVector<f32, D>] {
-        let n = SVector::orthonormalize(self.spanning_set_mut());
-        &self.spanning_set()[..n]
+        let n = SVector::orthonormalize(self.basis_mut());
+        &self.basis()[..n]
     }
     /// Project a vector using the orthonormal basis projection formula.
     ///
@@ -189,6 +193,17 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
                 .collect(),
         )
     }
+}
+
+pub fn json_array_to_vector<const D: usize>(json_array: &[serde_json::Value]) -> Option<SVector<f32, D>> {
+    if json_array.len() != D {
+        return None;
+    }
+    let mut center_coords_array = [0. ; D];
+    for (coord, value) in center_coords_array.iter_mut().zip(json_array.iter()) {
+        *coord = value.as_f64()? as f32;
+    }
+    Some(SVector::from_array_storage(ArrayStorage([center_coords_array])))
 }
 
 #[cfg(test)]
