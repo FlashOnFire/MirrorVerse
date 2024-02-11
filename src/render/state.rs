@@ -1,3 +1,4 @@
+use cgmath::Rad;
 use nalgebra::Point3;
 use std::sync::Arc;
 use std::time::Duration;
@@ -91,21 +92,12 @@ impl<'a> State<'a> {
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
-        let camera = Camera::new(
-            Point3::new(0.0, 5.0, 10.0),
-            -90.0_f32.to_radians(),
-            -20.0_f32.to_radians(),
-        );
+        let camera = Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
 
-        let projection = Projection::new(
-            config.width,
-            config.height,
-            45.0_f32.to_radians(),
-            0.1,
-            100.0,
-        );
+        let projection =
+            Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
 
-        let camera_controller = CameraController::new(4.0, 0.4);
+        let camera_controller = CameraController::new(10.0, 0.4);
 
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
