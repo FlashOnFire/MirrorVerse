@@ -1,4 +1,4 @@
-use cgmath::{perspective, InnerSpace, Matrix4, Point3, Rad, SquareMatrix, Vector3};
+use cgmath::{Matrix4, Rad, Vector3};
 use std::f32::consts::FRAC_PI_2;
 use std::time::Duration;
 use winit::dpi::PhysicalPosition;
@@ -6,7 +6,7 @@ use winit::event::{ElementState, MouseScrollDelta};
 use winit::keyboard::KeyCode;
 
 #[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
+pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
@@ -26,24 +26,32 @@ impl CameraUniform {
     pub(crate) fn new() -> Self {
         Self {
             view_pos: [0.0; 4],
-            view_proj: cgmath::Matrix4::identity().into(),
+            view_proj: nalgebra::Matrix4::identity().into(),
         }
     }
 
     pub(crate) fn update_view_proj(&mut self, camera: &Camera, projection: &Projection) {
         self.view_pos = camera.position.to_homogeneous().into();
-        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into()
+
+        let a = camera.calc_matrix();
+
+        let cam = nalgebra::Matrix4::new(
+            a.x.x, a.y.x, a.z.x, a.w.x, a.x.y, a.y.y, a.z.y, a.w.y, a.x.z, a.y.z, a.z.z, a.w.z,
+            a.x.w, a.y.w, a.z.w, a.w.w,
+        );
+
+        self.view_proj = (projection.calc_matrix() * cam).into()
     }
 }
 
 pub struct Camera {
-    pub position: Point3<f32>,
+    pub position: nalgebra::Point3<f32>,
     yaw: Rad<f32>,
     pitch: Rad<f32>,
 }
 
 impl Camera {
-    pub fn new<V: Into<Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
+    pub fn new<V: Into<nalgebra::Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
         position: V,
         yaw: Y,
         pitch: P,
@@ -59,11 +67,32 @@ impl Camera {
         let (sin_pitch, cos_pitch) = self.pitch.0.sin_cos();
         let (sin_yaw, cos_yaw) = self.yaw.0.sin_cos();
 
-        Matrix4::look_to_rh(
-            self.position,
-            Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize(),
-            Vector3::unit_y(),
-        )
+        let y = nalgebra::Vector3::y();
+        let target =
+            nalgebra::Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize();
+
+        let ret = Matrix4::look_to_rh(
+            cgmath::Point3::new(self.position.x, self.position.y, self.position.z),
+            Vector3::new(target.x, target.y, target.z),
+            Vector3::new(y.x, y.y, y.z),
+        );
+
+        println!("{:?}", ret);
+
+        let a =
+            nalgebra::Isometry3::look_at_rh(&self.position, &target.into(), &y).to_homogeneous();
+
+        println!("{:?}", a);
+
+        let ret2 = Matrix4::new(
+            a.m11, a.m21, a.m31, a.m41, a.m12, a.m22, a.m32, a.m42, a.m13, a.m23, a.m33, a.m43,
+            a.m14, a.m24, a.m34, a.m44,
+        );
+
+        println!("{:?}", ret2);
+
+        println!("---------------------------");
+        ret
     }
 }
 
@@ -95,8 +124,9 @@ impl Projection {
         self.aspect = width as f32 / height as f32;
     }
 
-    pub fn calc_matrix(&self) -> Matrix4<f32> {
-        OPENGL_TO_WGPU_MATRIX * perspective(self.fov_y, self.aspect, self.z_near, self.z_far)
+    pub fn calc_matrix(&self) -> nalgebra::Matrix4<f32> {
+        let b = nalgebra::Perspective3::new(self.fov_y.0, self.aspect, self.z_near, self.z_far);
+        OPENGL_TO_WGPU_MATRIX * b.as_matrix()
     }
 }
 
@@ -140,7 +170,7 @@ impl CameraController {
         };
 
         match key {
-            KeyCode::KeyZ | KeyCode::ArrowUp => {
+            KeyCode::KeyW | KeyCode::ArrowUp => {
                 self.amount_forward = amount;
                 true
             }
@@ -148,7 +178,7 @@ impl CameraController {
                 self.amount_backwards = amount;
                 true
             }
-            KeyCode::KeyQ | KeyCode::ArrowLeft => {
+            KeyCode::KeyA | KeyCode::ArrowLeft => {
                 self.amount_left = amount;
                 true
             }
@@ -184,8 +214,8 @@ impl CameraController {
         let dt = dt.as_secs_f32();
 
         let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
-        let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
+        let forward = nalgebra::Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
+        let right = nalgebra::Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
 
         camera.position +=
             forward * (self.amount_forward - self.amount_backwards) * self.speed * dt;
@@ -193,7 +223,7 @@ impl CameraController {
 
         let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
         let scrollward =
-            Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
+            nalgebra::Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
         camera.position += scrollward * self.scroll * self.speed * self.sensitivity * dt;
         self.scroll = 0.0;
 
