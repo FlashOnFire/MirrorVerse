@@ -4,6 +4,7 @@ mod render;
 use pollster::FutureExt;
 use render::state::State;
 use std::sync::Arc;
+use std::time::Instant;
 use winit::event::*;
 use winit::event_loop::EventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -27,13 +28,19 @@ async fn run() {
     );
 
     let mut state = State::new(window.clone()).await;
+    let mut last_render_time = Instant::now();
 
     event_loop
         .run(|event, target| {
-
             #[allow(clippy::single_match)]
             #[allow(clippy::collapsible_match)]
             match event {
+                Event::DeviceEvent {
+                    event: DeviceEvent::MouseMotion{ delta, },
+                    .. // We're not using device_id currently
+                } => if state.mouse_pressed {
+                    state.camera_controller.process_mouse(delta.0, delta.1)
+                }
                 Event::WindowEvent {
                     ref event,
                     window_id,
@@ -53,12 +60,16 @@ async fn run() {
                             target.exit();
                         }
                         _ => {}
-                    },
+                    }
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
                     WindowEvent::RedrawRequested => {
-                        state.update();
+                        let now = Instant::now();
+                        let dt = now - last_render_time;
+                        last_render_time = now;
+
+                        state.update(dt);
                         match state.render() {
                             Ok(_) => {}
                             // Reconfigure the surface if lost

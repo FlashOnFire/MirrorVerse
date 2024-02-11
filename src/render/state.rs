@@ -1,14 +1,16 @@
-use nalgebra::{Point3, Vector3};
+use nalgebra::Point3;
 use std::sync::Arc;
+use std::time::Duration;
 use wgpu::util::DeviceExt;
 use wgpu::{
     CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits,
     PresentMode, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,
 };
-use winit::event::WindowEvent;
+use winit::event::{ElementState, KeyEvent, MouseButton, WindowEvent};
+use winit::keyboard::PhysicalKey;
 use winit::window::Window;
 
-use super::camera::{Camera, CameraController, CameraUniform};
+use super::camera::{Camera, CameraController, CameraUniform, Projection};
 use super::structs::{Vertex, INDICES, VERTICES};
 
 pub struct State<'a> {
@@ -27,11 +29,14 @@ pub struct State<'a> {
     num_indices: u32,
 
     camera: Camera,
+    projection: Projection,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
 
-    camera_controller: CameraController,
+    pub(crate) camera_controller: CameraController,
+
+    pub(crate) mouse_pressed: bool,
 }
 
 impl<'a> State<'a> {
@@ -86,18 +91,24 @@ impl<'a> State<'a> {
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
-        let camera = Camera {
-            eye: Point3::new(0.0, 1.0, 2.0),
-            target: Point3::new(0.0, 0.0, 0.0),
-            up: Vector3::y(),
-            aspect: config.width as f32 / config.height as f32,
-            fovy: 45.0,
-            znear: 0.1,
-            zfar: 100.0,
-        };
+        let camera = Camera::new(
+            Point3::new(0.0, 5.0, 10.0),
+            -90.0_f32.to_radians(),
+            -20.0_f32.to_radians(),
+        );
+
+        let projection = Projection::new(
+            config.width,
+            config.height,
+            45.0_f32.to_radians(),
+            0.1,
+            100.0,
+        );
+
+        let camera_controller = CameraController::new(4.0, 0.4);
 
         let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        camera_uniform.update_view_proj(&camera, &projection);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -109,7 +120,7 @@ impl<'a> State<'a> {
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -186,9 +197,6 @@ impl<'a> State<'a> {
         });
         let num_indices = INDICES.len() as u32;
 
-
-        let camera_controller = CameraController::new(0.1);
-
         Self {
             surface,
             device,
@@ -202,10 +210,12 @@ impl<'a> State<'a> {
             index_buffer,
             num_indices,
             camera,
+            projection,
+            camera_controller,
             camera_uniform,
             camera_buffer,
             camera_bind_group,
-            camera_controller,
+            mouse_pressed: false,
         }
     }
 
@@ -215,6 +225,8 @@ impl<'a> State<'a> {
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
+            self.projection.resize(new_size.width, new_size.height);
+
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
@@ -223,14 +235,43 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        self.camera_controller.process_events(event)
+    // UPDATED!
+    pub(crate) fn input(&mut self, event: &WindowEvent) -> bool {
+        match event {
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        physical_key: PhysicalKey::Code(keycode),
+                        state,
+                        ..
+                    },
+                ..
+            } => self.camera_controller.process_keyboard(*keycode, *state),
+            WindowEvent::MouseWheel { delta, .. } => {
+                self.camera_controller.process_scroll(delta);
+                true
+            }
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state,
+                ..
+            } => {
+                self.mouse_pressed = *state == ElementState::Pressed;
+                true
+            }
+            _ => false,
+        }
     }
 
-    pub fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera);
-        self.camera_uniform.update_view_proj(&self.camera);
-        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+    pub fn update(&mut self, dt: Duration) {
+        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_uniform
+            .update_view_proj(&self.camera, &self.projection);
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
