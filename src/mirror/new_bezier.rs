@@ -1,5 +1,5 @@
 use nalgebra::Matrix;
-use ndarray::{Array, Axis, Dim, Ix};
+use ndarray::{Array, Axis, Dim};
 
 use super::*;
 
@@ -30,15 +30,17 @@ impl NewBezierMirror {
     fn calculate_point(&self, t: [f32; DIM - 1]) -> Point<f32, DIM> {
         // store the size of all the dimensions of the control points
         let mut sizes: [usize; DIM - 1] = [0; DIM - 1];
-        for i in 0..DIM - 1 {
-            sizes[i] = self.control_points.len_of(Axis(i));
+        for (index, size) in sizes.iter_mut().enumerate() {
+            *size = self.control_points.len_of(Axis(index));
         }
-        let mut bersteins: [Vec<f32>; DIM - 1] = [Vec::new(); DIM - 1];
-        for i in 0..DIM - 1 {
-            bersteins[i] = bernstein(sizes[i], t[i]);
-        }
+
+        // // store the bernstein polynomials for each dimension
+        // let mut bersteins: [Vec<f32>; DIM - 1] = [Vec::new(); DIM - 1];
+        // for (index, berstein) in bersteins.iter_mut().enumerate() {
+        //     *berstein = bernstein(sizes[index], t[index]);
+        // }
         let mut point = Point::origin();
-        self.calculate_point_recursive(&mut point, &bersteins, &sizes, 0, &mut [0; DIM - 1]);
+        point = self.calculate_point_recursive(&mut point, /*&bersteins,*/ &sizes, 0, &mut [0; DIM - 1], &t);
 
         point
     }
@@ -46,30 +48,47 @@ impl NewBezierMirror {
     fn calculate_point_recursive(
         &self,
         point: &mut Point<f32, DIM>,
-        bersteins: &[Vec<f32>; DIM - 1],
+        // bersteins: &[Vec<f32>; DIM - 1],
         sizes: &[usize; DIM - 1],
         dim: usize,
         index: &mut [usize; DIM - 1],
-    ) {
-        if dim == DIM - 2 {
-            let p = self.control_points[*index];
-            // let mut tmp_point = Point::origin();
-            for j in 0..sizes[dim] {
-                let mut multiplication: Point<f32, DIM> = Point::from_slice(&[1.0; DIM]);
-                for k in 0..DIM - 1 {
-                    for l in 0..bersteins[k].len() {
-                        multiplication[k] *= bersteins[k][l];
-                    }
-                }
-                for k in 0..DIM {
-                    point[k] += multiplication[k];
+        t: &[f32; DIM - 1]
+    ) -> Point<f32, DIM> {
+        if dim == DIM - 1 {
+            let mut result = Point::<f32, DIM>::from_slice(&[1.0; DIM]);
+            for i in 0..DIM - 1 {
+                let tmp = bernstein(sizes[i], index[i], t[i]);
+                for j in 0..DIM {
+                    result[j] *= tmp;
                 }
             }
+            for i in 0..DIM {
+                result[i] *= self.control_points[*index][i];
+            }
+            return result;
+            // let p = self.control_points[*index];
+            // // let mut tmp_point = Point::origin();
+            // for j in 0..sizes[dim] {
+            //     let mut multiplication: Point<f32, DIM> = Point::from_slice(&[1.0; DIM]);
+            //     for k in 0..DIM - 1 {
+            //         for l in 0..bersteins[k].len() {
+            //             multiplication[k] *= bersteins[k][l];
+            //         }
+            //     }
+            //     for k in 0..DIM {
+            //         point[k] += multiplication[k];
+            //     }
+            // }
         } else {
+            let mut result = Point::<f32, DIM>::origin();
             for i in 0..sizes[dim] {
                 index[dim] = i;
-                self.calculate_point_recursive(point, bersteins, sizes, dim + 1, index);
+                let tmp = self.calculate_point_recursive(point, /*bersteins,*/ sizes, dim + 1, index, t);
+                for j in 0..DIM {
+                    result[j] += tmp[j];
+                }
             }
+            return result;
         }
     }
 
@@ -107,14 +126,10 @@ impl NewBezierMirror {
     // }
 }
 
-fn bernstein(n: usize, t: f32) -> Vec<f32> {
-    (0..n)
-        .map(|i| {
-            binomial_coefficient(n - 1, i) as f32
-                * t.powi(i as i32)
-                * (1.0 - t).powi((n - 1 - i) as i32)
-        })
-        .collect()
+fn bernstein(n: usize, i: usize, t: f32) -> f32 {
+    let expo = t.powi(i as i32) * (1.0 - t).powi((n - i) as i32);
+    let binom = binomial_coefficient(n, i) as f32;
+    expo * binom
 }
 
 // Function to calculate binomial coefficients
@@ -138,6 +153,7 @@ mod tests {
 
     use super::*;
     use std::io::Write;
+    use crate::mirror::bezier::BezierMirror;
 
     fn complete_with_0<const N: usize, const O: usize>(arr: [f32; N]) -> [f32; O] {
         let mut result = [0.0; O];
@@ -183,6 +199,11 @@ mod tests {
 
         assert_eq!(
             bezier_mirror.calculate_point(complete_with_0([0.0])),
+            Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([0.0, 0.0]))
+        );
+
+        assert_eq!(
+            bezier_mirror.calculate_point(complete_with_0([1.0])),
             Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([0.0, 0.0]))
         );
 
@@ -236,6 +257,33 @@ mod tests {
         //     bezier_mirror.calculate_point(1.0, 1.0),
         //     Point::from_slice(&complete_with_0(vec![1.0, 0.0, 1.0]))
         // );
+    }
+
+    #[test]
+    fn generate_point_in_csv() {
+        //simple function to visualize the bezier curve to check that I dont do shit
+        let bezier_mirror = NewBezierMirror {
+            control_points: Array::from_shape_vec(
+                3,
+                vec![
+                    Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([0.0, 0.0])),
+                    Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([1.0, 1.0])),
+                    Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([1.0, 0.0])),
+                    //Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([0.0, 1.0])),
+                    // Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([1.0, 0.0])),
+                    // Point::<f32, DIM>::from_slice(&complete_with_0::<2, DIM>([1.0, 0.0])),
+                ],
+            )
+                .unwrap(),
+        };
+
+        let mut file = std::fs::File::create("points.csv").unwrap();
+        for i in 0..100 {
+            let t = i as f32 / 100.0;
+            let point = bezier_mirror.calculate_point([t]);
+            writeln!(file, "{},{}", point[0], point[1]).unwrap();
+            println!("{} : {}", t, point);
+        }
     }
 
     // #[test]
