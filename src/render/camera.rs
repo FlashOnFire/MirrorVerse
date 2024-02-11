@@ -15,11 +15,13 @@ pub const OPENGL_TO_WGPU_MATRIX: SMatrix<f32, 4, 4> = Matrix4::new(
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
+#[derive(Debug)]
 pub struct Camera {
     pub position: Point3<f32>,
     yaw: f32,
     pitch: f32,
 }
+
 impl Camera {
     pub fn new<V: Into<Point3<f32>>, Y: Into<f32>, P: Into<f32>>(
         position: V,
@@ -39,9 +41,7 @@ impl Camera {
 
         Matrix4::look_at_rh(
             &self.position,
-            &Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw)
-                .normalize()
-                .into(),
+            &Point3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw),
             &Vector3::y(),
         )
     }
@@ -214,5 +214,7 @@ impl CameraController {
         } else if camera.pitch > SAFE_FRAC_PI_2 {
             camera.pitch = SAFE_FRAC_PI_2;
         }
+
+        println!("{:?}", camera)
     }
 }
