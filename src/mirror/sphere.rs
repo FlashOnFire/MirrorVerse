@@ -4,7 +4,7 @@ use super::*;
 // of a sphere to other p-norms (for strictly positive p)
 
 #[derive(Clone, Copy)]
-pub struct SphereMirror<const D: usize = DIM> {
+pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
     center: Point<f32, D>,
     radius: f32,
 }
@@ -57,7 +57,7 @@ mod tests {
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DIM, 0.0);
+        vec.resize(DEFAULT_DIM, 0.0);
         vec
     }
 
@@ -73,7 +73,7 @@ mod tests {
 
         assert_eq!(
             mirror.center,
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
         );
         assert_eq!(mirror.radius, 4.0);
     }

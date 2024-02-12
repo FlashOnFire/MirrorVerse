@@ -10,7 +10,7 @@ use winit::event_loop::EventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::WindowBuilder;
 
-pub const DIM: usize = 2;
+pub const DEFAULT_DIM: usize = 2;
 
 fn main() {
     run().block_on();

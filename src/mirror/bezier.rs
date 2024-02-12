@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {
-    control_points: Vec<Point<f32, DIM>>,
+    control_points: Vec<Point<f32, DEFAULT_DIM>>,
 }
 
 impl Mirror for BezierMirror {
@@ -37,7 +37,7 @@ impl Mirror for BezierMirror {
             .as_array()?
             .iter()
             .filter_map(|point| {
-                let point: [_; DIM] = point
+                let point: [_; DEFAULT_DIM] = point
                     .as_array()?
                     .iter()
                     .filter_map(serde_json::Value::as_f64)
@@ -57,8 +57,8 @@ impl Mirror for BezierMirror {
 
 impl BezierMirror {
     // Method to calculate a point on the Bezier curve
-    fn calculate_point(&self, t: f32) -> Point<f32, DIM> {
-        let mut point: Point<f32, DIM> = Point::origin();
+    fn calculate_point(&self, t: f32) -> Point<f32, DEFAULT_DIM> {
+        let mut point: Point<f32, DEFAULT_DIM> = Point::origin();
         let n = self.control_points.len() - 1; // degree of the curve
 
         for (i, control_point) in self.control_points.iter().enumerate() {
@@ -74,9 +74,9 @@ impl BezierMirror {
         point
     }
 
-    fn calculate_tangent(&self, t: f32) -> SVector<f32, DIM> {
+    fn calculate_tangent(&self, t: f32) -> SVector<f32, DEFAULT_DIM> {
         let n = self.control_points.len() - 1; // degree of the curve
-        let mut tangent: SVector<f32, DIM> = SVector::zeros();
+        let mut tangent: SVector<f32, DEFAULT_DIM> = SVector::zeros();
 
         for i in 0..n {
             let bernstein_derivative = (n as f32)
@@ -113,7 +113,7 @@ mod tests {
     use std::io::Write;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DIM, 0.0);
+        vec.resize(DEFAULT_DIM, 0.0);
         vec
     }
 
@@ -140,17 +140,17 @@ mod tests {
     fn test_calculate_linear_point_2d() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
             ],
         };
         assert_eq!(
             bezier_mirror.calculate_point(0.0),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
         );
         assert_eq!(
             bezier_mirror.calculate_point(1.0),
@@ -162,18 +162,18 @@ mod tests {
     fn test_calculate_cubic_point_2d() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
             ],
         };
         assert_eq!(
             bezier_mirror.calculate_point(0.0),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
         );
         assert_eq!(
             bezier_mirror.calculate_point(1.0),
@@ -185,20 +185,20 @@ mod tests {
     fn test_calculate_quadratic_point_2d() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 1.0])),
             ],
         };
         assert_eq!(
             bezier_mirror.calculate_point(0.0),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0]))
         );
 
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
+            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 0.5]))
         );
 
         assert_eq!(
@@ -212,9 +212,9 @@ mod tests {
         //simple function to visualize the bezier curve to check that I dont do shit
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 1.0])),
             ],
         };
 
@@ -231,14 +231,14 @@ mod tests {
     fn test_calculate_tangent() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
-                Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.0, 0.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![0.5, 1.0])),
+                Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 0.0])),
             ],
         };
 
         let vector = bezier_mirror.calculate_tangent(1.0);
-        let axis = SVector::<f32, DIM>::from_vec(complete_with_0(vec![1.0, 0.0]));
+        let axis = SVector::<f32, DEFAULT_DIM>::from_vec(complete_with_0(vec![1.0, 0.0]));
         let dot_product = vector.dot(&axis);
         let reflected_vector = 2.0 * dot_product * axis - vector;
 
@@ -259,9 +259,9 @@ mod tests {
                 .expect("json deserialisation failed"),
             BezierMirror {
                 control_points: vec![
-                    Point::<f32, DIM>::from_slice(&complete_with_0(vec![1.0, 2.0, 3.0])),
-                    Point::<f32, DIM>::from_slice(&complete_with_0(vec![4.0, 5.0, 6.0])),
-                    Point::<f32, DIM>::from_slice(&complete_with_0(vec![7.0, 8.0, 9.0])),
+                    Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 2.0, 3.0])),
+                    Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![4.0, 5.0, 6.0])),
+                    Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![7.0, 8.0, 9.0])),
                 ],
             }
         );

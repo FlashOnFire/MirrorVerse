@@ -1,4 +1,3 @@
-use cgmath::Rad;
 use nalgebra::Point3;
 use std::sync::Arc;
 use std::time::Duration;

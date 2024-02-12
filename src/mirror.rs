@@ -1,15 +1,16 @@
-use nalgebra::{ArrayStorage, Point, SVector, Unit};
+use core::iter;
+use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 
 pub mod bezier;
 pub mod cubic_bezier;
 pub mod plane;
 pub mod sphere;
 
-use crate::DIM;
+use crate::DEFAULT_DIM;
 
 /// A light ray
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Ray<const D: usize = DIM> {
+pub struct Ray<const D: usize = DEFAULT_DIM> {
     /// Current position of the ray
     pub origin: Point<f32, D>,
     /// Current direction of the ray
@@ -18,7 +19,7 @@ pub struct Ray<const D: usize = DIM> {
 
 /// An up to N-1-dimensional, euclidean affine subspace
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Plane<const D: usize = DIM> {
+pub struct Plane<const D: usize = DEFAULT_DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
     /// The remaining N-1 vectors are a family spanning it's associated subspace.
     ///
@@ -32,7 +33,7 @@ pub struct Plane<const D: usize = DIM> {
 // to statically restrict the value without `#[feature(const_generic_exprs)]`
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
-    pub fn new(vectors: [SVector<f32, D> ; D]) -> Self {
+    pub fn new(vectors: [SVector<f32, D>; D]) -> Self {
         Self { vectors }
     }
     /// The plane's starting point
@@ -44,20 +45,20 @@ impl<const D: usize> Plane<D> {
         self.vectors.first_mut().unwrap()
     }
     /// A reference to the stored basis of the plane's associated hyperplane.
-    /// 
+    ///
     /// The returned slice is garanteed to be of length D - 1.
     pub fn basis(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
     /// A mutable reference to the stored basis of the plane's associated hyperplane.
-    /// 
+    ///
     /// The returned slice is garanteed to be of length D - 1.
     pub fn basis_mut(&mut self) -> &mut [SVector<f32, D>] {
         &mut self.vectors[1..]
     }
     /// Orthonormalize the plane's spanning set, Returns
     /// a reference to it's largest (orthonormalised) free family
-    pub fn orthonormalize_spanning_set(&mut self) -> &[SVector<f32, D>] {
+    pub fn orthonormalize_basis(&mut self) -> &[SVector<f32, D>] {
         let n = SVector::orthonormalize(self.basis_mut());
         &self.basis()[..n]
     }
@@ -70,11 +71,11 @@ impl<const D: usize> Plane<D> {
     }
 }
 
-pub trait Mirror<const D: usize = DIM> {
+pub trait Mirror<const D: usize = DEFAULT_DIM> {
     /// Returns a set of brightness gains and planes, in no particular order.
-    /// 
+    ///
     /// The laser is expected to "bounce" off the closest plane.
-    /// 
+    ///
     /// Here, "bounce" refers to the process of:
     ///     - Moving forward until it intersects the plane
     ///     - Adjusting it's brightness according to the provided gain value
@@ -85,7 +86,7 @@ pub trait Mirror<const D: usize = DIM> {
     fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)>;
     /// An optimised version of `Self::reflect` that potentially saves
     /// an allocation by writing into another `Vec`. Override this if needed.
-    /// 
+    ///
     /// It is a logic error for this function to remove/reorder elements in `list`
     fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
         list.append(&mut self.reflect(ray))
@@ -157,9 +158,9 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-
     fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
-        self.iter().for_each(|mirror| mirror.append_reflections(ray, list));
+        self.iter()
+            .for_each(|mirror| mirror.append_reflections(ray, list));
     }
 
     fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
@@ -185,25 +186,23 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         // TODO: return a Result with clearer errors
 
         // TODO: fail if the deserialisation of _one_ mirror fails
-        Some(
-            json
-                .as_array()?
-                .iter()
-                .filter_map(T::from_json)
-                .collect(),
-        )
+        Some(json.as_array()?.iter().filter_map(T::from_json).collect())
     }
 }
 
-pub fn json_array_to_vector<const D: usize>(json_array: &[serde_json::Value]) -> Option<SVector<f32, D>> {
+pub fn json_array_to_vector<const D: usize>(
+    json_array: &[serde_json::Value],
+) -> Option<SVector<f32, D>> {
     if json_array.len() != D {
         return None;
     }
-    let mut center_coords_array = [0. ; D];
+    let mut center_coords_array = [0.; D];
     for (coord, value) in center_coords_array.iter_mut().zip(json_array.iter()) {
         *coord = value.as_f64()? as f32;
     }
-    Some(SVector::from_array_storage(ArrayStorage([center_coords_array])))
+    Some(SVector::from_array_storage(ArrayStorage([
+        center_coords_array,
+    ])))
 }
 
 #[cfg(test)]
@@ -211,7 +210,7 @@ mod tests {
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DIM, 0.0);
+        vec.resize(DEFAULT_DIM, 0.0);
         vec
     }
 }

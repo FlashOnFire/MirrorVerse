@@ -1,7 +1,8 @@
 use super::*;
 
+/// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct PlaneMirror<const D: usize = DIM> {
+pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     /// The plane this mirror belongs to.
     plane: Plane<D>,
     /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the
@@ -16,19 +17,31 @@ pub(crate) struct PlaneMirror<const D: usize = DIM> {
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
-        let normal = self.plane.basis()[0];
-        // TODO test if the ray really touch the plane using bounds
-
-        // the reflection
-        //contruct the new hyperplane with the reflected direction as the normal
-        let mut return_plane = Plane::new([SVector::zeros(); D]);
-        for (i, basis_vector) in self.plane.basis().iter().enumerate() {
-            let reflected_basis_vector = basis_vector - 2.0 * basis_vector.dot(&normal) * normal;
-            return_plane.basis_mut()[i] = reflected_basis_vector;
-        }
-        
-        vec![(1.0, return_plane)]
+        let mut list = vec![];
+        self.append_reflections(ray, &mut list);
+        list
     }
+
+    fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+        let mut a = SMatrix::<f32, D, D>::zeros();
+
+        a.column_iter_mut()
+            .zip(iter::once(ray.direction.as_ref()).chain(self.plane.basis().iter()))
+            .for_each(|(mut i, o)| i.set_column(0, o));
+
+        if a.try_inverse_mut() {
+            // a now contains a^-1
+            let v = a * (self.plane.v_0() - ray.direction.as_ref());
+            if v.iter()
+                .zip(&self.bounds)
+                .skip(1)
+                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+            {
+                list.push((1., self.plane));
+            }
+        }
+    }
+
     fn get_type(&self) -> &str {
         "plane"
     }
@@ -76,7 +89,7 @@ mod tests {
     use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DIM, 0.0);
+        vec.resize(DEFAULT_DIM, 0.0);
         vec
     }
 
