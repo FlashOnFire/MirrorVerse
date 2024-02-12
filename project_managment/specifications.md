@@ -1,8 +1,8 @@
-# Mirror verse
+# MirrorVerse
 
-## cahier des charges
+## Cahier des charges
 
-### objectif
+### Objectif
 
 L'objectif de ce projet est d'étudier le comportement d'un rayon lumineux à la rencontre de miroirs.
 
@@ -10,7 +10,7 @@ On étudiera, par exemple, si, en envoyant le rayon lumineux sur un grand nombre
 
 On considérera qu'une trajectoire est chaotique si, après n réflexion, on ne constate aucune récurrence.
 
-### réponse technique
+### Réponse technique
 
 Pour ce faire, on écrira un outil de simulation des rayons lumineux avec des miroirs.
 
@@ -22,7 +22,7 @@ Le simulateur sera développé avec le langage Rust afin d'avoir un maximum d'op
 
 La simulation disposera d'un outil de visualisation permettant de se déplacer dans le monde virtuel pour constater simplement le résultat de la simulation.
 
-#### fonctionnalité v1
+#### Fonctionnalités v1
 
 - On devra pouvoir éditer facilement l'ensemble des miroirs pour la simulation. Probablement via une simple description en JSON.
 - On devra également pouvoir choisir la direction et le point de départ du rayon.
@@ -32,14 +32,14 @@ La simulation disposera d'un outil de visualisation permettant de se déplacer d
  La V1 utilisera des bases locales et des symétries plutôt que des angles afin d'anticiper la généralisation en 3D.
 
 
-#### fonctionnalité v2
+#### Fonctionnalités v2
 
 - On devra supporter les types de miroirs :
     + plan
     + circulaire
     + en courbe de Bézier
 
-#### fonctionnalité v3
+#### Fonctionnalités v3
 
 - La simulation devra au moins fonctionner en 3D (ou ND).
 
@@ -49,7 +49,7 @@ La simulation disposera d'un outil de visualisation permettant de se déplacer d
     + détection automatique de la sortie de l'ensemble.
     + détection automatique d'une boucle (le rayon passe 2 fois au même endroit)
 
-## organisation temporelle
+## Organisation temporelle
 
 ```mermaid
 gantt
