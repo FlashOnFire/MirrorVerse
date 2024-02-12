@@ -20,18 +20,13 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         // TODO test if the ray really touch the plane using bounds
 
         // the reflection
-        // calulate the new direction of the ray by doing a symmetrical reflection based on the normal
-        let mut reflected_direction = ray.direction.into_inner().clone_owned();
-        for (element, index) in reflected_direction.iter_mut().zip(normal.iter().cloned()) {
-            *element -= 2.0 * *element * index;
-        }
-
-        // return the right thing @momo aled je comprends pas
+        //contruct the new hyperplane with the reflected direction as the normal
         let mut return_plane = Plane::new([SVector::zeros(); D]);
-        for (i, vector) in return_plane.basis_mut().iter_mut().enumerate() {
-            *vector = self.plane.basis()[i];
+        for (i, basis_vector) in self.plane.basis().iter().enumerate() {
+            let reflected_basis_vector = basis_vector - 2.0 * basis_vector.dot(&normal) * normal;
+            return_plane.basis_mut()[i] = reflected_basis_vector;
         }
-        // *return_plane.v_0_mut() = ray.origin;
+        
         vec![(1.0, return_plane)]
     }
     fn get_type(&self) -> &str {
