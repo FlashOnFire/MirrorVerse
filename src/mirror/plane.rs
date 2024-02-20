@@ -129,9 +129,10 @@ mod tests {
         };
         let reflections = mirror.reflect(&ray);
         assert_eq!(reflections.len(), 1);
+        assert_eq!(reflections[0].0, 1.0);
         assert_eq!(reflections[0].1, Plane::new([
-            SVector::from_vec(vec![1.0, 0.2]),
-            SVector::from_vec(vec![-1.0, 0.0]),
+            SVector::from_vec(vec![1.0, 0.0]),
+            SVector::from_vec(vec![0.0, 1.0]),
         ]));
     }
 }
