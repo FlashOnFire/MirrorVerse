@@ -94,5 +94,33 @@ mod tests {
     }
 
     #[test]
-    fn test_plane_mirror_reflect() {}
+    fn test_2d_horizontal() {
+        let mirror = PlaneMirror {
+            plane: Plane::new([
+                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from_vec(vec![1.0, 0.0]),
+            ]),
+            bounds: [1.0; 2],
+        };
+        let ray = Ray {
+            origin: Point::from_slice(&[-1.0, 0.0]),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+        };
+        assert_eq!(mirror.reflect(&ray), vec![]);
+    }
+
+    fn test_2d_vertical() {
+        let mirror = PlaneMirror {
+            plane: Plane::new([
+                SVector::from_vec(vec![1.0, 0.0]),
+                SVector::from_vec(vec![0.0, 1.0]),
+            ]),
+            bounds: [1.0; 2],
+        };
+        let ray = Ray {
+            origin: Point::from_slice(&[0.2, 0.2]),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+        };
+        assert_eq!(mirror.reflect(&ray), vec![]);
+    }
 }
