@@ -106,9 +106,15 @@ mod tests {
             origin: Point::from_slice(&[-1.0, 0.0]),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
-        assert_eq!(mirror.reflect(&ray), vec![]);
+        let reflections = mirror.reflect(&ray);
+        assert_eq!(reflections.len(), 1);
+        assert_eq!(reflections[0].1, Plane::new([
+            SVector::from_vec(vec![0.0, 1.0]),
+            SVector::from_vec(vec![0.0, -1.0]),
+        ]));
     }
 
+    #[test]
     fn test_2d_vertical() {
         let mirror = PlaneMirror {
             plane: Plane::new([
@@ -121,6 +127,11 @@ mod tests {
             origin: Point::from_slice(&[0.2, 0.2]),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
-        assert_eq!(mirror.reflect(&ray), vec![]);
+        let reflections = mirror.reflect(&ray);
+        assert_eq!(reflections.len(), 1);
+        assert_eq!(reflections[0].1, Plane::new([
+            SVector::from_vec(vec![1.0, 0.2]),
+            SVector::from_vec(vec![-1.0, 0.0]),
+        ]));
     }
 }
