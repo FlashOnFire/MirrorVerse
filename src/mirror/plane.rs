@@ -156,4 +156,20 @@ mod tests {
             SVector::from_vec(vec![-1.0, -1.0]),
         ]));
     }
+    #[test]
+    fn test_no_reflection_2d(){
+        let mirror = PlaneMirror {
+            plane: Plane::new([
+                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from_vec(vec![0.0, 1.0]),
+            ]),
+            bounds: [1.0; 2],
+        };
+        let ray = Ray {
+            origin: Point::from_slice(&[0.0, 5.0]),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+        };
+        let reflections = mirror.reflect(&ray);
+        assert_eq!(reflections.len(), 0);
+    }
 }
