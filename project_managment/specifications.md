@@ -1,6 +1,14 @@
 # MirrorVerse
 
+Élèves : Guillaume Calderon, Mohammed Ali, Eymeric Déchelette
+
+Enseignant : Jérôme Bastien
+
 ## Cahier des charges
+
+### context
+
+Ce projet prend la suite d'une demande d'un élève, Quentin COURDERO en troisième année en informatique à Polytech. Il a demandé à son enseignant Jérôme Bastien  de l'aider à écrire un algorithme pour déterminer le trajet d’un rayon lumineux qui vient frapper (ou pas) un miroir plan fini. 
 
 ### Objectif
 
@@ -10,17 +18,32 @@ On étudiera, par exemple, si, en envoyant le rayon lumineux sur un grand nombre
 
 On considérera qu'une trajectoire est chaotique si, après n réflexion, on ne constate aucune récurrence.
 
-### Réponse technique
-
 Pour ce faire, on écrira un outil de simulation des rayons lumineux avec des miroirs.
 
 La simulation devra physiquement être juste. (coller au maximum à la réalité dans tous les cas.)
 
 La simulation s'appuiera sur la seconde loi de Snell-Descarte sur la réflexion.
 
+La simulation devra obligatoirement fonctionner en 2 dimensions avec des miroirs plans, mais pourra être enrichie avec plus de dimensions et de variété de miroirs.
+
+### Réponse technique
+
 Le simulateur sera développé avec le langage Rust afin d'avoir un maximum d'optimisation et de s'assurer d'un minimum de bugs imprévus.
 
+On utilisera la librairie nAlgebra afin de pouvoir manipuler aisément différentes notions mathématiques telles que les vecteurs, les points, etc.
+
 La simulation disposera d'un outil de visualisation permettant de se déplacer dans le monde virtuel pour constater simplement le résultat de la simulation.
+
+L'outil de visualisation sera développer à l'aide de la librairie wgpu.
+
+### Potentiel difficulté
+
+La première difficulté sera de détecter efficacement l'intersection entre les rayons et les miroirs.
+
+La technologie d'affichage demandera aussi probablement beaucoup de recherche documentaire en raison du fait qu'elle est assez nouvelle pour les réalisateurs du projet.
+
+
+### Milestone
 
 #### Fonctionnalités v1
 
@@ -58,7 +81,7 @@ gantt
     tickInterval 7day
 
     section Version 1
-    Réflexion, création du cahier des charges    :done, a1, 01/02/2024, 7d
+    Réflexion, création du cahier des charges    :done, a1, 01/02/2024, 14d
     Début de la programmation   :milestone, done, m1, after a1,
     Création affichage  :active, after a1, 7d
     Création architecture miroir   :active, after a1, 7d
