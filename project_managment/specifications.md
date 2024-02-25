@@ -43,7 +43,7 @@ La première difficulté sera de détecter efficacement l'intersection entre les
 La technologie d'affichage demandera aussi probablement beaucoup de recherche documentaire en raison du fait qu'elle est assez nouvelle pour les réalisateurs du projet.
 
 
-### Milestone
+### Milestones
 
 #### Fonctionnalités v1
 
