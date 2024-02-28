@@ -6,25 +6,23 @@ Enseignant : Jérôme Bastien
 
 ## Cahier des charges
 
-### context
+### Contexte
 
 Ce projet prend la suite d'une demande d'un élève, Quentin COURDERO en troisième année en informatique à Polytech. Il a demandé à son enseignant Jérôme Bastien  de l'aider à écrire un algorithme pour déterminer le trajet d’un rayon lumineux qui vient frapper (ou pas) un miroir plan fini. 
 
 ### Objectif
 
-L'objectif de ce projet est d'étudier le comportement d'un rayon lumineux à la rencontre de miroirs.
+L'objectif de ce projet est d'étudier le comportement d'un rayon lumineux lorsqu'il rencontre des miroirs.
 
-On étudiera, par exemple, si, en envoyant le rayon lumineux sur un grand nombre de miroirs, la trajectoire est chaotique ou si le rayon finit par sortir de l'ensemble des miroirs.
+Un rayon lumineux peut avoir deux comportements : il peut se retrouver piégé dans le nid de mirroirs, ou parvenir à sortir du nid de mirroirs.
 
-On considérera qu'une trajectoire est chaotique si, après n réflexion, on ne constate aucune récurrence.
+Sa trajectoire peut suivre un motif ou être chaotique.
+On considérera qu'une trajectoire est chaotique si, après n réflexions (n dépendant du cas étudié), on ne constate aucune répétition.
 
-Pour ce faire, on écrira un outil de simulation des rayons lumineux avec des miroirs.
-
-La simulation devra physiquement être juste. (coller au maximum à la réalité dans tous les cas.)
-
-La simulation s'appuiera sur la seconde loi de Snell-Descarte sur la réflexion.
-
-La simulation devra obligatoirement fonctionner en 2 dimensions avec des miroirs plans, mais pourra être enrichie avec plus de dimensions et de variété de miroirs.
+Pour ce faire, on codera un outil simulant le comportement de rayons lumineux lorsqu'ils rencontrent des miroirs.
+La simulation devra physiquement être juste, c'est à dire coller au maximum à la réalité.
+Elle s'appuiera sur la seconde loi de Snell-Descartes et devra obligatoirement fonctionner en 2 dimensions avec des miroirs plans.
+Elle pourra être enrichie avec plus de dimensions et de variété de miroirs.
 
 ### Réponse technique
 
@@ -78,7 +76,7 @@ La technologie d'affichage demandera aussi probablement beaucoup de recherche do
 gantt
     title le diagramme de Gantt
     dateFormat  DD/MM/YYYY
-    tickInterval 7day
+    tickInterval 14day
 
     section Version 1
     Réflexion, création du cahier des charges    :done, a1, 01/02/2024, 14d
