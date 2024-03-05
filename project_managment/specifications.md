@@ -145,7 +145,7 @@ gantt
     tickInterval 14day
 
     section Version 1
-    Réflexions sur le sujet, création du cahier des charges    :done, a1, 01/02/2024, 14d
+    Réflexions sur le sujet, création du cahier des charges    :done, a1, 01/02/2024, 30d
     Début de la programmation   :milestone, done, m1, after a1,
     Création affichage  :active, after a1, 7d
     Création architecture miroir   :active, after a1, 7d
