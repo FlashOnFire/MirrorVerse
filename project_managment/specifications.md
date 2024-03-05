@@ -51,6 +51,18 @@ Pour cette première version, on devra pouvoir:
 Cette simulation devra de plus supporter les miroirs plan et fonctionner en 2D.
 Cette première version utilisera cependant déjà des bases locales et des symétries plutôt que des angles afin d'anticiper la généralisation en 3D.
 
+##### WorkPackages
+
+Pour cette milestone ces workpackage devront être réalisé : 
+
+|nom|description|durée|
+|:-:|:---------:|:---:|
+|Création affichage|La création d'une affichage en 2d basique|7 jours|
+|Création architecture miroir|ecriture de la modélisation des mirroir et l'import depuis du json|7 jours|
+|Création réflexion basique rayon|Implementation des réfléxion des rayons|7 jours|
+|Liaison des différentes parties|Connecter toute les parties précédente ensemble|7 jours|
+|Tests d'intégration|Écriture de tests afin d'assurer que les future versions ne casse par cette milestone|4 jours| 
+
 
 #### Fonctionnalités v2
 Cette deuxième version devra supporter les types de miroirs suivants :
@@ -58,12 +70,41 @@ Cette deuxième version devra supporter les types de miroirs suivants :
 + circulaire,
 + en courbe de Bézier.
 
+##### WorkPackages
+
+| Nom                        | Description                                              | Durée  |
+|----------------------------|----------------------------------------------------------|--------|
+| Amélioration affichage     | Amélioration de l'affichage en 2D                        | 7 jours|
+| Création de nouveaux miroirs | Ajout de la gestion des miroirs circulaires et en courbe de Bézier | 7 jours|
+| Nouvelles réflexions       | Ajout de fonctionnalités pour gérer les nouvelles réflexions | 7 jours|
+| Liaison des différentes parties | Connecter les nouvelles fonctionnalités ajoutées | 7 jours|
+| Tests d'intégration        | Écriture de tests pour assurer l'intégrité du code avec les nouvelles fonctionnalités | 4 jours|
+
 #### Fonctionnalités v3
 L'objectif minimal de la troisième version est d'obtenir une simulation fonctionnant en 3D. Son fonctionnement en nD serait un plus.
+
+##### WorkPackages
+
+| Nom                               | Description                                              | Durée  |
+|-----------------------------------|----------------------------------------------------------|--------|
+| Généralisation affichage          | Mise en place d'un affichage en 3D                       | 7 jours|
+| Généralisation des miroirs        | Gestion de miroirs en 3D                                 | 7 jours|
+| Généralisation des réflexions     | Adaptation des réflexions pour le passage en 3D          | 7 jours|
+| Liaison des différentes parties  | Connexion des différentes fonctionnalités pour la 3D     | 7 jours|
+| Tests d'intégration               | Ajout de tests pour vérifier l'intégrité des nouvelles fonctionnalités | 4 jours|
 
 #### Fonctionnalités v4
 Enfin, la quatrième version facultatif, pourra intégrer, selon les besoins, des fonctionnalités d'analyse de la trajectoire du rayon. On pense notamment à la détection automatique de la sortie du rayon de l'ensemble de miroirs, ou à la détection automatique d'une boucle (le rayon passe 2 fois au même endroit).
 
+##### WorkPackages
+
+| Nom                                     | Description                                              | Durée  |
+|-----------------------------------------|----------------------------------------------------------|--------|
+| Adaptation de la structure du programme | Révision de la structure du programme pour intégrer les nouvelles fonctionnalités d'analyse | 7 jours|
+| Développement détecteur de récurrence  | Ajout d'un détecteur pour identifier les trajectoires récurrentes | 7 jours|
+| Développement du détecteur de sorties  | Ajout d'un détecteur pour identifier les sorties du rayon de l'ensemble de miroirs | 7 jours|
+| Liaison des différentes parties        | Connexion des nouveaux détecteurs avec le reste du programme | 7 jours|
+| Tests d'intégration                    | Écriture de tests pour vérifier le bon fonctionnement des nouvelles fonctionnalités d'analyse | 4 jours|
 
 
 ## Organisation temporelle
