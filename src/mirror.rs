@@ -21,6 +21,51 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
     pub brightness: f32,
 }
 
+impl<const D: usize> Ray<D> {
+    /// Create a new ray with a given origin and direction
+    pub fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>> {
+        /*
+        example json:
+                 {
+            "origin": [9., 8., 7., ...], (N elements)
+            "direction": [9., 8., 7., ...], (N elements)
+            "brightness": 0.5
+        }
+        */
+        let origin = json
+            .get("origin")
+            .and_then(Value::as_array)
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray origin"))?;
+        let direction = json
+            .get("direction")
+            .and_then(Value::as_array)
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray direction"))?;
+        let brightness = json
+            .get("brightness")
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray brightness"))?;
+
+        let origin = json_array_to_vector::<D>(origin)
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid ray origin"))?;
+
+        let direction = json_array_to_vector::<D>(direction)
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid ray direction"))?;
+
+        let direction = Unit::try_new(direction, 1e-6).ok_or_else(|| {
+            Box::<dyn std::error::Error>::from("Unable to normalize ray direction")
+        })?;
+
+        let brightness = brightness.as_f64().ok_or_else(|| {
+            Box::<dyn std::error::Error>::from("Invalid ray brightness (not a number)")
+        })? as f32;
+
+        Ok(Self {
+            origin,
+            direction,
+            brightness,
+        })
+    }
+}
+
 /// An up to N-1-dimensional, euclidean affine subspace
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize = DEFAULT_DIM> {
@@ -230,3 +275,28 @@ impl fmt::Display for JsonError {
 }
 
 impl std::error::Error for JsonError {}
+
+#[cfg(test)]
+mod tests {
+    use nalgebra::Vector;
+
+    #[test]
+    fn test_json_to_ray() {
+        use super::*;
+        use serde_json::json;
+
+        let json = json!({
+            "origin": [1., 2., 3.],
+            "direction": [4., 5., 6.],
+            "brightness": 0.5
+        });
+
+        let ray = Ray::<3>::from_json(&json).unwrap();
+        assert_eq!(ray.origin, SVector::from([1., 2., 3.]));
+        assert_eq!(
+            ray.direction,
+            Unit::new_normalize(SVector::from_vec(vec![4., 5., 6.]))
+        );
+        assert_eq!(ray.brightness, 0.5);
+    }
+}
