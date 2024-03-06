@@ -85,7 +85,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     fn get_type(&self) -> &str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized;
 }
@@ -102,7 +102,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
         self.as_ref().get_type()
     }
 
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -119,7 +119,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         "dynamic"
     }
 
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -154,22 +154,22 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
-        self.iter()
-            .for_each(|mirror| mirror.append_intersecting_planes(ray, list));
-    }
-
     fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
         let mut list = vec![];
         self.append_intersecting_planes(ray, &mut list);
         list
     }
 
+    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_planes(ray, list));
+    }
+
     fn get_type(&self) -> &str {
         "composite"
     }
 
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -205,7 +205,7 @@ pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
 
 /// This is essentially `try_into` then `try_map` but the latter is nightly-only
 pub fn json_array_to_vector<const D: usize>(
-    json_array: &[serde_json::Value],
+    json_array: &[Value],
 ) -> Option<SVector<f32, D>> {
     let array: &[Value; D] = json_array.try_into().ok()?;
 
