@@ -14,7 +14,7 @@ impl Mirror for CubicBezierMirror {
         "cubicBezier"
     }
 
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -29,11 +29,15 @@ impl Mirror for CubicBezierMirror {
         }
          */
 
-        // TODO: return a Result with clearer errors
 
         let control_points = json
-            .get("control_points")?
-            .as_array()?
+            .get("control_points")
+            .and_then(Value::as_array)
+            .ok_or_else(|| {
+                Box::new(JsonError {
+                    message: "Failed to parse control_points".to_string(),
+                })
+            })?
             .iter()
             .filter_map(|point| {
                 let point: [_; DEFAULT_DIM] = point
@@ -50,7 +54,7 @@ impl Mirror for CubicBezierMirror {
             })
             .collect();
 
-        Some(Self { control_points })
+        Ok(Self { control_points })
     }
 }
 

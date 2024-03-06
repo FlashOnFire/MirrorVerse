@@ -19,7 +19,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         "sphere"
     }
 
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -30,17 +30,28 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         }
          */
 
-        // TODO: return a Result with clearer errors
-
         let center = json
-            .get("center")?
-            .as_array()
+            .get("center")
+            .and_then(Value::as_array)
             .map(Vec::as_slice)
-            .and_then(json_array_to_vector)?;
+            .and_then(json_array_to_vector)
+            .ok_or_else(|| {
+                Box::new(JsonError {
+                    message: "Failed to parse center".to_string(),
+                }) as Box<dyn std::error::Error>
+            })?;
 
-        let radius = json.get("radius").and_then(Value::as_f64)? as f32;
+        let radius = json
+            .get("radius")
+            .and_then(Value::as_f64)
+            .ok_or_else(|| {
+                Box::new(JsonError {
+                    message: "Failed to parse radius".to_string(),
+                }) as Box<dyn std::error::Error>
+            })
+            .unwrap_or_default() as f32;
 
-        Some(Self { center, radius })
+        Ok(Self { center, radius })
     }
 }
 

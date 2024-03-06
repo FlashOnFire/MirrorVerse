@@ -1,6 +1,7 @@
 use core::iter;
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use serde_json::Value;
+use std::fmt;
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -84,7 +85,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     fn get_type(&self) -> &str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized;
 }
@@ -101,7 +102,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
         self.as_ref().get_type()
     }
 
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -118,7 +119,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         "dynamic"
     }
 
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -130,8 +131,16 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         }
          */
 
-        let mirror_type = json.get("type")?.as_str()?;
-        let mirror = json.get("mirror")?;
+        let mirror_type = json
+            .get("type")
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror type"))?
+            .as_str()
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid mirror type"))?;
+        let mirror = json
+            .get("mirror")
+            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror data"))?;
+
+        
 
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
@@ -139,7 +148,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             "sphere" => {
                 sphere::SphereMirror::<D>::from_json(mirror).map(|mirror| Box::new(mirror) as _)
             }
-            _ => None,
+            _ => Err(Box::<dyn std::error::Error>::from("Invalid mirror type")),
         }
     }
 }
@@ -160,7 +169,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         "composite"
     }
 
-    fn from_json(json: &serde_json::Value) -> Option<Self>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -169,11 +178,17 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             ... list of json values whose structure depends on `T`
         ]
          */
-
-        // TODO: return a Result with clearer errors
-
-        // TODO: fail if the deserialisation of _one_ mirror fails
-        try_collect(json.as_array()?.iter().map(T::from_json))
+        if let Some(json) = json.as_array() {
+            let mut mirrors = vec![];
+            for mirror in json {
+                mirrors.push(T::from_json(mirror)?);
+            }
+            Ok(mirrors)
+        } else {
+            Err(Box::new(JsonError {
+                message: "Invalid mirror list".to_string(),
+            }))
+        }
     }
 }
 
@@ -202,3 +217,16 @@ pub fn json_array_to_vector<const D: usize>(
         center_coords_array,
     ])))
 }
+
+#[derive(Debug)]
+struct JsonError {
+    message: String,
+}
+
+impl fmt::Display for JsonError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for JsonError {}
