@@ -5,7 +5,7 @@ use super::*;
 
 #[derive(Clone, Copy)]
 pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
-    center: Point<f32, D>,
+    center: SVector<f32, D>,
     radius: f32,
 }
 
@@ -30,25 +30,17 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         }
          */
 
-        // TODO: optimize out the allocations
         // TODO: return a Result with clearer errors
 
-        let center: [_; D] = json
+        let center = json
             .get("center")?
-            .as_array()?
-            .iter()
-            .filter_map(serde_json::Value::as_f64)
-            .map(|val| val as f32)
-            .collect::<Vec<_>>()
-            .try_into()
-            .ok()?;
+            .as_array()
+            .map(Vec::as_slice)
+            .and_then(json_array_to_vector)?;
 
-        let radius = json.get("radius")?.as_f64()? as f32;
+        let radius = json.get("radius").and_then(Value::as_f64)? as f32;
 
-        Some(Self {
-            center: Point::from_slice(&center),
-            radius,
-        })
+        Some(Self { center, radius })
     }
 }
 
@@ -56,25 +48,17 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
 mod tests {
     use super::*;
 
-    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DEFAULT_DIM, 0.0);
-        vec
-    }
-
     #[test]
     fn test_sphere_mirror_from_json() {
-        println!("oucou");
         let json = serde_json::json!({
-            "center": complete_with_0(vec![1.0, 2.0]),
+            "center": [1.0, 2.0],
             "radius": 4.0
         });
 
-        let mirror = SphereMirror::from_json(&json).expect("json deserialisation failed");
+        let mirror =
+            SphereMirror::<DEFAULT_DIM>::from_json(&json).expect("json deserialisation failed");
 
-        assert_eq!(
-            mirror.center,
-            Point::<f32, DEFAULT_DIM>::from_slice(&complete_with_0(vec![1.0, 2.0]))
-        );
+        assert_eq!(mirror.center, SVector::from([1.0, 2.0]));
         assert_eq!(mirror.radius, 4.0);
     }
 

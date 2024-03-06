@@ -1,5 +1,6 @@
 use core::iter;
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
+use serde_json::Value;
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -12,7 +13,7 @@ use crate::DEFAULT_DIM;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray<const D: usize = DEFAULT_DIM> {
     /// Current position of the ray
-    pub origin: Point<f32, D>,
+    pub origin: SVector<f32, D>,
     /// Current direction of the ray
     pub direction: Unit<SVector<f32, D>>,
 }
@@ -28,21 +29,17 @@ pub struct Plane<const D: usize = DEFAULT_DIM> {
     vectors: [SVector<f32, D>; D],
 }
 
-// Important Note: this implementation is only valid for D >= 2.
-// but it is impossible to write something akin to `where N >= 2`
+// Important Note: this implementation is only valid for D >= 1.
+// but it is impossible to write something akin to `where D >= 1`
 // to statically restrict the value without `#[feature(const_generic_exprs)]`
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
-    pub fn new(vectors: [SVector<f32, D>; D]) -> Self {
-        Self { vectors }
+    pub fn new(mut vectors: [SVector<f32, D>; D]) -> Option<Self> {
+        (SVector::orthonormalize(&mut vectors[1..]) == D - 1).then_some(Self { vectors })
     }
     /// The plane's starting point
     pub fn v_0(&self) -> &SVector<f32, D> {
         self.vectors.first().unwrap()
-    }
-    /// A mutable reference to the plane's starting point
-    pub fn v_0_mut(&mut self) -> &mut SVector<f32, D> {
-        self.vectors.first_mut().unwrap()
     }
     /// A reference to the stored basis of the plane's associated hyperplane.
     ///
@@ -50,24 +47,12 @@ impl<const D: usize> Plane<D> {
     pub fn basis(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
-    /// A mutable reference to the stored basis of the plane's associated hyperplane.
-    ///
-    /// The returned slice is garanteed to be of length D - 1.
-    pub fn basis_mut(&mut self) -> &mut [SVector<f32, D>] {
-        &mut self.vectors[1..]
-    }
-    /// Orthonormalize the plane's spanning set, Returns
-    /// a reference to it's largest (orthonormalised) free family
-    pub fn orthonormalize_basis(&mut self) -> &[SVector<f32, D>] {
-        let n = SVector::orthonormalize(self.basis_mut());
-        &self.basis()[..n]
-    }
     /// Project a vector using the orthonormal basis projection formula.
     ///
     /// Assumes `b` is an orthonormal (thus, free) family. If such isn't
     /// the case, the result is unspecified.
-    pub fn orthogonal_projection(v: SVector<f32, D>, b: &[SVector<f32, D>]) -> SVector<f32, D> {
-        b.iter().map(|e| v.dot(e) * e).sum()
+    pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
+        self.basis().iter().map(|e| v.dot(e) * e).sum()
     }
 }
 
@@ -80,7 +65,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     ///     - Moving forward until it intersects the plane
     ///     - Adjusting it's brightness according to the provided gain value
     ///     - Then, orthognoally reflecting it's direction vector with
-    ///       respect to the plane's hyperplane/subspace
+    ///       respect to the subspace defining the plane's "orientation"
     ///
     /// Returns an empty list if the vector doesn't intersect with the mirror.
     fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)>;
@@ -186,31 +171,32 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         // TODO: return a Result with clearer errors
 
         // TODO: fail if the deserialisation of _one_ mirror fails
-        Some(json.as_array()?.iter().filter_map(T::from_json).collect())
+        try_collect(json.as_array()?.iter().map(T::from_json))
     }
 }
 
+/// This is essentially [`Iterator::try_collect`]
+/// for `Vec<T>` but without having to use nightly
+pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
+    let mut vec = vec![];
+    for item in i {
+        vec.push(item?);
+    }
+
+    Some(vec)
+}
+
+/// This is essentially `try_into` then `try_map` but the latter is nightly-only
 pub fn json_array_to_vector<const D: usize>(
     json_array: &[serde_json::Value],
 ) -> Option<SVector<f32, D>> {
-    if json_array.len() != D {
-        return None;
-    }
+    let array: &[Value; D] = json_array.try_into().ok()?;
+
     let mut center_coords_array = [0.; D];
-    for (coord, value) in center_coords_array.iter_mut().zip(json_array.iter()) {
+    for (coord, value) in center_coords_array.iter_mut().zip(array) {
         *coord = value.as_f64()? as f32;
     }
     Some(SVector::from_array_storage(ArrayStorage([
         center_coords_array,
     ])))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DEFAULT_DIM, 0.0);
-        vec
-    }
 }

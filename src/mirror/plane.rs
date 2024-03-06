@@ -31,7 +31,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
         if a.try_inverse_mut() {
             // a now contains a^-1
-            let v = a * (self.plane.v_0() - ray.direction.as_ref());
+            let v = a * (self.plane.v_0() - ray.origin);
             if v.iter()
                 .zip(&self.bounds)
                 .skip(1)
@@ -62,25 +62,40 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         }
         */
 
-        let mut plane = Plane::new([SVector::zeros(); D]);
+        // TODO: return a Result with clearer errors
 
-        *plane.v_0_mut() = json_array_to_vector(json.get("center")?.as_array()?.as_slice())?;
+        let mut vectors = [SVector::zeros(); D];
 
-        let basis = json.get("basis")?.as_array().filter(|l| l.len() == D - 1)?;
-        for (vector, value) in plane.basis_mut().iter_mut().zip(basis.iter()) {
-            *vector = json_array_to_vector(value.as_array()?.as_slice())?;
-        }
+        let (v_0, basis) = vectors.split_first_mut().unwrap();
 
-        let bounds_array = json
-            .get("bounds")?
-            .as_array()
+        *v_0 = json
+            .get("center")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .and_then(json_array_to_vector)?;
+
+        let basis_json = json
+            .get("basis")
+            .and_then(Value::as_array)
             .filter(|l| l.len() == D - 1)?;
-        let mut bounds = [0.; D];
-        for (vector, value) in bounds.iter_mut().zip(bounds_array.iter()) {
-            *vector = value.as_f64()? as f32;
+        for (value, vector) in basis_json.iter().zip(basis) {
+            *vector = value
+                .as_array()
+                .map(Vec::as_slice)
+                .and_then(json_array_to_vector)?;
         }
 
-        Some(Self { plane, bounds })
+        let bounds_json = json
+            .get("bounds")
+            .and_then(Value::as_array)
+            .filter(|l| l.len() == D - 1)?;
+
+        let mut bounds = [0.; D];
+        for (i, o) in bounds[1..].iter_mut().zip(bounds_json.iter()) {
+            *i = o.as_f64()? as f32;
+        }
+
+        Plane::new(vectors).map(|plane| Self { plane, bounds })
     }
 }
 
@@ -92,7 +107,6 @@ mod tests {
 
     #[test]
     fn test_2d_horizontal() {
-
         /*
                 |
           ----->|
@@ -101,15 +115,16 @@ mod tests {
 
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
-                //                      x    y
-                SVector::from_vec(vec![0.0, 1.0]),
-            ]),
+                SVector::from([0.0, 0.0]),
+                //              x    y
+                SVector::from([0.0, 1.0]),
+            ])
+            .unwrap(),
             bounds: [1.0; 2],
         };
         let ray = Ray {
-            origin: Point::from_slice(&[-1.0, 0.0]),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+            origin: [-1.0, 0.0].into(),
+            direction: Unit::new_normalize([1.0, 0.0].into()),
         };
         let reflections = mirror.intersecting_planes(&ray);
 
@@ -118,15 +133,14 @@ mod tests {
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(plane, Plane::new([
-            SVector::from_vec(vec![0.0, 0.0]),
-            SVector::from_vec(vec![0.0, 1.0]),
-        ]));
+        assert_eq!(
+            plane,
+            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(),]).unwrap()
+        )
     }
 
     #[test]
     fn test_2d_vertical() {
-
         /*
         ---------
             ^
@@ -139,24 +153,29 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 //                      x    y
                 SVector::from_vec(vec![1.0, 0.0]),
-            ]),
+            ])
+            .unwrap(),
             bounds: [1.0; 2],
         };
         let ray = Ray {
-            origin: Point::from_slice(&[0.0, -1.0]),
+            origin: [0.0, -1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
         };
         let reflections = mirror.intersecting_planes(&ray);
-        
+
         let &[(brightness, plane)] = reflections.as_slice() else {
             panic!("there must be one plane");
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(plane, Plane::new([
-            SVector::from_vec(vec![0.0, 0.0]),
-            SVector::from_vec(vec![1.0, 0.0]),
-        ]));
+        assert_eq!(
+            plane,
+            Plane::new([
+                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from_vec(vec![1.0, 0.0]),
+            ])
+            .unwrap()
+        );
     }
 
     #[test]
@@ -165,12 +184,13 @@ mod tests {
             plane: Plane::new([
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
-            ]),
+            ])
+            .unwrap(),
             bounds: [1.0; 2],
         };
 
         let ray = Ray {
-            origin: Point::from_slice(&[-1.0, 1.0]),
+            origin: [-1.0, 1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, -1.0])),
         };
 
@@ -181,15 +201,18 @@ mod tests {
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(plane, Plane::new([
-            SVector::from_vec(vec![0.0, 0.0]),
-            SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
-        ]));
+        assert_eq!(
+            plane,
+            Plane::new([
+                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
+            ])
+            .unwrap()
+        );
     }
 
     #[test]
-    fn test_no_reflection_2d(){
-
+    fn test_no_reflection_2d() {
         /*
         ---->
         _____
@@ -199,12 +222,13 @@ mod tests {
             plane: Plane::new([
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![1.0, 0.0]),
-            ]),
+            ])
+            .unwrap(),
             bounds: [1.0; 2],
         };
 
         let ray = Ray {
-            origin: Point::from_slice(&[0.0, 1.0]),
+            origin: [0.0, 1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
 
