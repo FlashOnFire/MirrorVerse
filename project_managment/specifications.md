@@ -91,9 +91,9 @@ Pour cette milestone ces workpackage devront être réalisés :
 
 Cette deuxième version devra supporter les types de miroirs suivants :
 
-+ plan,
-+ circulaires,
-+ en courbe de Bézier.
++ plan
++ circulaires
++ en courbe de Bézier
 
 ##### WorkPackages
 
