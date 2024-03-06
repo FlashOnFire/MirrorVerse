@@ -13,6 +13,8 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     ///
     /// Note: the first value of this array is irrelevant
     bounds: [f32; D],
+    /// Coefficient describing the darkness of the mirror which will be applied to the brightness
+    darkness_coef: f32,
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
@@ -37,7 +39,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                 .skip(1)
                 .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
             {
-                list.push((1., self.plane));
+                list.push((self.darkness_coef, self.plane));
             }
         }
     }
@@ -96,7 +98,17 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             *i = o.as_f64()? as f32;
         }
 
-        Plane::new(vectors).map(|plane| Self { plane, bounds })
+        let darkness_coef = json
+            .get("darkness")
+            .and_then(Value::as_f64)
+            .map(|f| f as f32)
+            .unwrap_or(1.0);
+
+        Plane::new(vectors).map(|plane| Self {
+            plane,
+            bounds,
+            darkness_coef,
+        })
     }
 }
 
@@ -122,10 +134,12 @@ mod tests {
             ])
             .unwrap(),
             bounds: [1.0; 2],
+            darkness_coef: 1.0,
         };
         let ray = Ray {
             origin: [-1.0, 0.0].into(),
             direction: Unit::new_normalize([1.0, 0.0].into()),
+            brightness: 1.0,
         };
         let reflections = mirror.intersecting_planes(&ray);
 
@@ -157,10 +171,12 @@ mod tests {
             ])
             .unwrap(),
             bounds: [1.0; 2],
+            darkness_coef: 1.0,
         };
         let ray = Ray {
             origin: [0.0, -1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
+            brightness: 1.0,
         };
         let reflections = mirror.intersecting_planes(&ray);
 
@@ -188,11 +204,13 @@ mod tests {
             ])
             .unwrap(),
             bounds: [1.0; 2],
+            darkness_coef: 1.0,
         };
 
         let ray = Ray {
             origin: [-1.0, 1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, -1.0])),
+            brightness: 1.0,
         };
 
         let reflections = mirror.intersecting_planes(&ray);
@@ -226,11 +244,13 @@ mod tests {
             ])
             .unwrap(),
             bounds: [1.0; 2],
+            darkness_coef: 1.0,
         };
 
         let ray = Ray {
             origin: [0.0, 1.0].into(),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+            brightness: 1.0,
         };
 
         let reflections = mirror.intersecting_planes(&ray);

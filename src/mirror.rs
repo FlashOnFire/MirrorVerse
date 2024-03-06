@@ -16,6 +16,8 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
     pub origin: SVector<f32, D>,
     /// Current direction of the ray
     pub direction: Unit<SVector<f32, D>>,
+    /// Current brightness of the ray (0.0 to 1.0)
+    pub brightness: f32,
 }
 
 /// An up to N-1-dimensional, euclidean affine subspace
