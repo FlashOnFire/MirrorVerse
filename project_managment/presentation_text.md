@@ -3,7 +3,7 @@
 Ce projet fait suite à la demande d'un étudiant, Quentin COURDEROT en troisième année en spécialité informatique.
 Celui-ci a demandé à son enseignant Jérôme Bastien de l'aider à écrire un algorithme pour déterminer la trajectoire d’un rayon lumineux lorsque celui-ci vient frapper un miroir plan fini.
 
-Le but est donc, tout d'abord, comme il l'a demandé à son enseignant, de simuler des rayons lumineux avec un miroir. On définira plus tard quels miroirs nous choisirons.
+Le but de notre projet est donc, tout d'abord, comme il l'a demandé à son enseignant, de simuler des rayons lumineux avec un miroir. On définira plus tard quels miroirs nous choisirons.
 On utilisera ces simulations pour étudier le comportement des rayons lumineux dans un grand ensemble de miroirs.
 
 # Les grandes Parties (EYMERIC)
