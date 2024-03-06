@@ -22,6 +22,12 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> Ray<D> {
+    /// Reflect the ray with respect to the given plane
+    pub fn reflect(&self, plane: &Plane<D>, darkness_coef: &f32) -> Ray<D> {
+        //TODO pour momo
+        self.clone()
+    }
+
     /// Create a new ray with a given origin and direction
     pub fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>> {
         /*
