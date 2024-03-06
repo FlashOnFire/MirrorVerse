@@ -270,8 +270,8 @@ pub fn json_array_to_vector<const D: usize>(
 }
 
 #[derive(Debug)]
-struct JsonError {
-    message: String,
+pub(crate) struct JsonError {
+    pub(crate) message: String,
 }
 
 impl fmt::Display for JsonError {
@@ -284,8 +284,6 @@ impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
-    use nalgebra::Vector;
-
     #[test]
     fn test_json_to_ray() {
         use super::*;
