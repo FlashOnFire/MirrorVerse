@@ -1,14 +1,17 @@
 mod mirror;
 mod render;
+extern crate alloc;
 
+use alloc::sync::Arc;
 use pollster::FutureExt;
 use render::state::State;
-use std::sync::Arc;
 use std::time::Instant;
-use winit::event::*;
-use winit::event_loop::EventLoop;
-use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::window::WindowBuilder;
+use winit::{
+    event::*,
+    event_loop::EventLoop,
+    keyboard::{KeyCode, PhysicalKey},
+    window::WindowBuilder,
+};
 
 pub const DEFAULT_DIM: usize = 2;
 

@@ -1,17 +1,19 @@
 use nalgebra::Point3;
-use std::sync::Arc;
-use std::time::Duration;
-use wgpu::util::DeviceExt;
+use std::{sync::Arc, time::Duration};
 use wgpu::{
-    CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits,
-    PresentMode, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,
+    util::DeviceExt, CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor,
+    Limits, PresentMode, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,
 };
-use winit::event::{ElementState, KeyEvent, MouseButton, WindowEvent};
-use winit::keyboard::PhysicalKey;
-use winit::window::Window;
+use winit::{
+    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    keyboard::PhysicalKey,
+    window::Window,
+};
 
-use super::camera::{Camera, CameraController, CameraUniform, Projection};
-use super::structs::{Vertex, INDICES, VERTICES};
+use super::{
+    camera::{Camera, CameraController, CameraUniform, Projection},
+    structs::{Vertex, INDICES, VERTICES},
+};
 
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,

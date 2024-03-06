@@ -78,6 +78,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .get("basis")
             .and_then(Value::as_array)
             .filter(|l| l.len() == D - 1)?;
+
         for (value, vector) in basis_json.iter().zip(basis) {
             *vector = value
                 .as_array()

@@ -1,9 +1,10 @@
 use cgmath::{Matrix4, Rad, Vector3};
-use std::f32::consts::FRAC_PI_2;
-use std::time::Duration;
-use winit::dpi::PhysicalPosition;
-use winit::event::{ElementState, MouseScrollDelta};
-use winit::keyboard::KeyCode;
+use core::{f32::consts::FRAC_PI_2, time::Duration};
+use winit::{
+    dpi::PhysicalPosition,
+    event::{ElementState, MouseScrollDelta},
+    keyboard::KeyCode,
+};
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
