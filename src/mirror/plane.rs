@@ -86,19 +86,24 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use core::f32::consts::FRAC_1_SQRT_2;
 
-    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DEFAULT_DIM, 0.0);
-        vec
-    }
+    use super::*;
 
     #[test]
     fn test_2d_horizontal() {
+
+        /*
+                |
+          ----->|
+                |
+        */
+
         let mirror = PlaneMirror {
             plane: Plane::new([
                 SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![1.0, 0.0]),
+                //                      x    y
+                SVector::from_vec(vec![0.0, 1.0]),
             ]),
             bounds: [1.0; 2],
         };
@@ -107,69 +112,103 @@ mod tests {
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
         let reflections = mirror.reflect(&ray);
-        assert_eq!(reflections.len(), 1);
-        assert_eq!(reflections[0].1, Plane::new([
+
+        let &[(brightness, plane)] = reflections.as_slice() else {
+            panic!("there must be one plane");
+        };
+
+        assert_eq!(brightness, 1.0);
+        assert_eq!(plane, Plane::new([
+            SVector::from_vec(vec![0.0, 0.0]),
             SVector::from_vec(vec![0.0, 1.0]),
-            SVector::from_vec(vec![0.0, -1.0]),
         ]));
     }
 
     #[test]
     fn test_2d_vertical() {
+
+        /*
+        ---------
+            ^
+            |
+            |
+        */
+
         let mirror = PlaneMirror {
             plane: Plane::new([
+                SVector::from_vec(vec![0.0, 0.0]),
+                //                      x    y
                 SVector::from_vec(vec![1.0, 0.0]),
-                SVector::from_vec(vec![0.0, 1.0]),
             ]),
             bounds: [1.0; 2],
         };
         let ray = Ray {
-            origin: Point::from_slice(&[0.2, 0.2]),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+            origin: Point::from_slice(&[0.0, -1.0]),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
         };
         let reflections = mirror.reflect(&ray);
-        assert_eq!(reflections.len(), 1);
-        assert_eq!(reflections[0].0, 1.0);
-        assert_eq!(reflections[0].1, Plane::new([
+        
+        let &[(brightness, plane)] = reflections.as_slice() else {
+            panic!("there must be one plane");
+        };
+
+        assert_eq!(brightness, 1.0);
+        assert_eq!(plane, Plane::new([
+            SVector::from_vec(vec![0.0, 0.0]),
             SVector::from_vec(vec![1.0, 0.0]),
-            SVector::from_vec(vec![0.0, 1.0]),
         ]));
     }
+
     #[test]
     fn test_2d_diagonal() {
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![1.0, 1.0]),
-                SVector::from_vec(vec![-1.0, -1.0]),
+                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ]),
             bounds: [1.0; 2],
         };
+
         let ray = Ray {
-            origin: Point::from_slice(&[1.0, 0.0]),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![-1.0, 1.0])),
+            origin: Point::from_slice(&[-1.0, 1.0]),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, -1.0])),
         };
+
         let reflections = mirror.reflect(&ray);
-        assert_eq!(reflections.len(), 1);
-        assert_eq!(reflections[0].0, 1.0);
-        assert_eq!(reflections[0].1, Plane::new([
-            SVector::from_vec(vec![1.0, 1.0]),
-            SVector::from_vec(vec![-1.0, -1.0]),
+
+        let &[(brightness, plane)] = reflections.as_slice() else {
+            panic!("there must be one plane");
+        };
+
+        assert_eq!(brightness, 1.0);
+        assert_eq!(plane, Plane::new([
+            SVector::from_vec(vec![0.0, 0.0]),
+            SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
         ]));
     }
+
     #[test]
     fn test_no_reflection_2d(){
+
+        /*
+        ---->
+        _____
+        */
+
         let mirror = PlaneMirror {
             plane: Plane::new([
                 SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![0.0, 1.0]),
+                SVector::from_vec(vec![1.0, 0.0]),
             ]),
             bounds: [1.0; 2],
         };
+
         let ray = Ray {
-            origin: Point::from_slice(&[0.0, 5.0]),
+            origin: Point::from_slice(&[0.0, 1.0]),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
+
         let reflections = mirror.reflect(&ray);
-        assert_eq!(reflections.len(), 0);
+        assert!(reflections.is_empty());
     }
 }
