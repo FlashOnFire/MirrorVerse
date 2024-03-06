@@ -16,13 +16,13 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
         let mut list = vec![];
-        self.append_reflections(ray, &mut list);
+        self.append_intersecting_planes(ray, &mut list);
         list
     }
 
-    fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
         a.column_iter_mut()
@@ -111,7 +111,7 @@ mod tests {
             origin: Point::from_slice(&[-1.0, 0.0]),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
-        let reflections = mirror.reflect(&ray);
+        let reflections = mirror.intersecting_planes(&ray);
 
         let &[(brightness, plane)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -146,7 +146,7 @@ mod tests {
             origin: Point::from_slice(&[0.0, -1.0]),
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
         };
-        let reflections = mirror.reflect(&ray);
+        let reflections = mirror.intersecting_planes(&ray);
         
         let &[(brightness, plane)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -174,7 +174,7 @@ mod tests {
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, -1.0])),
         };
 
-        let reflections = mirror.reflect(&ray);
+        let reflections = mirror.intersecting_planes(&ray);
 
         let &[(brightness, plane)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -208,7 +208,7 @@ mod tests {
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
         };
 
-        let reflections = mirror.reflect(&ray);
+        let reflections = mirror.intersecting_planes(&ray);
         assert!(reflections.is_empty());
     }
 }

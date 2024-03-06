@@ -83,13 +83,13 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     ///       respect to the plane's hyperplane/subspace
     ///
     /// Returns an empty list if the vector doesn't intersect with the mirror.
-    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)>;
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)>;
     /// An optimised version of `Self::reflect` that potentially saves
     /// an allocation by writing into another `Vec`. Override this if needed.
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
-    fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
-        list.append(&mut self.reflect(ray))
+    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+        list.append(&mut self.intersecting_planes(ray))
     }
     /// Returns a string slice, unique to the type
     /// (or inner type if type-erased) and coherent with it's json representation
@@ -106,8 +106,8 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
 //
 // This impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
-    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
-        self.as_ref().reflect(ray)
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+        self.as_ref().intersecting_planes(ray)
     }
 
     fn get_type(&self) -> &str {
@@ -123,8 +123,8 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
-        self.as_ref().reflect(ray)
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+        self.as_ref().intersecting_planes(ray)
     }
 
     fn get_type(&self) -> &str {
@@ -158,14 +158,14 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn append_reflections(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
         self.iter()
-            .for_each(|mirror| mirror.append_reflections(ray, list));
+            .for_each(|mirror| mirror.append_intersecting_planes(ray, list));
     }
 
-    fn reflect(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
         let mut list = vec![];
-        self.append_reflections(ray, &mut list);
+        self.append_intersecting_planes(ray, &mut list);
         list
     }
 
