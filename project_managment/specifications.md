@@ -77,7 +77,7 @@ d'anticiper la généralisation en 3D.
 
 ##### WorkPackages
 
-Pour cette milestone ces workpackage devront être réalisé :
+Pour cette milestone ces workpackage devront être réalisés :
 
 |               Nom                |                                                Description                                                 |  Durée  |
 |:--------------------------------:|:----------------------------------------------------------------------------------------------------------:|:-------:|
