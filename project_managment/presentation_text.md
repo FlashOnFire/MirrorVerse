@@ -21,8 +21,7 @@ Enfin, s'il nous reste du temps, on intégrera des outils automatisés d'analyse
 Pour développer ces différentes versions du simulateur, nous utiliserons le langage de programmation Rust.
 Ce dernier est un
 Langage de choix pour créer des programmes très rapides, notamment grâce à sa nature de langage compilé.
-Il a également l'avantage, grâce à son compilateur très strict, d'éviter toute possibilité de fuite mémoire. 
-Celui-ci permettra aussi d'intégrer facilement des tests automatisés afin d'avoir un code le plus robuste possible.
+Les programmes ecrits en Rust, sont depourvus de failles de securite de memoire, erreurs d'acces, ou tout type de comportement non-defini, en conjonction avec son systeme de gestion d'erreur, et ses fonctionalites de tests automatises, ils sont surs, robustes et simples a debugger. 
 
 Cependant, tous ces avantages viennent avec une difficulté de programmation supérieure ont un langage plus haut niveau et moins rapide
 On pourra rencontrer des difficultés, par exemple, sur l'affichage 3D avec wgpu.
