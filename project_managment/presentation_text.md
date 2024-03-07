@@ -24,7 +24,7 @@ Langage de choix pour créer des programmes très rapides, notamment grâce à s
 Les programmes ecrits en Rust, sont depourvus de failles de securite de memoire, erreurs d'acces, ou tout type de comportement non-defini, en conjonction avec son systeme de gestion d'erreur, et ses fonctionalites de tests automatises, ils sont surs, robustes et simples a debugger. 
 
 Cependant, tous ces avantages viennent avec une difficulté de programmation supérieure ont un langage plus haut niveau et moins rapide
-On pourra rencontrer des difficultés, par exemple, sur l'affichage 3D avec wgpu.
+On pourra rencontrer des difficultés, par exemple, sur l'affichage 3D.
 Cela risque un potentiel retard. C'est pourquoi nous rajouterons impérativement une fonction d'export des résultats dans
 un fichier JSON afin de pouvoir récupérer les données de la simulation sans passer par la visualisation interne au
 programme.

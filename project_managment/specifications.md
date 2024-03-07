@@ -38,8 +38,7 @@ On utilisera la bibliothèque nAlgebra, qui nous permettra de manipuler aisémen
 que les vecteurs, les points, etc.
 
 La simulation intégrera de plus un outil de visualisation permettant de se déplacer dans le monde virtuel comprenant les
-miroirs et rayons simulés. Cela permettra de constater simplement et rapidement le résultat de la simulation. Cet outil
-de visualisation sera développé à l'aide de la bibliothèque WGPU.
+miroirs et rayons simulés. Cela permettra de constater simplement et rapidement le résultat de la simulation.
 
 ### Difficultés Attendues
 
