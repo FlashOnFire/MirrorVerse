@@ -41,7 +41,7 @@ Le simulateur devra supporter deux principales exigences :
 Tout d'abord, les simulations devront évidemment être physiquement justes.
 C'est-à-dire que si on reproduit le système de miroir dans la vraie vie, le rayon doit exactement suivre le même chemin que dans la simulation.
 
-Le simulateur devra également pour calculer les 100 réflexions dans un ensemble de plus de 100 miroirs en maximum une seconde afin de pouvoir faire des simulations très chargées.
+Le simulateur devra également pour calculer les 50 réflexions dans un ensemble de plus de 50 miroirs en maximum une seconde afin de pouvoir faire des simulations très chargées.
 
 # Calendrier prévisionnel (GUIGZ)
 
