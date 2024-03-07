@@ -46,3 +46,8 @@ Le simulateur devra également pour calculer les 100 réflexions dans un ensembl
 # Calendrier prévisionnel (GUIGZ)
 
 demerden sie sich
+
+# la technique (tous en choeur)
+
+boarf on sais de quoi on parle non x)
+
