@@ -1,12 +1,14 @@
 mod mirror;
 mod render;
+
 extern crate alloc;
 
-use crate::mirror::{Mirror, Ray};
+use crate::mirror::{Mirror, Plane, Ray};
 use alloc::sync::Arc;
 use pollster::FutureExt;
 use render::state::State;
 use std::time::Instant;
+use nalgebra::SVector;
 use winit::{
     event::*,
     event_loop::EventLoop,
@@ -32,8 +34,8 @@ fn main() {
         .unwrap();
 
     let mut mirrors = Vec::with_capacity(mirrors_data.len());
-    for mirrorData in mirrors_data {
-        mirrors.push(Box::<dyn Mirror<DEFAULT_DIM>>::from_json(mirrorData).unwrap());
+    for mirror_data in mirrors_data {
+        mirrors.push(Box::<dyn Mirror<DEFAULT_DIM>>::from_json(mirror_data).unwrap());
     }
 
     let mut ray = Ray::<DEFAULT_DIM>::from_json(value.get("ray").unwrap()).unwrap();
@@ -44,7 +46,12 @@ fn main() {
     for _ in 0..reflection_limit {
         let mut intersections = mirrors.intersecting_planes(&ray);
         println!("{:?}", ray);
-        intersections.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        //sort the intersections by distance using distance_to_point
+        intersections.sort_by(|a, b| {
+            a.1.distance_to_ray(ray)
+                .partial_cmp(&b.1.distance_to_ray(ray))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         if let Some((darkness, plane)) = intersections.first() {
             let reflected_ray = ray.reflect(plane, darkness);
             rays.push(reflected_ray);
@@ -79,7 +86,7 @@ async fn run() {
             #[allow(clippy::collapsible_match)]
             match event {
                 Event::DeviceEvent {
-                    event: DeviceEvent::MouseMotion{ delta, },
+                    event: DeviceEvent::MouseMotion { delta, },
                     .. // We're not using device_id currently
                 } => if state.mouse_pressed {
                     state.camera_controller.process_mouse(delta.0, delta.1)
@@ -93,10 +100,10 @@ async fn run() {
                     }
                     WindowEvent::KeyboardInput {
                         event:
-                            KeyEvent {
-                                physical_key: PhysicalKey::Code(keycode),
-                                ..
-                            },
+                        KeyEvent {
+                            physical_key: PhysicalKey::Code(keycode),
+                            ..
+                        },
                         ..
                     } => match keycode {
                         KeyCode::Escape => {
@@ -124,7 +131,7 @@ async fn run() {
                             // All other errors (Outdated, Timeout) should be resolved by the next frame
                             Err(e) => eprintln!("{:?}", e),
                         }
-                    },
+                    }
                     _ => {}
                 },
                 Event::AboutToWait => {

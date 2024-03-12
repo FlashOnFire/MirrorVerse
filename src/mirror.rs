@@ -2,6 +2,7 @@ use core::iter;
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use serde_json::Value;
 use std::fmt;
+use std::ops::Sub;
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -24,8 +25,14 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 impl<const D: usize> Ray<D> {
     /// Reflect the ray with respect to the given plane
     pub fn reflect(&self, plane: &Plane<D>, darkness_coef: &f32) -> Ray<D> {
-        //TODO pour momo
-        self.clone()
+        let normal = plane.normal().unwrap();
+        let reflected_direction = self.direction.sub(2.0 * self.direction.dot(&normal) * normal);
+        let reflected_origin = self.origin + self.direction.into_inner() * 1e-6; // add a small offset to avoid self-intersection
+        Ray {
+            origin: reflected_origin,
+            direction: Unit::new_normalize(reflected_direction),
+            brightness: self.brightness * (1.0 - darkness_coef),
+        }
     }
 
     /// Create a new ray with a given origin and direction
@@ -108,6 +115,70 @@ impl<const D: usize> Plane<D> {
     pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
         self.basis().iter().map(|e| v.dot(e) * e).sum()
     }
+
+    /// Calculate the normal vector of the plane
+    /// TODO implement it better for n dimensions directly
+    pub fn normal(&self) -> Option<SVector<f32, D>> {
+        if D == 1 {
+            // In 1D, there's no notion of a normal vector
+            None
+        } else if D == 2 {
+            let basis_vector = self.basis()[0];
+            let normal: SVector<f32, D> = SVector::from_vec(vec![-basis_vector[1], basis_vector[0]]);
+            Some(normal.normalize())
+        } else if D == 3 {
+            // Calculate the normal vector using the cross product of D - 1 basis vectors
+            let mut basis_vectors = self.basis().iter().map(|v| *v);
+            let mut cross_product_result = basis_vectors.next()?.cross(&basis_vectors.next()?);
+
+            for basis_vector in basis_vectors {
+                cross_product_result += basis_vector.cross(&cross_product_result);
+            }
+
+            // Normalize the resulting vector to ensure it has unit length
+            let normal = cross_product_result.normalize();
+
+            Some(normal)
+        } else {
+            // TODO implement it for n dimensions
+            None
+        }
+    }
+
+    /// Returns the distance between the plane and a point
+    /// probaly useless for distance to ray because ray have a direction
+    ///           /
+    /// -->     / <- nearest point to the plane using the ray direction
+    ///       /  <- nearest point with orthogonal projection
+    pub fn distance_to_point(&self, point: SVector<f32, D>) -> f32 {
+        let v = point - self.v_0();
+        let projection = self.orthogonal_projection(v);
+        println!("{:?} {:?} {:}", v, projection, (v - projection).norm());
+        (v - projection).norm()
+    }
+
+    /// Returns the distance between the plane and a ray
+    /// This function take care of the ray direction
+    pub fn distance_to_ray(&self, ray: Ray<D>) -> f32 {
+        let plane_origin = self.v_0();
+        let plane_normal = self.normal();
+
+        let plane_to_ray_origin = ray.origin - plane_origin;
+        let distance_along_normal = plane_to_ray_origin.dot(&plane_normal.unwrap_or(SVector::zeros()));
+
+        if distance_along_normal < 0.0 {
+            // The closest point on the ray is behind the plane's origin
+            return plane_to_ray_origin.norm();
+        }
+
+        let closest_point_on_ray = ray.origin + ray.direction.into_inner() * distance_along_normal;
+        let distance_to_plane = (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
+
+        //print all the values for debug purpose
+        println!("plane_origin: {:?}, plane_normal: {:?}, plane_to_ray_origin: {:?}, distance_along_normal: {:?}, closest_point_on_ray: {:?}, distance_to_plane: {:?}", plane_origin, plane_normal, plane_to_ray_origin, distance_along_normal, closest_point_on_ray, distance_to_plane);
+
+        distance_to_plane
+    }
 }
 
 pub trait Mirror<const D: usize = DEFAULT_DIM> {
@@ -137,8 +208,8 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 }
 
 // Note that `T` is implicitly `Sized`
@@ -154,8 +225,8 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         T::from_json(json).map(Box::new)
     }
@@ -171,8 +242,8 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         /*
         example json
@@ -191,7 +262,6 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             .get("mirror")
             .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror data"))?;
 
-        
 
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
@@ -221,8 +291,8 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         /* example json
         [
@@ -245,7 +315,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 
 /// This is essentially [`Iterator::try_collect`]
 /// for `Vec<T>` but without having to use nightly
-pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
+pub fn try_collect<T>(i: impl Iterator<Item=Option<T>>) -> Option<Vec<T>> {
     let mut vec = vec![];
     for item in i {
         vec.push(item?);
@@ -284,6 +354,9 @@ impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
+    use nalgebra::SVector;
+    use crate::mirror::Plane;
+
     #[test]
     fn test_json_to_ray() {
         use super::*;
@@ -302,5 +375,16 @@ mod tests {
             Unit::new_normalize(SVector::from_vec(vec![4., 5., 6.]))
         );
         assert_eq!(ray.brightness, 0.5);
+    }
+
+    #[test]
+    fn test_normal_3d() {
+        let plane = Plane::<3>::new([
+            SVector::from_vec(vec![0., 0., 0.]),
+            SVector::from_vec(vec![1., 0., 0.]),
+            SVector::from_vec(vec![0., 1., 0.]),
+        ])
+            .unwrap();
+        assert_eq!(plane.normal().unwrap(), SVector::<f32, 3>::from_vec(vec![0., 0., 1.]));
     }
 }
