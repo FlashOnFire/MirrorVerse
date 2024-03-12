@@ -40,7 +40,6 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .for_each(|(mut i, o)| i.set_column(0, o));
 
 
-
         if a.try_inverse_mut() {
             // a now contains a^-1
             let v = a * (self.plane.v_0() - ray.origin);
@@ -59,8 +58,8 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         /*
         example json:
@@ -171,7 +170,7 @@ mod tests {
                 //              x    y
                 SVector::from([0.0, 1.0]),
             ])
-            .unwrap(),
+                .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -189,7 +188,7 @@ mod tests {
         assert_eq!(brightness, 1.0);
         assert_eq!(
             plane,
-            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(),]).unwrap()
+            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(), ]).unwrap()
         )
     }
 
@@ -208,7 +207,7 @@ mod tests {
                 //                      x    y
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-            .unwrap(),
+                .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -230,7 +229,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-            .unwrap()
+                .unwrap()
         );
     }
 
@@ -241,7 +240,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ])
-            .unwrap(),
+                .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -265,7 +264,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ])
-            .unwrap()
+                .unwrap()
         );
     }
 
@@ -281,7 +280,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-            .unwrap(),
+                .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -295,6 +294,35 @@ mod tests {
         let reflections = mirror.intersecting_planes(&ray);
         assert!(reflections.is_empty());
     }
+
+    #[test]
+    fn test_no_reflection_2d_2() {
+        /*
+                |
+        ---->   |
+                |
+        */
+
+        let mirror = PlaneMirror {
+            plane: Plane::new([
+                SVector::from_vec(vec![1.0, 0.0]),
+                SVector::from_vec(vec![0.0, 1.0]),
+            ])
+                .unwrap(),
+            bounds: [1.0; 2],
+            darkness_coef: 1.0,
+        };
+
+        let ray = Ray {
+            origin: [0.0, 0.0].into(),
+            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+            brightness: 1.0,
+        };
+
+        let reflections = mirror.intersecting_planes(&ray);
+        assert!(reflections.is_empty());
+    }
+
 
     #[test]
     fn test_json() {
@@ -315,7 +343,7 @@ mod tests {
                     SVector::from_vec(vec![0.0, 0.0]),
                     SVector::from_vec(vec![1.0, 0.0]),
                 ])
-                .unwrap(),
+                    .unwrap(),
                 bounds: [0., 1.],
                 darkness_coef: 0.5,
             }
