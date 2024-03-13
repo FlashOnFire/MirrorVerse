@@ -31,7 +31,7 @@ impl<const D: usize> Ray<D> {
         Ray {
             origin: reflected_origin,
             direction: Unit::new_normalize(reflected_direction),
-            brightness: self.brightness * (1.0 - darkness_coef),
+            brightness: self.brightness * darkness_coef,
         }
     }
 
