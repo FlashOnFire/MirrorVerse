@@ -27,7 +27,7 @@ impl<const D: usize> Ray<D> {
     pub fn reflect(&self, plane: &Plane<D>, darkness_coef: &f32) -> Ray<D> {
         let normal = plane.normal().unwrap();
         let reflected_direction = self.direction.sub(2.0 * self.direction.dot(&normal) * normal);
-        let reflected_origin = self.origin + self.direction.into_inner() * 1e-6; // add a small offset to avoid self-intersection
+        let reflected_origin = plane.v_0() - self.direction.into_inner() * 1e-6; // add a small offset to avoid self-intersection
         Ray {
             origin: reflected_origin,
             direction: Unit::new_normalize(reflected_direction),
