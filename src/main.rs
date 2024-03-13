@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 mod mirror;
 mod render;
 
