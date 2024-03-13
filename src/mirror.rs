@@ -116,33 +116,31 @@ impl<const D: usize> Plane<D> {
         self.basis().iter().map(|e| v.dot(e) * e).sum()
     }
 
-    /// Calculate the normal vector of the plane
-    /// TODO implement it better for n dimensions directly
+    /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<SVector<f32, D>> {
-        if D == 1 {
-            // In 1D, there's no notion of a normal vector
-            None
-        } else if D == 2 {
-            let basis_vector = self.basis()[0];
-            let normal: SVector<f32, D> = SVector::from_vec(vec![-basis_vector[1], basis_vector[0]]);
-            Some(normal.normalize())
-        } else if D == 3 {
-            // Calculate the normal vector using the cross product of D - 1 basis vectors
-            let mut basis_vectors = self.basis().iter().map(|v| *v);
-            let mut cross_product_result = basis_vectors.next()?.cross(&basis_vectors.next()?);
-
-            for basis_vector in basis_vectors {
-                cross_product_result += basis_vector.cross(&cross_product_result);
-            }
-
-            // Normalize the resulting vector to ensure it has unit length
-            let normal = cross_product_result.normalize();
-
-            Some(normal)
-        } else {
-            // TODO implement it for n dimensions
-            None
+        let mut new_vector = SVector::<f32, D>::zeros();
+        for i in 0..D {
+            new_vector[i] = 1.0;
         }
+        let mut basis = self.basis().to_vec(); //weirdly converting to vec because I did not manage to get a copy of the array with a dim D
+
+        //ensure that the new vector is orthogonal to the other vectors
+        for i in &basis[..D - 1] {
+            new_vector -= (new_vector.dot(i)) * i;
+        }
+        basis.push(new_vector);
+        //let's gram schmidt thid héhé moi aussi je fais des matrice
+        let mut gram_schmidted_basis: [SVector<f32, D>; D] = [SVector::<f32, D>::zeros(); D];
+        for (i, vect) in basis.iter().enumerate() {
+            let mut sum = SVector::<f32, D>::zeros();
+            for b in &gram_schmidted_basis[..i] {
+                sum += vect.dot(b) * b;
+            }
+            let w = vect - sum;
+            gram_schmidted_basis[i] = w.normalize();
+        }
+
+        return Some(gram_schmidted_basis[D - 1]);
     }
 
     /// Returns the distance between the plane and a point
@@ -386,5 +384,43 @@ mod tests {
         ])
             .unwrap();
         assert_eq!(plane.normal().unwrap(), SVector::<f32, 3>::from_vec(vec![0., 0., 1.]));
+    }
+
+    #[test]
+    fn test_normal_3d_2() {
+        let plane = Plane::<3>::new([
+            SVector::from_vec(vec![0., 0., 0.]),
+            SVector::from_vec(vec![-2., 1., 3.]),
+            SVector::from_vec(vec![1., 0., 3.]),
+        ])
+            .unwrap();
+        let normal = plane.normal().unwrap();
+        let theoric_normal = SVector::<f32, 3>::from_vec(vec![-3., -9., 1.]);
+        //check that the normal is a multiple of the theoric normal
+        for i in 0..3 {
+            assert!(normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_normal_2d() {
+        let plane = Plane::<2>::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![1., 0.]),
+        ])
+            .unwrap();
+        assert_eq!(plane.normal().unwrap(), SVector::<f32, 2>::from_vec(vec![0., 1.]));
+    }
+
+    #[test]
+    fn test_normal_4d() {
+        let plane = Plane::<4>::new([
+            SVector::from_vec(vec![0., 0., 0., 0.]),
+            SVector::from_vec(vec![1., 0., 0., 0.]),
+            SVector::from_vec(vec![0., 1., 0., 0.]),
+            SVector::from_vec(vec![0., 0., 1., 0.]),
+        ])
+            .unwrap();
+        assert_eq!(plane.normal().unwrap(), SVector::<f32, 4>::from_vec(vec![0., 0., 0., 1.]));
     }
 }
