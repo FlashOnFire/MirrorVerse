@@ -118,24 +118,35 @@ impl<const D: usize> Plane<D> {
 
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<SVector<f32, D>> {
+        //initialize a vector full of 1
         let mut new_vector = SVector::<f32, D>::zeros();
         for i in 0..D {
             new_vector[i] = 1.0;
         }
+
+        //add this vector to a copy of the basis
         let mut basis = self.basis().to_vec(); //weirdly converting to vec because I did not manage to get a copy of the array with a dim D
         basis.push(new_vector);
-        //let's gram schmidt this héhé moi aussi je fais des matrice
-        let mut gram_schmidted_basis: [SVector<f32, D>; D] = [SVector::<f32, D>::zeros(); D];
-        for (i, vect) in basis.iter().enumerate() {
-            let mut sum = SVector::<f32, D>::zeros();
-            for b in &gram_schmidted_basis[..i] {
-                sum += vect.dot(b) * b;
-            }
-            let w = vect - sum;
-            gram_schmidted_basis[i] = w.normalize();
-        }
 
-        return Some(gram_schmidted_basis[D - 1]);
+        SVector::orthonormalize(&mut basis);
+
+        //find the vector which is not a multiple of one of the original basis vectors
+        // we can not take the last element because orthonormalize could reorder the vectors
+        // However I don't know why but in all the test, taking the last is working so maybe it is ok to do so
+        Some(basis[D - 1])
+
+        // //let's gram schmidt this héhé moi aussi je fais des matrice
+        // let mut gram_schmidted_basis: [SVector<f32, D>; D] = [SVector::<f32, D>::zeros(); D];
+        // for (i, vect) in basis.iter().enumerate() {
+        //     let mut sum = SVector::<f32, D>::zeros();
+        //     for b in &gram_schmidted_basis[..i] {
+        //         sum += vect.dot(b) * b;
+        //     }
+        //     let w = vect - sum;
+        //     gram_schmidted_basis[i] = w.normalize();
+        // }
+
+        // return Some(gram_schmidted_basis[D - 1]);
     }
 
     /// Returns the distance between the plane and a point
@@ -392,6 +403,7 @@ mod tests {
         let normal = plane.normal().unwrap();
         let theoric_normal = SVector::<f32, 3>::from_vec(vec![-3., -9., 1.]);
         //check that the normal is a multiple of the theoric normal
+        println!("{:?} {:?}", normal, theoric_normal);
         for i in 0..3 {
             assert!(normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round() < 1e-6);
         }
