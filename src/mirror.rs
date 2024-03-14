@@ -3,6 +3,7 @@ use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use serde_json::Value;
 use std::fmt;
 use std::ops::Sub;
+use rand::{random, Rng};
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -118,35 +119,35 @@ impl<const D: usize> Plane<D> {
 
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<SVector<f32, D>> {
-        //initialize a vector full of 1
-        let mut new_vector = SVector::<f32, D>::zeros();
-        for i in 0..D {
-            new_vector[i] = 1.0;
+        //copy the basis in a mutable array
+        let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
+        for (i, item) in self.basis().iter().enumerate() {
+            basis[i] = *item;
         }
 
-        //add this vector to a copy of the basis
-        let mut basis = self.basis().to_vec(); //weirdly converting to vec because I did not manage to get a copy of the array with a dim D
-        basis.push(new_vector);
+        basis[D - 1] = SVector::<f32, D>::zeros();
 
-        SVector::orthonormalize(&mut basis);
-
-        //find the vector which is not a multiple of one of the original basis vectors
-        // we can not take the last element because orthonormalize could reorder the vectors
-        // However I don't know why but in all the test, taking the last is working so maybe it is ok to do so
+        let mut count: i8 = 0;
+        let mut success = false;
+        while !success && count < 100 {
+            //put some random values in the new vector
+            let mut rng = rand::thread_rng();
+            for i in 0..D {
+                basis[D - 1][i] = rng.gen();
+            }
+            
+            SVector::orthonormalize(&mut basis);
+            success = true;
+            //check that there is no equal vectors
+            for i in 0..D - 1 {
+                if (basis[D - 1] - basis[i]).norm() < 1e-6 || (basis[D - 1] + basis[i]).norm() < 1e-6 {
+                    success = false;
+                    break;
+                }
+            }
+            count += 1;
+        }
         Some(basis[D - 1])
-
-        // //let's gram schmidt this héhé moi aussi je fais des matrice
-        // let mut gram_schmidted_basis: [SVector<f32, D>; D] = [SVector::<f32, D>::zeros(); D];
-        // for (i, vect) in basis.iter().enumerate() {
-        //     let mut sum = SVector::<f32, D>::zeros();
-        //     for b in &gram_schmidted_basis[..i] {
-        //         sum += vect.dot(b) * b;
-        //     }
-        //     let w = vect - sum;
-        //     gram_schmidted_basis[i] = w.normalize();
-        // }
-
-        // return Some(gram_schmidted_basis[D - 1]);
     }
 
     /// Returns the distance between the plane and a point
@@ -429,5 +430,15 @@ mod tests {
         ])
             .unwrap();
         assert_eq!(plane.normal().unwrap(), SVector::<f32, 4>::from_vec(vec![0., 0., 0., 1.]));
+    }
+
+    #[test]
+    fn test_normal_2d_diagonal() {
+        let plane = Plane::<2>::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![-1.0, -1.0]),
+        ]).unwrap();
+        let normal = plane.normal().unwrap();
+        assert!(normal[0] + normal[1] < 1e-6);
     }
 }
