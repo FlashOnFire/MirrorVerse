@@ -147,7 +147,11 @@ impl<const D: usize> Plane<D> {
             }
             count += 1;
         }
-        Some(basis[D - 1])
+        if success {
+            Some(basis[D - 1])
+        } else {
+            None
+        }
     }
 
     /// Calculate the normal vector of the plane and orient it to the side of the point
