@@ -123,13 +123,8 @@ impl<const D: usize> Plane<D> {
             new_vector[i] = 1.0;
         }
         let mut basis = self.basis().to_vec(); //weirdly converting to vec because I did not manage to get a copy of the array with a dim D
-
-        //ensure that the new vector is orthogonal to the other vectors
-        for i in &basis[..D - 1] {
-            new_vector -= (new_vector.dot(i)) * i;
-        }
         basis.push(new_vector);
-        //let's gram schmidt thid héhé moi aussi je fais des matrice
+        //let's gram schmidt this héhé moi aussi je fais des matrice
         let mut gram_schmidted_basis: [SVector<f32, D>; D] = [SVector::<f32, D>::zeros(); D];
         for (i, vect) in basis.iter().enumerate() {
             let mut sum = SVector::<f32, D>::zeros();
