@@ -46,7 +46,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                 .zip(&self.bounds)
                 .skip(1)
                 .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-                && ray.direction.dot(&self.plane.normal().unwrap()) >= 0.0
+                && ray.direction.dot(&-self.plane.normal_directed(ray.origin).unwrap()) >= 0.0
             {
                 list.push((self.darkness_coef, self.plane));
             }

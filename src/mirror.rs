@@ -3,7 +3,7 @@ use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use serde_json::Value;
 use std::fmt;
 use std::ops::Sub;
-use rand::{random, Rng};
+use rand::Rng;
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -135,7 +135,7 @@ impl<const D: usize> Plane<D> {
             for i in 0..D {
                 basis[D - 1][i] = rng.gen();
             }
-            
+
             SVector::orthonormalize(&mut basis);
             success = true;
             //check that there is no equal vectors
@@ -148,6 +148,18 @@ impl<const D: usize> Plane<D> {
             count += 1;
         }
         Some(basis[D - 1])
+    }
+
+    /// Calculate the normal vector of the plane and orient it to the side of the point
+    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<SVector<f32, D>> {
+        let normal = self.normal().unwrap();
+        let pointed_by_normal = self.v_0() + normal;
+        let pointed_by_neg_normal = self.v_0() - normal;
+        if (point - pointed_by_normal).norm() < (point - pointed_by_neg_normal).norm() {
+            Some(normal)
+        } else {
+            Some(-normal)
+        }
     }
 
     /// Returns the distance between the plane and a point
