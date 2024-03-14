@@ -1,0 +1,42 @@
+{
+  "ray": {
+    "origin": [
+      0.0,
+      0.0
+    ],
+    "direction": [
+      1.0,
+      0.0
+    ],
+    "brightness": 1.0
+  },
+  "mirrors": [
+    {
+      "type": "plane",
+      "mirror": {
+        "center": [
+          1.0,
+          1.0
+        ],
+        "basis": [
+          [
+            0.0,
+            2.0
+          ]
+        ],
+        "bounds": [
+          0.9999999
+        ],
+        "darkness": 1.0
+      }
+    }
+  ],
+  "description": [
+    "",
+    "",
+    "",
+    "",
+    " --->  |             <= the 0 is here",
+    "       |"
+  ]
+}
