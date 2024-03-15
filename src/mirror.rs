@@ -136,7 +136,9 @@ impl<const D: usize> Plane<D> {
                 basis[D - 1][i] = rng.gen();
             }
 
-            SVector::orthonormalize(&mut basis);
+            basis[D - 1] = basis[D - 1] - self.orthogonal_projection(basis[D - 1]);
+            basis[D - 1] = basis[D - 1].normalize();
+
             success = true;
             //check that there is no equal vectors
             for i in 0..D - 1 {
