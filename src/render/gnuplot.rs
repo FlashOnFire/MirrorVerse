@@ -6,7 +6,6 @@ use crate::mirror::{Mirror, Ray};
 pub fn render_gnu_plot(fg: &mut Figure, rays: &[Ray], mirrors: &[PlaneMirror]) {
     let mut ax = fg.axes2d();
 
-    // the rest of the slice would be empty since the window size is always 2
     // Note that slice::array_windows is experimental
     for [ray, next_ray] in rays
         .windows(2)
