@@ -23,23 +23,31 @@
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
 
-      perSystem = {lib, system, ...}: let
+      perSystem = {
+        lib,
+        system,
+        ...
+      }: let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [(import rust-overlay)];
         };
       in {
-        devShells.default = with pkgs; pkgs.mkShell {
-          buildInputs = [
-            (rust-bin.stable.latest.default.override {
-              extensions = ["rust-analyzer" "rust-src"];
-            })
-          ];
+        devShells.default = with pkgs;
+          pkgs.mkShell {
+            buildInputs = [
+              (rust-bin.stable.latest.default.override {
+                extensions = ["rust-analyzer" "rust-src"];
+              })
+              gnuplot
+            ];
 
-          LD_LIBRARY_PATH = lib.makeLibraryPath [
-            vulkan-loader libxkbcommon wayland
-          ];
-        };
+            LD_LIBRARY_PATH = lib.makeLibraryPath [
+              vulkan-loader
+              libxkbcommon
+              wayland
+            ];
+          };
 
         formatter = pkgs.alejandra;
       };

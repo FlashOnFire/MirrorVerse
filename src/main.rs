@@ -1,22 +1,25 @@
 #![allow(warnings)]
 
-mod mirror;
-mod render;
-
 extern crate alloc;
 
-use crate::mirror::{Mirror, Plane, Ray};
 use alloc::sync::Arc;
-use nalgebra::SVector;
-use pollster::FutureExt;
-use render::state::State;
 use std::time::Instant;
+
+use pollster::FutureExt;
 use winit::{
     event::*,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
 };
+
+use render::state::State;
+
+use crate::mirror::{Mirror, Ray};
+use crate::render::gnuplot::render_gnu_plot;
+
+mod mirror;
+mod render;
 
 pub const DEFAULT_DIM: usize = 2;
 
@@ -64,6 +67,7 @@ fn main() {
     }
     println!("{:?}", rays);
 
+    render_gnu_plot(rays, mirrors);
     // run the wgpu
     // run().block_on();
 }

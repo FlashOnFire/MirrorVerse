@@ -17,3 +17,5 @@ serde_json = "1.0.111"
 bytemuck = { version = "1.12", features = [ "derive" ] }
 cgmath = "0.18.0"
 rand = "0.8.5"
+gnuplot = "0.0.43"
+downcast-rs = "1.2.0"

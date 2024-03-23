@@ -4,7 +4,7 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     /// The plane this mirror belongs to.
-    plane: Plane<D>,
+    pub plane: Plane<D>,
     /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the
     /// basis vectors of the associated hyperplane.
     ///
@@ -12,7 +12,7 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     /// the hyperplane, `v` is in this plane mirror iff for all `i`, `|mu_i| <= |mu_i_max|`
     ///
     /// Note: the first value of this array is irrelevant
-    bounds: [f32; D],
+    pub bounds: [f32; D],
     /// Coefficient describing the darkness of the mirror which will be applied to the brightness
     darkness_coef: f32,
 }
