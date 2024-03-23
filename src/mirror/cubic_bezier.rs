@@ -29,7 +29,6 @@ impl Mirror for CubicBezierMirror {
         }
          */
 
-
         let control_points = json
             .get("control_points")
             .and_then(Value::as_array)

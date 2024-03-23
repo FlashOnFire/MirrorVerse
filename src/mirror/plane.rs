@@ -27,7 +27,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
-        /*
+        /* // bien vuu le boss
         Fill the matrix "a" with the direction of the ray and the basis of the plane
         exemple
         | ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...

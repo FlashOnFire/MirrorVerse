@@ -68,7 +68,7 @@ impl<const D: usize> ParaboloidMirror<D> {
 
         // create the transformation matrix to the new basis
         let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
-        
+
 
         Self {
             directrix_plane,

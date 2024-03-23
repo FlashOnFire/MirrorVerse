@@ -1,15 +1,14 @@
 use core::iter;
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
-use serde_json::Value;
-use std::fmt;
-use std::ops::Sub;
 use rand::Rng;
+use serde_json::Value;
+use std::{fmt, ops::Sub};
 
 pub mod bezier;
 pub mod cubic_bezier;
+pub mod paraboloid;
 pub mod plane;
 pub mod sphere;
-pub mod paraboloid;
 
 use crate::DEFAULT_DIM;
 
@@ -26,9 +25,12 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> Ray<D> {
     /// Reflect the ray with respect to the given plane
+    /// TODO: FIX THIS
     pub fn reflect(&self, plane: &Plane<D>, darkness_coef: &f32) -> Ray<D> {
         let normal = plane.normal().unwrap();
-        let reflected_direction = self.direction.sub(2.0 * self.direction.dot(&normal) * normal);
+        let reflected_direction = self
+            .direction
+            .sub(2.0 * self.direction.dot(&normal) * normal);
         let reflected_origin = plane.v_0() - self.direction.into_inner() * 1e-6; // add a small offset to avoid self-intersection
         Ray {
             origin: reflected_origin,
@@ -143,7 +145,9 @@ impl<const D: usize> Plane<D> {
             success = true;
             //check that there is no equal vectors
             for i in 0..D - 1 {
-                if (basis[D - 1] - basis[i]).norm() < 1e-6 || (basis[D - 1] + basis[i]).norm() < 1e-6 {
+                if (basis[D - 1] - basis[i]).norm() < 1e-6
+                    || (basis[D - 1] + basis[i]).norm() < 1e-6
+                {
                     success = false;
                     break;
                 }
@@ -188,7 +192,8 @@ impl<const D: usize> Plane<D> {
         let plane_normal = self.normal();
 
         let plane_to_ray_origin = ray.origin - plane_origin;
-        let distance_along_normal = plane_to_ray_origin.dot(&plane_normal.unwrap_or(SVector::zeros()));
+        let distance_along_normal =
+            plane_to_ray_origin.dot(&plane_normal.unwrap_or(SVector::zeros()));
 
         if distance_along_normal < 0.0 {
             // The closest point on the ray is behind the plane's origin
@@ -196,7 +201,8 @@ impl<const D: usize> Plane<D> {
         }
 
         let closest_point_on_ray = ray.origin + ray.direction.into_inner() * distance_along_normal;
-        let distance_to_plane = (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
+        let distance_to_plane =
+            (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
 
         //print all the values for debug purpose
         println!("plane_origin: {:?}, plane_normal: {:?}, plane_to_ray_origin: {:?}, distance_along_normal: {:?}, closest_point_on_ray: {:?}, distance_to_plane: {:?}", plane_origin, plane_normal, plane_to_ray_origin, distance_along_normal, closest_point_on_ray, distance_to_plane);
@@ -232,8 +238,8 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 }
 
 // Note that `T` is implicitly `Sized`
@@ -249,8 +255,8 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         T::from_json(json).map(Box::new)
     }
@@ -266,8 +272,8 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         /*
         example json
@@ -285,7 +291,6 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         let mirror = json
             .get("mirror")
             .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror data"))?;
-
 
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
@@ -315,31 +320,28 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     }
 
     fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         /* example json
         [
             ... list of json values whose structure depends on `T`
         ]
          */
-        if let Some(json) = json.as_array() {
-            let mut mirrors = vec![];
-            for mirror in json {
-                mirrors.push(T::from_json(mirror)?);
-            }
-            Ok(mirrors)
-        } else {
-            Err(Box::new(JsonError {
-                message: "Invalid mirror list".to_string(),
-            }))
-        }
+
+        json.as_array()
+            .and_then(|json| try_collect(json.iter().map(T::from_json).map(Result::ok)))
+            .ok_or_else(|| {
+                Box::new(JsonError {
+                    message: "Invalid mirror list".to_string(),
+                }) as _
+            })
     }
 }
 
 /// This is essentially [`Iterator::try_collect`]
 /// for `Vec<T>` but without having to use nightly
-pub fn try_collect<T>(i: impl Iterator<Item=Option<T>>) -> Option<Vec<T>> {
+pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
     let mut vec = vec![];
     for item in i {
         vec.push(item?);
@@ -349,9 +351,7 @@ pub fn try_collect<T>(i: impl Iterator<Item=Option<T>>) -> Option<Vec<T>> {
 }
 
 /// This is essentially `try_into` then `try_map` but the latter is nightly-only
-pub fn json_array_to_vector<const D: usize>(
-    json_array: &[Value],
-) -> Option<SVector<f32, D>> {
+pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVector<f32, D>> {
     let array: &[Value; D] = json_array.try_into().ok()?;
 
     let mut center_coords_array = [0.; D];
@@ -378,8 +378,8 @@ impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
-    use nalgebra::SVector;
     use crate::mirror::Plane;
+    use nalgebra::SVector;
 
     #[test]
     fn test_json_to_ray() {
@@ -408,8 +408,11 @@ mod tests {
             SVector::from_vec(vec![1., 0., 0.]),
             SVector::from_vec(vec![0., 1., 0.]),
         ])
-            .unwrap();
-        assert_eq!(plane.normal().unwrap(), SVector::<f32, 3>::from_vec(vec![0., 0., 1.]));
+        .unwrap();
+        assert_eq!(
+            plane.normal().unwrap(),
+            SVector::<f32, 3>::from_vec(vec![0., 0., 1.])
+        );
     }
 
     #[test]
@@ -419,7 +422,7 @@ mod tests {
             SVector::from_vec(vec![-2., 1., 3.]),
             SVector::from_vec(vec![1., 0., 3.]),
         ])
-            .unwrap();
+        .unwrap();
         let normal = plane.normal().unwrap();
         let theoric_normal = SVector::<f32, 3>::from_vec(vec![-3., -9., 1.]);
         //check that the normal is a multiple of the theoric normal
@@ -435,8 +438,11 @@ mod tests {
             SVector::from_vec(vec![0., 0.]),
             SVector::from_vec(vec![1., 0.]),
         ])
-            .unwrap();
-        assert_eq!(plane.normal().unwrap(), SVector::<f32, 2>::from_vec(vec![0., 1.]));
+        .unwrap();
+        assert_eq!(
+            plane.normal().unwrap(),
+            SVector::<f32, 2>::from_vec(vec![0., 1.])
+        );
     }
 
     #[test]
@@ -447,8 +453,11 @@ mod tests {
             SVector::from_vec(vec![0., 1., 0., 0.]),
             SVector::from_vec(vec![0., 0., 1., 0.]),
         ])
-            .unwrap();
-        assert_eq!(plane.normal().unwrap(), SVector::<f32, 4>::from_vec(vec![0., 0., 0., 1.]));
+        .unwrap();
+        assert_eq!(
+            plane.normal().unwrap(),
+            SVector::<f32, 4>::from_vec(vec![0., 0., 0., 1.])
+        );
     }
 
     #[test]
@@ -456,7 +465,8 @@ mod tests {
         let plane = Plane::<2>::new([
             SVector::from_vec(vec![0., 0.]),
             SVector::from_vec(vec![-1.0, -1.0]),
-        ]).unwrap();
+        ])
+        .unwrap();
         let normal = plane.normal().unwrap();
         assert!(normal[0] + normal[1] < 1e-6);
     }

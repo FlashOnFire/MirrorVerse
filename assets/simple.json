@@ -12,61 +12,53 @@
   },
   "mirrors": [
     {
-      "type": "plane",
-      "mirror": {
-        "center": [
+      "center": [
+        1.0,
+        0.0
+      ],
+      "basis": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds": [
+        1.0
+      ],
+      "darkness": 1.0
+    },
+    {
+      "center": [
+        0.0,
+        0.0
+      ],
+      "basis": [
+        [
+          -1.0,
+          -1.0
+        ]
+      ],
+      "bounds": [
+        1.0
+      ],
+      "darkness": 1.0
+    
+    },
+    { 
+      "center": [
+        0.0,
+        -5.0
+      ],
+      "basis": [
+        [
           1.0,
-          0.0
-        ],
-        "basis": [
-          [
-            0.0,
-            1.0
-          ]
-        ],
-        "bounds": [
-          1.0
-        ],
-        "darkness": 1.0
-      }
-    },
-    {
-      "type": "plane",
-      "mirror": {
-        "center": [
-          0.0,
-          0.0
-        ],
-        "basis": [
-          [
-            -1.0,
-            -1.0
-          ]
-        ],
-        "bounds": [
-          1.0
-        ],
-        "darkness": 1.0
-      }
-    },
-    {
-      "type": "plane",
-      "mirror": {
-        "center": [
-          0.0,
-          -5.0
-        ],
-        "basis": [
-          [
-            1.0,
-            -1.0
-          ]
-        ],
-        "bounds": [
-          1.0
-        ],
-        "darkness": 1.0
-      }
+          -1.0
+        ]
+      ],
+      "bounds": [
+        1.0
+      ],
+      "darkness": 1.0
     }
   ],
   "description": [

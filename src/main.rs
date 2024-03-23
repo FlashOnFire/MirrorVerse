@@ -3,6 +3,8 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
+use gnuplot::Figure;
+use serde_json::Value;
 use std::time::Instant;
 
 use pollster::FutureExt;
@@ -15,8 +17,8 @@ use winit::{
 
 use render::state::State;
 
-use crate::mirror::{Mirror, Ray};
-use crate::render::gnuplot::render_gnu_plot;
+use mirror::{plane::PlaneMirror, Mirror, Ray};
+use render::gnuplot::render_gnu_plot;
 
 mod mirror;
 mod render;
@@ -28,20 +30,9 @@ fn main() {
     let json = std::fs::read_to_string("assets/simple.json").unwrap();
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
-    let mirrors_data = value
-        .get("mirrors")
-        .and_then(|v| v.as_array())
-        .ok_or_else(|| {
-            Box::new(mirror::JsonError {
-                message: "Invalid mirror list".to_string(),
-            })
-        })
-        .unwrap();
-
-    let mut mirrors = Vec::with_capacity(mirrors_data.len());
-    for mirror_data in mirrors_data {
-        mirrors.push(Box::<dyn Mirror<DEFAULT_DIM>>::from_json(mirror_data).unwrap());
-    }
+    let mut mirrors =
+        Vec::<PlaneMirror>::from_json(value.get("mirrors").expect("mirrors field expected"))
+            .expect("expected data in mirrors field to be well-formed");
 
     let mut ray = Ray::<DEFAULT_DIM>::from_json(value.get("ray").unwrap()).unwrap();
 
@@ -67,7 +58,9 @@ fn main() {
     }
     println!("{:?}", rays);
 
-    render_gnu_plot(rays, mirrors);
+    let mut fg = Figure::new();
+
+    render_gnu_plot(&mut fg, &rays, &mirrors);
     // run the wgpu
     // run().block_on();
 }
