@@ -2,7 +2,7 @@ use super::*;
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct ParabolioidMirror<const D: usize = DEFAULT_DIM> {
+pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
     /// The plane this mirror belongs to.
     directrix_plane: Plane<D>,
     /// The focus the parabola is centered on
@@ -15,7 +15,7 @@ pub(crate) struct ParabolioidMirror<const D: usize = DEFAULT_DIM> {
     // magic_coef: f32,
 }
 
-impl<const D: usize> ParabolioidMirror<D> {
+impl<const D: usize> ParaboloidMirror<D> {
     fn new(
         directrix_plane: Plane<D>,
         focus: SVector<f32, D>,
@@ -24,10 +24,10 @@ impl<const D: usize> ParabolioidMirror<D> {
     ) -> Self {
         //calculate the equation of the paraboloid
         let k = directrix_plane.orthogonal_projection(focus);
-        let p = (focus - k).norm();//distance between the focus and the directrix plane
+        let p = (focus - k).norm(); //distance between the focus and the directrix plane
         let s: SVector<f32, D> = (focus + k) / 2.; // the center of focus to k
-        // we now have the basis (s, (k - focus).normalize(), ...) with      j = K to focus
-        //now construct the complete basis
+                                                   // we now have the basis (s, (k - focus).normalize(), ...) with      j = K to focus
+                                                   //now construct the complete basis
         let mut rng = rand::thread_rng();
         let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
         basis[0] = (k - focus).normalize();
@@ -66,6 +66,9 @@ impl<const D: usize> ParabolioidMirror<D> {
         //considerring the code above is right, we now have to do a basis change to the canonical basis
         let original_application_matrix = SMatrix::<f32, D, D>::from_fn(|i, j| basis[j][i]);
 
+        // create the transformation matrix to the new basis
+        let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
+        
 
         Self {
             directrix_plane,
@@ -76,7 +79,7 @@ impl<const D: usize> ParabolioidMirror<D> {
     }
 }
 
-impl<const D: usize> Mirror<D> for ParabolioidMirror<D> {
+impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
     fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
         let mut list = vec![];
         self.append_intersecting_planes(ray, &mut list);
@@ -92,8 +95,8 @@ impl<const D: usize> Mirror<D> for ParabolioidMirror<D> {
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         /*
         example json:
@@ -117,11 +120,19 @@ mod tests {
         //     SVector::from_vec(vec![1.0, 0.0]),
         // ])
         //     .unwrap()
-        let directrix_plane = Plane::new([SVector::from_vec(vec![0., 0.]), SVector::from_vec(vec![1., 0.])]).unwrap();
+        let directrix_plane = Plane::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![1., 0.]),
+        ])
+        .unwrap();
         let focus = SVector::from_vec(vec![0., 1.]);
-        let limit_plane = Plane::new([SVector::from_vec(vec![0., 0.]), SVector::from_vec(vec![0., 1.])]).unwrap();
+        let limit_plane = Plane::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+        .unwrap();
         let darkness_coef = 0.5;
-        let mirror = ParabolioidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+        let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
         assert!(false);
         // assert_eq!(mirror.directrix_plane, directrix_plane);
         // assert_eq!(mirror.focus, focus);

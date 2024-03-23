@@ -9,6 +9,7 @@ pub mod bezier;
 pub mod cubic_bezier;
 pub mod plane;
 pub mod sphere;
+pub mod paraboloid;
 
 use crate::DEFAULT_DIM;
 

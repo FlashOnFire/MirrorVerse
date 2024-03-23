@@ -7,10 +7,10 @@ extern crate alloc;
 
 use crate::mirror::{Mirror, Plane, Ray};
 use alloc::sync::Arc;
+use nalgebra::SVector;
 use pollster::FutureExt;
 use render::state::State;
 use std::time::Instant;
-use nalgebra::SVector;
 use winit::{
     event::*,
     event_loop::EventLoop,
