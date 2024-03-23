@@ -61,6 +61,8 @@ fn main() {
     let mut fg = Figure::new();
 
     render_gnu_plot(&mut fg, &rays, &mirrors);
+
+    fg.show().unwrap();
     // run the wgpu
     // run().block_on();
 }
