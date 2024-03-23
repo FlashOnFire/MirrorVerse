@@ -281,12 +281,12 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 
         let mirror_type = json
             .get("type")
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror type"))?
+            .ok_or("Missing mirror type")?
             .as_str()
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid mirror type"))?;
+            .ok_or("Invalid mirror type")?;
         let mirror = json
             .get("mirror")
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing mirror data"))?;
+            .ok_or("Missing mirror data")?;
 
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
@@ -294,7 +294,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             "sphere" => {
                 sphere::SphereMirror::<D>::from_json(mirror).map(|mirror| Box::new(mirror) as _)
             }
-            _ => Err(Box::<dyn std::error::Error>::from("Invalid mirror type")),
+            _ => Err("Invalid mirror type".into()),
         }
     }
 }
@@ -327,11 +327,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 
         json.as_array()
             .and_then(|json| try_collect(json.iter().map(T::from_json).map(Result::ok)))
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Invalid mirror list".to_string(),
-                }) as _
-            })
+            .ok_or_else(|| "Invalid mirror list".into())
     }
 }
 
@@ -358,19 +354,6 @@ pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVec
         center_coords_array,
     ])))
 }
-
-#[derive(Debug)]
-pub(crate) struct JsonError {
-    pub(crate) message: String,
-}
-
-impl fmt::Display for JsonError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl std::error::Error for JsonError {}
 
 #[cfg(test)]
 mod tests {
