@@ -35,21 +35,12 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             .and_then(Value::as_array)
             .map(Vec::as_slice)
             .and_then(json_array_to_vector)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse center".to_string(),
-                }) as Box<dyn std::error::Error>
-            })?;
+            .ok_or("Failed to parse center")?;
 
         let radius = json
             .get("radius")
             .and_then(Value::as_f64)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse radius".to_string(),
-                }) as Box<dyn std::error::Error>
-            })
-            .unwrap_or_default() as f32;
+            .ok_or("Failed to parse radius")? as f32;
 
         Ok(Self { center, radius })
     }

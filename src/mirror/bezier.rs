@@ -33,11 +33,7 @@ impl Mirror for BezierMirror {
         let control_points = json
             .get("control_points")
             .and_then(Value::as_array)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse control_points".to_string(),
-                })
-            })?
+            .ok_or("Failed to parse control_points")?
             .iter()
             .filter_map(|point| {
                 let point: [_; DEFAULT_DIM] = point

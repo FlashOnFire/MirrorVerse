@@ -83,51 +83,31 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .and_then(Value::as_array)
             .map(Vec::as_slice)
             .and_then(json_array_to_vector)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse center".to_string(),
-                })
-            })?;
+            .ok_or("Failed to parse center")?;
 
         let basis_json = json
             .get("basis")
             .and_then(Value::as_array)
             .filter(|l| l.len() == D - 1)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse basis".to_string(),
-                })
-            })?;
+            .ok_or("Failed to parse basis")?;
 
         for (value, vector) in basis_json.iter().zip(basis) {
             *vector = value
                 .as_array()
                 .map(Vec::as_slice)
                 .and_then(json_array_to_vector)
-                .ok_or_else(|| {
-                    Box::new(JsonError {
-                        message: "Failed to parse basis vector".to_string(),
-                    })
-                })?;
+                .ok_or("Failed to parse basis vector")?;
         }
 
         let bounds_json = json
             .get("bounds")
             .and_then(Value::as_array)
             .filter(|l| l.len() == D - 1)
-            .ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse bounds".to_string(),
-                })
-            })?;
+            .ok_or("Failed to parse bounds")?;
 
         let mut bounds = [0.; D];
         for (i, o) in bounds[1..].iter_mut().zip(bounds_json.iter()) {
-            *i = o.as_f64().ok_or_else(|| {
-                Box::new(JsonError {
-                    message: "Failed to parse bound".to_string(),
-                })
-            })? as f32;
+            *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
         }
 
         let darkness_coef = json
@@ -136,11 +116,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .map(|f| f as f32)
             .unwrap_or(1.0);
 
-        let plane = Plane::new(vectors).ok_or_else(|| {
-            Box::new(JsonError {
-                message: "Failed to create plane".to_string(),
-            })
-        })?;
+        let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
 
         Ok(Self {
             plane,

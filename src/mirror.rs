@@ -52,28 +52,24 @@ impl<const D: usize> Ray<D> {
         let origin = json
             .get("origin")
             .and_then(Value::as_array)
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray origin"))?;
+            .ok_or("Missing ray origin")?;
         let direction = json
             .get("direction")
             .and_then(Value::as_array)
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray direction"))?;
+            .ok_or("Missing ray direction")?;
         let brightness = json
             .get("brightness")
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Missing ray brightness"))?;
+            .ok_or("Missing ray brightness")?;
 
         let origin = json_array_to_vector::<D>(origin)
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid ray origin"))?;
+            .ok_or("Invalid ray origin")?;
 
         let direction = json_array_to_vector::<D>(direction)
-            .ok_or_else(|| Box::<dyn std::error::Error>::from("Invalid ray direction"))?;
+            .ok_or("Invalid ray direction")?;
 
-        let direction = Unit::try_new(direction, 1e-6).ok_or_else(|| {
-            Box::<dyn std::error::Error>::from("Unable to normalize ray direction")
-        })?;
+        let direction = Unit::try_new(direction, 1e-6).ok_or("Unable to normalize ray direction")?;
 
-        let brightness = brightness.as_f64().ok_or_else(|| {
-            Box::<dyn std::error::Error>::from("Invalid ray brightness (not a number)")
-        })? as f32;
+        let brightness = brightness.as_f64().ok_or("Invalid ray brightness (not a number)")? as f32;
 
         Ok(Self {
             origin,
