@@ -22,6 +22,10 @@ impl<const D: usize> ParaboloidMirror<D> {
         limit_plane: Plane<D>,
         darkness_coef: f32,
     ) -> Self {
+        //ax+by+c=0
+        //F=(f_1,f_2)
+        //(ax+by+c)^2/(a^2+b^2)=(x-f_1)^2+(y-f_2)^2
+
         //calculate the equation of the paraboloid
         let k = directrix_plane.orthogonal_projection(focus);
         let p = (focus - k).norm(); //distance between the focus and the directrix plane
