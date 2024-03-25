@@ -25,7 +25,6 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> Ray<D> {
     /// Reflect the ray with respect to the given plane
-    /// TODO: FIX THIS
     pub fn reflect(&self, plane: &Plane<D>, darkness_coef: &f32) -> Ray<D> {
         let plane_origin = plane.v_0();
         let plane_normal = plane.normal().unwrap();
