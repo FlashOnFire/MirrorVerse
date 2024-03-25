@@ -1,7 +1,7 @@
 use gnuplot::{AxesCommon, Caption, Color, Figure, Fix};
 
 use crate::mirror::plane::PlaneMirror;
-use crate::mirror::{Mirror, Ray};
+use crate::mirror::{Ray};
 
 pub fn render_gnu_plot(fg: &mut Figure, rays: &[Ray], mirrors: &[PlaneMirror]) {
     let mut ax = fg.axes2d();
@@ -32,13 +32,13 @@ pub fn render_gnu_plot(fg: &mut Figure, rays: &[Ray], mirrors: &[PlaneMirror]) {
 
     //plot the plane mirrors
     for mirror in mirrors {
-        let x_values: Vec<f64> = vec![
-            mirror.plane.v_0().x as f64,
-            (mirror.plane.v_0().x * mirror.bounds[1]).into(),
+        let x_values = [
+            (mirror.plane.v_0().x - mirror.plane.basis()[0].x* mirror.bounds[1]) as f64,
+            (mirror.plane.v_0().x  + mirror.plane.basis()[0].x* mirror.bounds[1]).into(),
         ];
-        let y_values: Vec<f64> = vec![
-            mirror.plane.v_0().y as f64,
-            (mirror.plane.v_0().y * mirror.bounds[1]).into(),
+        let y_values= [
+            (mirror.plane.v_0().y - mirror.plane.basis()[0].y * mirror.bounds[1]) as f64,
+            (mirror.plane.v_0().y+ mirror.plane.basis()[0].y * mirror.bounds[1]).into(),
         ];
         ax.lines(&x_values, &y_values, &[Caption("Mirror"), Color("red")]);
     }
