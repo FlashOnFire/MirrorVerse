@@ -1,4 +1,5 @@
 use super::*;
+use nalgebra::{Point2, Vector2};
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -25,6 +26,8 @@ impl<const D: usize> ParaboloidMirror<D> {
         //ax+by+c=0
         //F=(f_1,f_2)
         //(ax+by+c)^2/(a^2+b^2)=(x-f_1)^2+(y-f_2)^2
+
+        /*
 
         //calculate the equation of the paraboloid
         let k = directrix_plane.orthogonal_projection(focus);
@@ -73,6 +76,7 @@ impl<const D: usize> ParaboloidMirror<D> {
         // create the transformation matrix to the new basis
         let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
 
+        */
 
         Self {
             directrix_plane,
@@ -91,7 +95,40 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
     }
 
     fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
-        panic!("Not implemented yet");
+        // Define the focus and directrix
+        let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
+        let directrix_point =
+            Point2::new(self.directrix_plane.v_0()[0], self.directrix_plane.v_0()[1]); // A point on the directrix line
+        let directrix_vector = Vector2::new(
+            self.directrix_plane.basis()[0][0],
+            self.directrix_plane.basis()[0][1],
+        ); // Direction vector of the directrix line
+
+        // Define the line
+        let line_point = Point2::new(ray.origin[0], ray.origin[1]); // A point on the line
+        let line_direction = Unit::new_normalize(Vector2::new(ray.direction[0], ray.direction[1])); // Direction vector of the line
+
+        let func = |t: f32| -> f32 {
+            //x and y of the line
+            let x = line_point[0] + t * line_direction[0];
+            let y = line_point[1] + t * line_direction[1];
+            let dx = x - directrix_point[0];
+            let dy = y - directrix_point[1];
+            let numerator = (x - focus[0]).powi(2) + (y - focus[1]).powi(2);
+            let denominator = directrix_vector[1].powi(2) + directrix_vector[0].powi(2);
+            numerator - (dx * directrix_vector[1] - dy * directrix_vector[0]).powi(2) / denominator
+        };
+
+        // Solve the equation
+        let t0 = 1.0; // Initial guess for the first root
+        let t1 = 2.0; // Initial guess for the second root
+        let solution = newton_raphson(t0, func).unwrap(); // You need to implement the Newton-Raphson method
+        let solution2 = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
+        let intersection_point = line_point + solution * line_direction.into_inner();
+        let intersection_point2 = line_point + solution2 * line_direction.into_inner();
+
+        println!("The intersection point is: {:?}", intersection_point);
+        println!("The intersection point is: {:?}", intersection_point2);
     }
 
     fn get_type(&self) -> &str {
@@ -111,6 +148,26 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
     }
 }
 
+fn newton_raphson<F>(guess: f32, f: F) -> Option<f32>
+where
+    F: Fn(f32) -> f32,
+{
+    let mut x = guess;
+    let mut dx;
+
+    for _ in 0..100 {
+        // Maximum 100 iterations
+        dx = f(x) / (f(x + 0.01) - f(x)) * 0.01; // Numerical derivative
+        if dx.abs() < 1e-5 {
+            // Convergence criterion
+            return Some(x);
+        }
+        x -= dx;
+    }
+
+    None // Did not converge
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,12 +175,7 @@ mod tests {
     use nalgebra::SVector;
 
     #[test]
-    fn test_new() {
-        // Plane::new([
-        //     SVector::from_vec(vec![0.0, 0.0]),
-        //     SVector::from_vec(vec![1.0, 0.0]),
-        // ])
-        //     .unwrap()
+    fn test_intersection() {
         let directrix_plane = Plane::new([
             SVector::from_vec(vec![0., 0.]),
             SVector::from_vec(vec![1., 0.]),
@@ -137,6 +189,16 @@ mod tests {
         .unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+
+        let ray = Ray {
+            origin: SVector::from_vec(vec![-10., 1.]),
+            direction: Unit::try_new(SVector::from_vec(vec![1., 0.]), 1e-6).unwrap(),
+            brightness: 1.0,
+        };
+        let mut list = vec![];
+        mirror.append_intersecting_planes(&ray, &mut list);
+        println!("{:?}", list);
+
         assert!(false);
         // assert_eq!(mirror.directrix_plane, directrix_plane);
         // assert_eq!(mirror.focus, focus);
