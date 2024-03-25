@@ -121,10 +121,15 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
 
         // Solve the equation
         let t0 = 1.0; // Initial guess for the first root
-        let t1 = 2.0; // Initial guess for the second root
         let solution = newton_raphson(t0, func).unwrap(); // You need to implement the Newton-Raphson method
-        let solution2 = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
         let intersection_point = line_point + solution * line_direction.into_inner();
+
+        //calculate the t1 by adding the width of the parabola to solution
+
+        let focus_to_directrix = (focus - directrix_point).norm(); // Distance from the focus to the directrix
+        //TODO change the addition in substract in certain cases.
+        let t1 = solution + focus_to_directrix;
+        let solution2 = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
         let intersection_point2 = line_point + solution2 * line_direction.into_inner();
 
         println!("The intersection point is: {:?}", intersection_point);
@@ -155,10 +160,10 @@ where
     let mut x = guess;
     let mut dx;
 
-    for _ in 0..100 {
-        // Maximum 100 iterations
+    for _ in 0..1000 {
+        // Maximum 1000 iterations
         dx = f(x) / (f(x + 0.01) - f(x)) * 0.01; // Numerical derivative
-        if dx.abs() < 1e-5 {
+        if dx.abs() < 1e-6 {
             // Convergence criterion
             return Some(x);
         }
