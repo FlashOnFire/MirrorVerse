@@ -41,6 +41,8 @@
               })
               gnuplot
               cmake
+              pkg-config
+              fontconfig
             ];
 
             LD_LIBRARY_PATH = lib.makeLibraryPath [
