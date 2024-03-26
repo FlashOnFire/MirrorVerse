@@ -34,14 +34,14 @@
         };
       in {
         devShells.default = with pkgs;
-          pkgs.mkShell {
+          mkShell {
+            nativeBuildInputs = [cmake pkg-config];
+
             buildInputs = [
               (rust-bin.stable.latest.default.override {
                 extensions = ["rust-analyzer" "rust-src"];
               })
               gnuplot
-              cmake
-              pkg-config
               fontconfig
             ];
 
@@ -49,6 +49,7 @@
               vulkan-loader
               libxkbcommon
               wayland
+              libGL
             ];
           };
 
