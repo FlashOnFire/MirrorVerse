@@ -26,7 +26,7 @@ impl<const D: usize> PlaneMirror<D> {
         for combination in combinations.into_iter() {
             let mut vertex = *self.plane.v_0();
             for (i, value) in combination.iter().enumerate() {
-                vertex += (self.plane.basis()[i] * self.bounds[i]) * *value;
+                vertex += (self.plane.basis()[i] * self.bounds[i+1]) * *value;
             }
             vertices.push(vertex);
         }
@@ -381,12 +381,12 @@ mod tests {
     fn test_vertex_2() {
         let mirror = PlaneMirror {
             plane: Plane::new([SVector::from([1.0, 0.0]), SVector::from([0.0, 1.0])]).unwrap(),
-            bounds: [1.0; 2],
+            bounds: [0., 1.0],
             darkness_coef: 1.0,
         };
         let vertices = mirror.vertex();
         assert_eq!(vertices.len(), 2);
-            println!("{:?}", vertices);
+        println!("{:?}", vertices);
         assert_eq!(vertices[0], SVector::from([1.0, -1.0]));
         assert_eq!(vertices[1], SVector::from([1.0, 1.0]));
     }
