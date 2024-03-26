@@ -94,9 +94,9 @@ impl<'a> State<'a> {
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
         let camera = Camera::new(
-            Point3::new(0.0, 5.0, 10.0),
+            Point3::new(5.0, 5.0, 0.0),
             cgmath::Deg(-90.0),
-            cgmath::Deg(-20.0),
+            cgmath::Deg(0.0),
         );
 
         let projection =
@@ -235,7 +235,7 @@ impl<'a> State<'a> {
 
     // UPDATED!
     pub(crate) fn input(&mut self, event: &WindowEvent) -> bool {
-        match event {
+        /*match event {
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -258,7 +258,8 @@ impl<'a> State<'a> {
                 true
             }
             _ => false,
-        }
+        }*/
+        true
     }
 
     pub fn update(&mut self, dt: Duration) {

@@ -1,10 +1,8 @@
 use cgmath::{Matrix4, Rad, Vector3};
 use core::{f32::consts::FRAC_PI_2, time::Duration};
-use winit::{
-    dpi::PhysicalPosition,
-    event::{ElementState, MouseScrollDelta},
-    keyboard::KeyCode,
-};
+use glium::glutin::dpi::PhysicalPosition;
+use glium::glutin::event::{ElementState, MouseScrollDelta, VirtualKeyCode};
+use glium::glutin::platform::unix::x11::ffi::KeyCode;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
@@ -78,12 +76,8 @@ impl Camera {
             Vector3::new(y.x, y.y, y.z),
         );
 
-        println!("{:?}", ret);
-
         let a =
             nalgebra::Isometry3::look_at_rh(&self.position, &target.into(), &y).to_homogeneous();
-
-        println!("{:?}", a);
 
         let ret2 = Matrix4::new(
             a.m11, a.m21, a.m31, a.m41, a.m12, a.m22, a.m32, a.m42, a.m13, a.m23, a.m33, a.m43,
@@ -91,8 +85,6 @@ impl Camera {
         );
 
         println!("{:?}", ret2);
-
-        println!("---------------------------");
         ret
     }
 }
@@ -163,7 +155,7 @@ impl CameraController {
         }
     }
 
-    pub fn process_keyboard(&mut self, key: KeyCode, state: ElementState) -> bool {
+    pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) -> bool {
         let amount = if state == ElementState::Pressed {
             1.0
         } else {
@@ -171,27 +163,27 @@ impl CameraController {
         };
 
         match key {
-            KeyCode::KeyW | KeyCode::ArrowUp => {
+            VirtualKeyCode::Z => {
                 self.amount_forward = amount;
                 true
             }
-            KeyCode::KeyS | KeyCode::ArrowDown => {
+            VirtualKeyCode::S => {
                 self.amount_backwards = amount;
                 true
             }
-            KeyCode::KeyA | KeyCode::ArrowLeft => {
+            VirtualKeyCode::Q => {
                 self.amount_left = amount;
                 true
             }
-            KeyCode::KeyD | KeyCode::ArrowRight => {
+            VirtualKeyCode::D => {
                 self.amount_right = amount;
                 true
             }
-            KeyCode::Space => {
+            VirtualKeyCode::Space => {
                 self.amount_up = amount;
                 true
             }
-            KeyCode::ShiftLeft => {
+            VirtualKeyCode::LShift => {
                 self.amount_down = amount;
                 true
             }
@@ -241,5 +233,7 @@ impl CameraController {
         } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
             camera.pitch = Rad(SAFE_FRAC_PI_2);
         }
+        
+        println!("{:?}", camera.position);
     }
 }
