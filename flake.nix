@@ -40,6 +40,7 @@
                 extensions = ["rust-analyzer" "rust-src"];
               })
               gnuplot
+              cmake
             ];
 
             LD_LIBRARY_PATH = lib.makeLibraryPath [
