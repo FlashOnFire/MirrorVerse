@@ -8,19 +8,15 @@ use glium::glutin::event::{ElementState, Event, MouseButton, WindowEvent};
 use glium::glutin::event::DeviceEvent::MouseMotion;
 use glium::glutin::event_loop::ControlFlow;
 use glium::{implement_vertex, Program, Surface, uniform};
-use glium_shapes::cuboid::{Cuboid, CuboidBuilder};
-use gnuplot::{Caption, Color, Figure};
-use nalgebra::{Point3, Rotation3, Vector3};
-use render::state::State;
+use nalgebra::{Point3};
 
 use mirror::{plane::PlaneMirror, Mirror, Ray};
-use render::gnuplot::render_gnu_plot;
 use crate::render::camera::{Camera, CameraController, Projection};
 
 mod mirror;
 mod render;
 
-pub const DEFAULT_DIM: usize = 2;
+pub const DEFAULT_DIM: usize = 3;
 
 #[derive(Copy, Clone, Debug)]
 struct Vertex {
@@ -28,7 +24,7 @@ struct Vertex {
 }
 implement_vertex!(Vertex, position);
 
-const vertex_shader_src: &str = r#"
+const VERTEX_SHADER_SRC: &str = r#"
         #version 140
 
         in vec2 position;
@@ -39,7 +35,7 @@ const vertex_shader_src: &str = r#"
         }
     "#;
 
-const fragment_shader_src: &str = r#"
+const FRAGMENT_SHADER_SRC: &str = r#"
         #version 140
 
         uniform vec3 color_vec;
@@ -51,7 +47,7 @@ const fragment_shader_src: &str = r#"
         }
     "#;
 
-const vertex_shader_src_3d: &str = r#"
+const VERTEX_SHADER_SRC_3D: &str = r#"
         #version 140
 
         in vec3 position;
@@ -80,14 +76,14 @@ fn main() {
     let mut projection = Projection::new(1280, 720, cgmath::Deg(70.0), 0.1, 100.0);
     let mut camera_controller = CameraController::new(5.0, 0.4);
 
-    let mut program3d = glium::Program::from_source(&display, vertex_shader_src_3d, fragment_shader_src, None).unwrap();
+    let mut program3d = glium::Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None).unwrap();
 
     let mut last_render_time = Instant::now();
 
     let mut mouse_pressed = false;
 
     /// Load the mirror list from the json file
-    let json = std::fs::read_to_string("assets/simple.json").unwrap();
+    let json = std::fs::read_to_string("assets/simple_3d.json").unwrap();
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
     let mut mirrors =
@@ -318,23 +314,23 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
 
     //target.draw(&circle, &circle, &program3d, &uniform! {perspective: perspective, view: view}, &Default::default()).unwrap();
 
-    let mut ray_vec: Vec<Vertex> = rays.iter().map(|r| Vertex { position: [r.origin.x, r.origin.y, 1.0] }).collect();
+    let mut ray_vec: Vec<Vertex> = rays.iter().map(|r| Vertex { position: [r.origin.x, r.origin.y, r.origin.z] }).collect();
 
     if let Some(last) = ray_vec.last() {
         let [x, y, z] = last.position;
         let mut direction = rays.last().unwrap().direction;
-        ray_vec.push(Vertex { position: [x + direction.x * 1000.0, y + direction.y * 1000.0, 1.0] })
+        ray_vec.push(Vertex { position: [x + direction.x * 1000.0, y + direction.y * 1000.0, z + direction.z * 1000.0] });
     }
 
 
     let vertex_buffer = glium::VertexBuffer::new(display, &ray_vec).unwrap();
     let indices_linestrip = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
-    let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
+    let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip);
 
     target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]}, &params).unwrap();
 
     for mirror in mirrors {
-        let vertices: Vec<Vertex> = mirror.vertex().iter().map(|vector| Vertex { position: [vector.x, vector.y, 1.0] }).collect();
+        let vertices: Vec<Vertex> = mirror.vertex().iter().map(|vector| Vertex { position: [vector.x, vector.y, vector.z] }).collect();
 
         for x in &vertices {
             println!("{:?}", x);
@@ -344,7 +340,7 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
         //let vertices: Vec<Vertex> = vec![[1.0, 1.0, 1.0], [-1.0, -1.0, 1.0]].iter().map(|v| Vertex { position: *v }).collect();
 
         let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
-        target.draw(&vertex_buffer, indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]}, &params).expect("ooooooo c'est la panique");
+        target.draw(&vertex_buffer, indices_trianglestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]}, &params).expect("ooooooo c'est la panique");
 
         /*
         let rot = Rotation3::rotation_between(&Vector3::new(1.0, 1.0, 1.0), &Vector3::new(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)).unwrap();
