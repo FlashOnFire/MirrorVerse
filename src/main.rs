@@ -76,7 +76,7 @@ fn main() {
     let mut projection = Projection::new(1280, 720, cgmath::Deg(70.0), 0.1, 100.0);
     let mut camera_controller = CameraController::new(5.0, 0.4);
 
-    let mut program3d = glium::Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None).unwrap();
+    let mut program3d = Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None).unwrap();
 
     let mut last_render_time = Instant::now();
 
@@ -143,7 +143,7 @@ fn main() {
                     state,
                     ..
                 } => {
-                    if (button == MouseButton::Left) {
+                    if button == MouseButton::Left {
                         mouse_pressed = match state {
                             ElementState::Pressed => true,
                             ElementState::Released => false
@@ -159,11 +159,11 @@ fn main() {
 
                 let elapsed_time = dt.as_millis() as u64;
 
-                let wait_millis = match (1000 / 244 >= elapsed_time) {
+                let wait_millis = match 1000 / 244 >= elapsed_time {
                     true => 1000 / 244 - elapsed_time,
                     false => 0
                 };
-                let new_inst = now + std::time::Duration::from_millis(wait_millis);
+                let new_inst = now + Duration::from_millis(wait_millis);
                 *control_flow = ControlFlow::WaitUntil(new_inst);
 
                 update(dt, &mut camera, &mut camera_controller);
