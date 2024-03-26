@@ -336,24 +336,26 @@ mod tests {
     #[test]
     fn test_json() {
         let json = serde_json::json!({
-            "center": [0., 0.],
+            "center": [0., 0., 0.],
             "basis": [
-                [1., 0.],
+                [1., 0.,0.],
+                [0., 1., 0.],
             ],
-            "bounds": [1.],
+            "bounds": [1., 1.],
             "darkness": 0.5,
         });
 
-        let mirror: PlaneMirror<2> = PlaneMirror::<2>::from_json(&json).unwrap();
+        let mirror: PlaneMirror<3> = PlaneMirror::<3>::from_json(&json).unwrap();
         assert_eq!(
             mirror,
             PlaneMirror {
                 plane: Plane::new([
-                    SVector::from_vec(vec![0.0, 0.0]),
-                    SVector::from_vec(vec![1.0, 0.0]),
+                    SVector::from_vec(vec![0.0, 0.0, 0.0]),
+                    SVector::from_vec(vec![1.0, 0.0, 0.0]),
+                    SVector::from_vec(vec![0.0, 1.0, 0.0]),
                 ])
                     .unwrap(),
-                bounds: [0., 1.],
+                bounds: [0., 1., 1.],
                 darkness_coef: 0.5,
             }
         );
