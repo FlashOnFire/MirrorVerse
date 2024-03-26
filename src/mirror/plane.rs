@@ -373,8 +373,50 @@ mod tests {
         };
         let vertices = mirror.vertex();
         assert_eq!(vertices.len(), 2);
-        assert_eq!(vertices[1], SVector::from([0.0, 1.0]));
         assert_eq!(vertices[0], SVector::from([0.0, -1.0]));
+        assert_eq!(vertices[1], SVector::from([0.0, 1.0]));
+    }
+
+    #[test]
+    fn test_vertex_2() {
+        let mirror = PlaneMirror {
+            plane: Plane::new([SVector::from([1.0, 0.0]), SVector::from([0.0, 1.0])]).unwrap(),
+            bounds: [1.0; 2],
+            darkness_coef: 1.0,
+        };
+        let vertices = mirror.vertex();
+        assert_eq!(vertices.len(), 2);
+            println!("{:?}", vertices);
+        assert_eq!(vertices[0], SVector::from([1.0, -1.0]));
+        assert_eq!(vertices[1], SVector::from([1.0, 1.0]));
+    }
+
+    #[test]
+    fn test_vertex_3() {
+        let mirror = PlaneMirror {
+            plane: Plane::new([SVector::from([0.0, 0.0]), SVector::from([-1.0, -1.0])]).unwrap(),
+            bounds: [1.0; 2],
+            darkness_coef: 1.0,
+        };
+        let vertices = mirror.vertex();
+        assert_eq!(vertices.len(), 2);
+        println!("{:?}", vertices);
+        assert_eq!(vertices[0], SVector::from([0.70710677, 0.70710677]));
+        assert_eq!(vertices[1], SVector::from([-0.70710677, -0.70710677]));
+    }
+
+    #[test]
+    fn test_vertex_4() {
+        let mirror = PlaneMirror {
+            plane: Plane::new([SVector::from([0.0, -5.0]), SVector::from([1.0, -1.0])]).unwrap(),
+            bounds: [1.0; 2],
+            darkness_coef: 1.0,
+        };
+        let vertices = mirror.vertex();
+        assert_eq!(vertices.len(), 2);
+        println!("{:?}", vertices);
+        assert_eq!(vertices[0], SVector::from([-0.70710677, -4.2928934]));
+        assert_eq!(vertices[1], SVector::from([0.70710677, -5.7071066]));
     }
 
     #[test]
