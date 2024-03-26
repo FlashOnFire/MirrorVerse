@@ -279,7 +279,7 @@ fn update(dt: Duration, camera: &mut Camera, camera_controller: &mut CameraContr
 
 fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, camera: &Camera, projection: &Projection, rays: &Vec<Ray>, mirrors: &Vec<PlaneMirror>) {
     let mut target = display.draw();
-    target.clear_color_and_depth((1.0, 1.0, 1.0, 1.0), 1.0);
+    target.clear_color_and_depth((1.0, 0.95, 0.7, 1.0), 1.0);
     //target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
     //            &Default::default()).unwrap();
 
@@ -335,6 +335,13 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
 
     for mirror in mirrors {
         let vertices: Vec<Vertex> = mirror.vertex().iter().map(|vector| Vertex { position: [vector.x, vector.y, 1.0] }).collect();
+
+        for x in &vertices {
+            println!("{:?}", x);
+        }
+
+        // test : correctly places the 2nd mirror
+        //let vertices: Vec<Vertex> = vec![[1.0, 1.0, 1.0], [-1.0, -1.0, 1.0]].iter().map(|v| Vertex { position: *v }).collect();
 
         let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
         target.draw(&vertex_buffer, indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]}, &params).expect("ooooooo c'est la panique");
