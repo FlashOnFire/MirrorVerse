@@ -18,7 +18,7 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> PlaneMirror<D>{
-    fn vertex(&self) -> Vec<SVector<f32, D>> {
+    pub fn vertex(&self) -> Vec<SVector<f32, D>> {
         let mut vertices = Vec::<SVector<f32, D>>::with_capacity(2usize.pow((D-1) as u32));
         for i in 0..2usize.pow((D-1) as u32) {
             let mut vertex = SVector::<f32, D>::zeros();

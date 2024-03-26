@@ -42,10 +42,12 @@ const vertex_shader_src: &str = r#"
 const fragment_shader_src: &str = r#"
         #version 140
 
+        uniform vec3 color_vec;
+
         out vec4 color;
 
         void main() {
-            color = vec4(0.7, 0.3, 0.1, 1.0);
+            color = vec4(color_vec.xyz, 1.0);
         }
     "#;
 
@@ -76,7 +78,7 @@ fn main() {
     );
 
     let mut projection = Projection::new(1280, 720, cgmath::Deg(70.0), 0.1, 100.0);
-    let mut camera_controller = CameraController::new(10.0, 0.4);
+    let mut camera_controller = CameraController::new(5.0, 0.4);
 
     let mut program3d = glium::Program::from_source(&display, vertex_shader_src_3d, fragment_shader_src, None).unwrap();
 
@@ -324,24 +326,27 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
         ray_vec.push(Vertex { position: [x + direction.x * 1000.0, y + direction.y * 1000.0, 1.0] })
     }
 
-    let mut planes = vec![];
-
-    for mirror in mirrors {
-        let rot = Rotation3::rotation_between(&Vector3::new(1.0, 1.0, 1.0), &Vector3::new(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)).unwrap();
-        planes.push(CuboidBuilder::new()
-            .translate(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)
-            .scale(mirror.bounds[0], mirror.bounds[1], 1.0)
-            .build(display)
-            .unwrap());
-    }
 
     let vertex_buffer = glium::VertexBuffer::new(display, &ray_vec).unwrap();
     let indices_linestrip = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
+    let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip);
 
-    target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view}, &params).unwrap();
+    target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]}, &params).unwrap();
 
-    for cuboid in planes {
-        target.draw(&cuboid, &cuboid, &program3d, &uniform! {perspective: perspective, view: view}, &params).unwrap();
+    for mirror in mirrors {
+        let vertices: Vec<Vertex> = mirror.vertex().iter().map(|vector| Vertex { position: [vector.x, vector.y, 1.0] }).collect();
+
+        let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
+        target.draw(&vertex_buffer, indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]}, &params).expect("ooooooo c'est la panique");
+
+        /*
+        let rot = Rotation3::rotation_between(&Vector3::new(1.0, 1.0, 1.0), &Vector3::new(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)).unwrap();
+        CuboidBuilder::new()
+            .translate(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)
+            .scale(mirror.bounds[0], mirror.bounds[1], 1.0)
+            .build(display)
+            .unwrap();
+        target.draw(&cuboid, &cuboid, &program3d, &uniform! {perspective: perspective, view: view}, &params).unwrap();*/
     }
 
     target.finish().unwrap();
