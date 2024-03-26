@@ -22,7 +22,7 @@ mod render;
 
 pub const DEFAULT_DIM: usize = 2;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct Vertex {
     position: [f32; 3],
 }
@@ -329,7 +329,7 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
 
     let vertex_buffer = glium::VertexBuffer::new(display, &ray_vec).unwrap();
     let indices_linestrip = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
-    let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip);
+    let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::LinesList);
 
     target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]}, &params).unwrap();
 
