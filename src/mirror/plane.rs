@@ -17,17 +17,20 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     darkness_coef: f32,
 }
 
-impl<const D: usize> PlaneMirror<D>{
+impl<const D: usize> PlaneMirror<D> {
     pub fn vertex(&self) -> Vec<SVector<f32, D>> {
-        let mut vertices = Vec::<SVector<f32, D>>::with_capacity(2usize.pow((D-1) as u32));
-        for i in 0..2usize.pow((D-1) as u32) {
-            let mut vertex = SVector::<f32, D>::zeros();
-            for j in 0..D-1 {
-                vertex[j] = if i & (1 << j) == 0 { -self.bounds[j+1] } else { self.bounds[j+1] };
+        let mut vertices = Vec::<SVector<f32, D>>::with_capacity(2usize.pow((D - 1) as u32));
+        let possibility = vec![vec![-1.0, 1.0]; D - 1];
+        let combinations = cartesian_product(&possibility);
+
+        for combination in combinations.into_iter() {
+            let mut vertex = *self.plane.v_0();
+            for (i, value) in combination.iter().enumerate() {
+                vertex += (self.plane.basis()[i] * self.bounds[i]) * *value;
             }
             vertices.push(vertex);
         }
-        println!("{:?}", vertices);
+
         vertices
     }
 }
@@ -139,6 +142,22 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             darkness_coef,
         })
     }
+}
+
+fn cartesian_product(arrays: &Vec<Vec<f32>>) -> Vec<Vec<f32>> {
+    let mut result: Vec<Vec<f32>> = vec![vec![]];
+    for array in arrays {
+        let mut temp = Vec::new();
+        for x in &result {
+            for y in array {
+                let mut z = x.clone();
+                z.push(*y);
+                temp.push(z);
+            }
+        }
+        result = temp;
+    }
+    result
 }
 
 #[cfg(test)]
@@ -341,25 +360,41 @@ mod tests {
     }
 
     #[test]
-    fn test_vertex(){
+    fn test_vertex() {
         /*
                 |
                 |
                 |
         */
-
         let mirror = PlaneMirror {
-            plane: Plane::new([
-                SVector::from([0.0, 0.0]),
-                SVector::from([0.0, 1.0]),
-            ])
-                .unwrap(),
+            plane: Plane::new([SVector::from([0.0, 0.0]), SVector::from([0.0, 1.0])]).unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
         let vertices = mirror.vertex();
         assert_eq!(vertices.len(), 2);
-        assert_eq!(vertices[1], SVector::from([1.0, 0.0]));
-        assert_eq!(vertices[0], SVector::from([-1.0, 0.0]));
+        assert_eq!(vertices[1], SVector::from([0.0, 1.0]));
+        assert_eq!(vertices[0], SVector::from([0.0, -1.0]));
+    }
+
+    #[test]
+    fn test_vertex_3d(){
+        let mirror = PlaneMirror {
+            plane: Plane::new([
+                SVector::from([0.0, 0.0, 0.0]),
+                SVector::from([0.0, 1.0, 0.0]),
+                SVector::from([0.0, 0.0, 1.0]),
+            ])
+            .unwrap(),
+            bounds: [1.0; 3],
+            darkness_coef: 1.0,
+        };
+        let vertices = mirror.vertex();
+        assert_eq!(vertices.len(), 4);
+        println!("{:?}", vertices);
+        assert_eq!(vertices[0], SVector::from([0.0, -1.0, -1.0]));
+        assert_eq!(vertices[1], SVector::from([0.0, -1.0, 1.0]));
+        assert_eq!(vertices[2], SVector::from([0.0, 1.0, -1.0]));
+        assert_eq!(vertices[3], SVector::from([0.0, 1.0, 1.0]));
     }
 }
