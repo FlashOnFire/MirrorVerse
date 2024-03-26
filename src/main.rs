@@ -155,7 +155,6 @@ fn main() {
                 _ => {}
             }
             Event::RedrawRequested(_) => {
-                println!("oui");
                 let now = Instant::now();
                 let dt = now - last_render_time;
                 last_render_time = now;
@@ -318,6 +317,12 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
     //target.draw(&circle, &circle, &program3d, &uniform! {perspective: perspective, view: view}, &Default::default()).unwrap();
 
     let mut ray_vec: Vec<Vertex> = rays.iter().map(|r| Vertex { position: [r.origin.x, r.origin.y, 1.0] }).collect();
+
+    if let Some(last) = ray_vec.last() {
+        let [x, y, z] = last.position;
+        let mut direction = rays.last().unwrap().direction;
+        ray_vec.push(Vertex { position: [x + direction.x * 1000.0, y + direction.y * 1000.0, 1.0] })
+    }
 
     let mut planes = vec![];
 

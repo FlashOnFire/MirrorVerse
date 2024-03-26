@@ -83,8 +83,6 @@ impl Camera {
             a.m11, a.m21, a.m31, a.m41, a.m12, a.m22, a.m32, a.m42, a.m13, a.m23, a.m33, a.m43,
             a.m14, a.m24, a.m34, a.m44,
         );
-
-        println!("{:?}", ret2);
         ret
     }
 }
@@ -234,7 +232,5 @@ impl CameraController {
         } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
             camera.pitch = Rad(SAFE_FRAC_PI_2);
         }
-        
-        println!("{:?}", camera.position);
     }
 }
