@@ -1,8 +1,8 @@
 use cgmath::{Matrix4, Rad, Vector3};
+use winit::keyboard::NativeKeyCode;
 use core::{f32::consts::FRAC_PI_2, time::Duration};
 use glium::glutin::dpi::PhysicalPosition;
 use glium::glutin::event::{ElementState, MouseScrollDelta, VirtualKeyCode};
-use glium::glutin::platform::unix::x11::ffi::KeyCode;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
@@ -23,6 +23,7 @@ pub struct CameraUniform {
 
 impl CameraUniform {
     pub(crate) fn new() -> Self {
+
         Self {
             view_pos: [0.0; 4],
             view_proj: nalgebra::Matrix4::identity().into(),
