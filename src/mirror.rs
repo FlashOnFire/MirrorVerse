@@ -87,7 +87,7 @@ impl<const D: usize> Ray<D> {
     }
 }
 
-/// An up to N-1-dimensional, euclidean affine subspace
+/// An N-1-dimensional, euclidean affine subspace
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize = DEFAULT_DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).

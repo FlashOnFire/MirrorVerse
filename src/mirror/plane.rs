@@ -19,19 +19,23 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> PlaneMirror<D> {
     pub fn get_vertices(&self) -> Vec<SVector<f32, D>> {
-        let mut vertices = Vec::<SVector<f32, D>>::with_capacity(2usize.pow((D - 1) as u32));
-        let possibility = vec![vec![-1.0, 1.0]; D - 1];
-        let combinations = cartesian_product(&possibility);
+        // WARNING: black magic
 
-        for combination in combinations.into_iter() {
-            let mut vertex = *self.plane.v_0();
-            for (i, value) in combination.iter().enumerate() {
-                vertex += (self.plane.basis()[i] * self.bounds[i+1]) * *value;
-            }
-            vertices.push(vertex);
-        }
-
-        vertices
+        const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
+        // f32::to_bits is not const yet
+        let f_one_bits = f32::to_bits(1.0);
+        
+        let start_pt = *self.plane.v_0();
+        (0..1 << D - 1).into_iter().map(|i| {
+            self.bounds()
+                .iter()
+                .enumerate()
+                // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
+                .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
+                .zip(self.plane.basis())
+                .map(|(mu_signed, v)| mu_signed * v)
+                .fold(start_pt, Add::add)
+        }).collect()
     }
 }
 
@@ -142,22 +146,6 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             darkness_coef,
         })
     }
-}
-
-fn cartesian_product(arrays: &Vec<Vec<f32>>) -> Vec<Vec<f32>> {
-    let mut result: Vec<Vec<f32>> = vec![vec![]];
-    for array in arrays {
-        let mut temp = Vec::new();
-        for x in &result {
-            for y in array {
-                let mut z = x.clone();
-                z.push(*y);
-                temp.push(z);
-            }
-        }
-        result = temp;
-    }
-    result
 }
 
 #[cfg(test)]
