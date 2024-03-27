@@ -29,18 +29,21 @@ impl<const D: usize> PlaneMirror<D> {
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
         // f32::to_bits is not const yet
         let f_one_bits = f32::to_bits(1.0);
-        
+
         let start_pt = *self.plane.v_0();
-        (0..1 << D - 1).into_iter().map(|i| {
-            self.vector_bounds()
-                .iter()
-                .enumerate()
-                // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
-                .zip(self.plane.basis())
-                .map(|(mu_signed, v)| mu_signed * v)
-                .fold(start_pt, Add::add)
-        }).collect()
+        (0..1 << D - 1)
+            .into_iter()
+            .map(|i| {
+                self.vector_bounds()
+                    .iter()
+                    .enumerate()
+                    // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
+                    .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
+                    .zip(self.plane.basis())
+                    .map(|(mu_signed, v)| mu_signed * v)
+                    .fold(start_pt, Add::add)
+            })
+            .collect()
     }
 }
 
@@ -73,7 +76,10 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                 .zip(&self.bounds)
                 .skip(1)
                 .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-                && ray.direction.dot(&-self.plane.normal_directed(ray.origin).unwrap()) > 0.0
+                && ray
+                    .direction
+                    .dot(&-self.plane.normal_directed(ray.origin).unwrap())
+                    > 0.0
             {
                 list.push((self.darkness_coef, self.plane));
             }
@@ -85,8 +91,8 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         /*
         example json:
@@ -173,7 +179,7 @@ mod tests {
                 //              x    y
                 SVector::from([0.0, 1.0]),
             ])
-                .unwrap(),
+            .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -191,7 +197,7 @@ mod tests {
         assert_eq!(brightness, 1.0);
         assert_eq!(
             plane,
-            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(), ]).unwrap()
+            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(),]).unwrap()
         )
     }
 
@@ -210,7 +216,7 @@ mod tests {
                 //                      x    y
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-                .unwrap(),
+            .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -232,7 +238,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-                .unwrap()
+            .unwrap()
         );
     }
 
@@ -243,7 +249,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ])
-                .unwrap(),
+            .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -267,7 +273,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ])
-                .unwrap()
+            .unwrap()
         );
     }
 
@@ -283,7 +289,7 @@ mod tests {
                 SVector::from_vec(vec![0.0, 0.0]),
                 SVector::from_vec(vec![1.0, 0.0]),
             ])
-                .unwrap(),
+            .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -311,7 +317,7 @@ mod tests {
                 SVector::from_vec(vec![1.0, 0.0]),
                 SVector::from_vec(vec![0.0, 1.0]),
             ])
-                .unwrap(),
+            .unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -347,7 +353,7 @@ mod tests {
                     SVector::from_vec(vec![1.0, 0.0, 0.0]),
                     SVector::from_vec(vec![0.0, 1.0, 0.0]),
                 ])
-                    .unwrap(),
+                .unwrap(),
                 bounds: [0., 1., 1.],
                 darkness_coef: 0.5,
             }
@@ -415,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vertex_3d(){
+    fn test_vertex_3d() {
         let mirror = PlaneMirror {
             plane: Plane::new([
                 SVector::from([0.0, 0.0, 0.0]),

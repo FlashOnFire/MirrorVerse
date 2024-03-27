@@ -127,7 +127,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         //calculate the t1 by adding the width of the parabola to solution
 
         let focus_to_directrix = (focus - directrix_point).norm(); // Distance from the focus to the directrix
-        //TODO change the addition in substract in certain cases.
+                                                                   //TODO change the addition in substract in certain cases.
         let t1 = solution + focus_to_directrix;
         let solution2 = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
         let intersection_point2 = line_point + solution2 * line_direction.into_inner();

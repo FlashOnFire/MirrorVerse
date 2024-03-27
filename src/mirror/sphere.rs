@@ -57,8 +57,7 @@ mod tests {
             "radius": 4.0
         });
 
-        let mirror =
-            SphereMirror::<2>::from_json(&json).expect("json deserialisation failed");
+        let mirror = SphereMirror::<2>::from_json(&json).expect("json deserialisation failed");
 
         assert_eq!(mirror.center, SVector::from([1.0, 2.0]));
         assert_eq!(mirror.radius, 4.0);

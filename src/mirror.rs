@@ -1,8 +1,8 @@
-use core::iter;
+use core::{fmt, iter, ops::Sub};
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use rand::Rng;
 use serde_json::Value;
-use std::{fmt, ops::Sub};
+use std::error::Error;
 
 pub mod bezier;
 pub mod cubic_bezier;
@@ -48,7 +48,7 @@ impl<const D: usize> Ray<D> {
     }
 
     /// Create a new ray with a given origin and direction
-    pub fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_json(json: &Value) -> Result<Self, Box<dyn Error>> {
         /*
         example json:
                  {
@@ -65,19 +65,18 @@ impl<const D: usize> Ray<D> {
             .get("direction")
             .and_then(Value::as_array)
             .ok_or("Missing ray direction")?;
-        let brightness = json
-            .get("brightness")
-            .ok_or("Missing ray brightness")?;
+        let brightness = json.get("brightness").ok_or("Missing ray brightness")?;
 
-        let origin = json_array_to_vector::<D>(origin)
-            .ok_or("Invalid ray origin")?;
+        let origin = json_array_to_vector::<D>(origin).ok_or("Invalid ray origin")?;
 
-        let direction = json_array_to_vector::<D>(direction)
-            .ok_or("Invalid ray direction")?;
+        let direction = json_array_to_vector::<D>(direction).ok_or("Invalid ray direction")?;
 
-        let direction = Unit::try_new(direction, 1e-6).ok_or("Unable to normalize ray direction")?;
+        let direction =
+            Unit::try_new(direction, 1e-6).ok_or("Unable to normalize ray direction")?;
 
-        let brightness = brightness.as_f64().ok_or("Invalid ray brightness (not a number)")? as f32;
+        let brightness = brightness
+            .as_f64()
+            .ok_or("Invalid ray brightness (not a number)")? as f32;
 
         Ok(Self {
             origin,
@@ -87,7 +86,7 @@ impl<const D: usize> Ray<D> {
     }
 }
 
-/// An N-1-dimensional, euclidean affine subspace
+/// An affine hyperplane
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize = DEFAULT_DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
@@ -98,9 +97,6 @@ pub struct Plane<const D: usize = DEFAULT_DIM> {
     vectors: [SVector<f32, D>; D],
 }
 
-// Important Note: this implementation is only valid for D >= 1.
-// but it is impossible to write something akin to `where D >= 1`
-// to statically restrict the value without `#[feature(const_generic_exprs)]`
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
     pub fn new(mut vectors: [SVector<f32, D>; D]) -> Option<Self> {
@@ -118,7 +114,7 @@ impl<const D: usize> Plane<D> {
     }
     /// Project a vector using the orthonormal basis projection formula.
     ///
-    /// Assumes `b` is an orthonormal (thus, free) family. If such isn't
+    /// Assumes `b` is an orthonormal family. If such isn't
     /// the case, the result is unspecified.
     pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
         self.basis().iter().map(|e| v.dot(e) * e).sum()
@@ -209,7 +205,7 @@ impl<const D: usize> Plane<D> {
             (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
 
         //print all the values for debug purpose
-        println!("plane_origin: {:?}, plane_normal: {:?}, plane_to_ray_origin: {:?}, distance_along_normal: {:?}, closest_point_on_ray: {:?}, distance_to_plane: {:?}", plane_origin, plane_normal, plane_to_ray_origin, distance_along_normal, closest_point_on_ray, distance_to_plane);
+        dbg!("plane_origin: {:?}, plane_normal: {:?}, plane_to_ray_origin: {:?}, distance_along_normal: {:?}, closest_point_on_ray: {:?}, distance_to_plane: {:?}", plane_origin, plane_normal, plane_to_ray_origin, distance_along_normal, closest_point_on_ray, distance_to_plane);
 
         distance_to_plane
     }
@@ -241,7 +237,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     fn get_type(&self) -> &str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     // TODO: use Result and an enum for clearer error handling
-    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
 }
@@ -258,7 +254,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
         self.as_ref().get_type()
     }
 
-    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized,
     {
@@ -275,7 +271,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         "dynamic"
     }
 
-    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized,
     {
@@ -292,9 +288,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             .ok_or("Missing mirror type")?
             .as_str()
             .ok_or("Invalid mirror type")?;
-        let mirror = json
-            .get("mirror")
-            .ok_or("Missing mirror data")?;
+        let mirror = json.get("mirror").ok_or("Missing mirror data")?;
 
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
@@ -323,7 +317,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         "composite"
     }
 
-    fn from_json(json: &Value) -> Result<Self, Box<dyn std::error::Error>>
+    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized,
     {

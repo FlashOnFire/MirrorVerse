@@ -2,16 +2,16 @@
 
 extern crate alloc;
 
-use std::time::{Duration, Instant};
 use cgmath::perspective;
-use glium::glutin::event::{ElementState, Event, MouseButton, WindowEvent};
 use glium::glutin::event::DeviceEvent::MouseMotion;
+use glium::glutin::event::{ElementState, Event, MouseButton, WindowEvent};
 use glium::glutin::event_loop::ControlFlow;
-use glium::{implement_vertex, Program, Surface, uniform};
-use nalgebra::{Point3};
+use glium::{implement_vertex, uniform, Program, Surface};
+use nalgebra::Point3;
+use std::time::{Duration, Instant};
 
-use mirror::{plane::PlaneMirror, Mirror, Ray};
 use crate::render::camera::{Camera, CameraController, Projection};
+use mirror::{plane::PlaneMirror, Mirror, Ray};
 
 mod mirror;
 mod render;
@@ -76,7 +76,8 @@ fn main() {
     let mut projection = Projection::new(1280, 720, cgmath::Deg(70.0), 0.1, 100.0);
     let mut camera_controller = CameraController::new(5.0, 0.4);
 
-    let mut program3d = Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None).unwrap();
+    let mut program3d =
+        Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None).unwrap();
 
     let mut last_render_time = Instant::now();
 
@@ -114,72 +115,68 @@ fn main() {
     }
     println!("{:?}", rays);
 
+    events_loop.run(move |ev, _, control_flow| match ev {
+        Event::WindowEvent { event, .. } => match event {
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            WindowEvent::Resized(physical_size) => {
+                if physical_size.width > 0 && physical_size.height > 0 {
+                    projection.resize(physical_size.width, physical_size.height);
+                }
 
-    events_loop.run(move |ev, _, control_flow| {
-        match ev {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested =>
-                    *control_flow = ControlFlow::Exit,
-                WindowEvent::Resized(physical_size) => {
-                    if physical_size.width > 0 && physical_size.height > 0 {
-                        projection.resize(physical_size.width, physical_size.height);
-                    }
-
-                    display.gl_window().resize(physical_size)
-                }
-                WindowEvent::MouseWheel { delta, .. } => {
-                    camera_controller.process_scroll(&delta);
-                }
-                WindowEvent::KeyboardInput {
-                    input,
-                    ..
-                } => {
-                    if let Some(keycode) = input.virtual_keycode {
-                        camera_controller.process_keyboard(keycode, input.state);
-                    }
-                }
-                WindowEvent::MouseInput {
-                    button,
-                    state,
-                    ..
-                } => {
-                    if button == MouseButton::Left {
-                        mouse_pressed = match state {
-                            ElementState::Pressed => true,
-                            ElementState::Released => false
-                        }
-                    }
-                }
-                _ => {}
+                display.gl_window().resize(physical_size)
             }
-            Event::RedrawRequested(_) => {
-                let now = Instant::now();
-                let dt = now - last_render_time;
-                last_render_time = now;
-
-                let elapsed_time = dt.as_millis() as u64;
-
-                let wait_millis = match 1000 / 244 >= elapsed_time {
-                    true => 1000 / 244 - elapsed_time,
-                    false => 0
-                };
-                let new_inst = now + Duration::from_millis(wait_millis);
-                *control_flow = ControlFlow::WaitUntil(new_inst);
-
-                update(dt, &mut camera, &mut camera_controller);
-                render(&display, &mut program3d, &camera, &projection, &rays, &mirrors);
+            WindowEvent::MouseWheel { delta, .. } => {
+                camera_controller.process_scroll(&delta);
             }
-            Event::MainEventsCleared => display.gl_window().window().request_redraw(),
-            Event::DeviceEvent {
-                event: MouseMotion {
-                    delta,
-                    ..
-                }, ..
-            } => if mouse_pressed {
-                camera_controller.process_mouse(delta.0, delta.1)
+            WindowEvent::KeyboardInput { input, .. } => {
+                if let Some(keycode) = input.virtual_keycode {
+                    camera_controller.process_keyboard(keycode, input.state);
+                }
+            }
+            WindowEvent::MouseInput { button, state, .. } => {
+                if button == MouseButton::Left {
+                    mouse_pressed = match state {
+                        ElementState::Pressed => true,
+                        ElementState::Released => false,
+                    }
+                }
             }
             _ => {}
+        },
+        Event::RedrawRequested(_) => {
+            let now = Instant::now();
+            let dt = now - last_render_time;
+            last_render_time = now;
+
+            let elapsed_time = dt.as_millis() as u64;
+
+            let wait_millis = match 1000 / 244 >= elapsed_time {
+                true => 1000 / 244 - elapsed_time,
+                false => 0,
+            };
+            let new_inst = now + Duration::from_millis(wait_millis);
+            *control_flow = ControlFlow::WaitUntil(new_inst);
+
+            update(dt, &mut camera, &mut camera_controller);
+            render(
+                &display,
+                &mut program3d,
+                &camera,
+                &projection,
+                &rays,
+                &mirrors,
+            );
         }
+        Event::MainEventsCleared => display.gl_window().window().request_redraw(),
+        Event::DeviceEvent {
+            event: MouseMotion { delta, .. },
+            ..
+        } => {
+            if mouse_pressed {
+                camera_controller.process_mouse(delta.0, delta.1)
+            }
+        }
+        _ => {}
     });
 
     /*
@@ -273,12 +270,18 @@ fn update(dt: Duration, camera: &mut Camera, camera_controller: &mut CameraContr
     camera_controller.update_camera(camera, dt);
 }
 
-fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, camera: &Camera, projection: &Projection, rays: &Vec<Ray>, mirrors: &Vec<PlaneMirror>) {
+fn render(
+    display: &glium::backend::glutin::Display,
+    program3d: &mut Program,
+    camera: &Camera,
+    projection: &Projection,
+    rays: &Vec<Ray>,
+    mirrors: &Vec<PlaneMirror>,
+) {
     let mut target = display.draw();
     target.clear_color_and_depth((1.0, 0.95, 0.7, 1.0), 1.0);
     //target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
     //            &Default::default()).unwrap();
-
 
     let cuboid = glium_shapes::cuboid::CuboidBuilder::new()
         .translate(0.0, 0.0, 0.0)
@@ -309,28 +312,51 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
         ..Default::default()
     };
 
-
     //target.draw(&cuboid, &cuboid, &program3d, &uniform! {perspective: perspective, view: view}, &params).unwrap();
 
     //target.draw(&circle, &circle, &program3d, &uniform! {perspective: perspective, view: view}, &Default::default()).unwrap();
 
-    let mut ray_vec: Vec<Vertex> = rays.iter().map(|r| Vertex { position: [r.origin.x, r.origin.y, r.origin.z] }).collect();
+    let mut ray_vec: Vec<Vertex> = rays
+        .iter()
+        .map(|r| Vertex {
+            position: [r.origin.x, r.origin.y, r.origin.z],
+        })
+        .collect();
 
     if let Some(last) = ray_vec.last() {
         let [x, y, z] = last.position;
         let mut direction = rays.last().unwrap().direction;
-        ray_vec.push(Vertex { position: [x + direction.x * 1000.0, y + direction.y * 1000.0, z + direction.z * 1000.0] });
+        ray_vec.push(Vertex {
+            position: [
+                x + direction.x * 1000.0,
+                y + direction.y * 1000.0,
+                z + direction.z * 1000.0,
+            ],
+        });
     }
-
 
     let vertex_buffer = glium::VertexBuffer::new(display, &ray_vec).unwrap();
     let indices_linestrip = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
     let indices_trianglestrip = glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip);
 
-    target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]}, &params).unwrap();
+    target
+        .draw(
+            &vertex_buffer,
+            &indices_linestrip,
+            &program3d,
+            &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]},
+            &params,
+        )
+        .unwrap();
 
     for mirror in mirrors {
-        let vertices: Vec<Vertex> = mirror.get_vertices().iter().map(|vector| Vertex { position: [vector.x, vector.y, vector.z] }).collect();
+        let vertices: Vec<Vertex> = mirror
+            .get_vertices()
+            .iter()
+            .map(|vector| Vertex {
+                position: [vector.x, vector.y, vector.z],
+            })
+            .collect();
 
         for x in &vertices {
             println!("{:?}", x);
@@ -340,7 +366,13 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
         //let vertices: Vec<Vertex> = vec![[1.0, 1.0, 1.0], [-1.0, -1.0, 1.0]].iter().map(|v| Vertex { position: *v }).collect();
 
         let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
-        target.draw(&vertex_buffer, indices_trianglestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]}, &params).expect("ooooooo c'est la panique");
+        target.draw(
+            &vertex_buffer,
+            indices_trianglestrip,
+            &program3d,
+            &uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]},
+            &params
+        ).expect("ooooooo c'est la panique");
 
         /*
         let rot = Rotation3::rotation_between(&Vector3::new(1.0, 1.0, 1.0), &Vector3::new(mirror.plane.v_0().x, mirror.plane.v_0().y, 1.0)).unwrap();

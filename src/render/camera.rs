@@ -1,8 +1,8 @@
 use cgmath::{Matrix4, Rad, Vector3};
-use winit::keyboard::NativeKeyCode;
 use core::{f32::consts::FRAC_PI_2, time::Duration};
 use glium::glutin::dpi::PhysicalPosition;
 use glium::glutin::event::{ElementState, MouseScrollDelta, VirtualKeyCode};
+use winit::keyboard::NativeKeyCode;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
@@ -23,7 +23,6 @@ pub struct CameraUniform {
 
 impl CameraUniform {
     pub(crate) fn new() -> Self {
-
         Self {
             view_pos: [0.0; 4],
             view_proj: nalgebra::Matrix4::identity().into(),
@@ -208,7 +207,7 @@ impl CameraController {
         let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
         let forward = nalgebra::Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
         let right = nalgebra::Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
-        
+
         let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
         let scrollward =
             nalgebra::Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
