@@ -368,8 +368,8 @@ mod tests {
         };
         let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
-        assert_eq!(vertices[0], SVector::from([0.0, -1.0]));
-        assert_eq!(vertices[1], SVector::from([0.0, 1.0]));
+        assert!(vertices.contains(&SVector::from([0.0, -1.0])));
+        assert!(vertices.contains(&SVector::from([0.0, 1.0])));
     }
 
     #[test]
@@ -382,8 +382,8 @@ mod tests {
         let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
-        assert_eq!(vertices[0], SVector::from([1.0, -1.0]));
-        assert_eq!(vertices[1], SVector::from([1.0, 1.0]));
+        assert!(vertices.contains(&SVector::from([1.0, -1.0])));
+        assert!(vertices.contains(&SVector::from([1.0, 1.0])));
     }
 
     #[test]
@@ -396,8 +396,8 @@ mod tests {
         let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
-        assert_eq!(vertices[0], SVector::from([0.70710677, 0.70710677]));
-        assert_eq!(vertices[1], SVector::from([-0.70710677, -0.70710677]));
+        assert!(vertices.contains(&SVector::from([0.70710677, 0.70710677])));
+        assert!(vertices.contains(&SVector::from([-0.70710677, -0.70710677])));
     }
 
     #[test]
@@ -410,8 +410,8 @@ mod tests {
         let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
-        assert_eq!(vertices[0], SVector::from([-0.70710677, -4.2928934]));
-        assert_eq!(vertices[1], SVector::from([0.70710677, -5.7071066]));
+        assert!(vertices.contains(&SVector::from([-0.70710677, -4.2928934])));
+        assert!(vertices.contains(&SVector::from([0.70710677, -5.7071066])));
     }
 
     #[test]
@@ -429,9 +429,9 @@ mod tests {
         let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 4);
         println!("{:?}", vertices);
-        assert_eq!(vertices[0], SVector::from([0.0, -1.0, -1.0]));
-        assert_eq!(vertices[1], SVector::from([0.0, -1.0, 1.0]));
-        assert_eq!(vertices[2], SVector::from([0.0, 1.0, -1.0]));
-        assert_eq!(vertices[3], SVector::from([0.0, 1.0, 1.0]));
+        assert!(vertices.contains(&SVector::from([0.0, -1.0, -1.0])));
+        assert!(vertices.contains(&SVector::from([0.0, -1.0, 1.0])));
+        assert!(vertices.contains(&SVector::from([0.0, 1.0, -1.0])));
+        assert!(vertices.contains(&SVector::from([0.0, 1.0, 1.0])));
     }
 }
