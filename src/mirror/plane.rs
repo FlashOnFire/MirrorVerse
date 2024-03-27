@@ -18,7 +18,7 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> PlaneMirror<D> {
-    pub fn vertex(&self) -> Vec<SVector<f32, D>> {
+    pub fn get_vertices(&self) -> Vec<SVector<f32, D>> {
         let mut vertices = Vec::<SVector<f32, D>>::with_capacity(2usize.pow((D - 1) as u32));
         let possibility = vec![vec![-1.0, 1.0]; D - 1];
         let combinations = cartesian_product(&possibility);
@@ -373,7 +373,7 @@ mod tests {
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
-        let vertices = mirror.vertex();
+        let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         assert_eq!(vertices[0], SVector::from([0.0, -1.0]));
         assert_eq!(vertices[1], SVector::from([0.0, 1.0]));
@@ -386,7 +386,7 @@ mod tests {
             bounds: [0., 1.0],
             darkness_coef: 1.0,
         };
-        let vertices = mirror.vertex();
+        let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
         assert_eq!(vertices[0], SVector::from([1.0, -1.0]));
@@ -400,7 +400,7 @@ mod tests {
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
-        let vertices = mirror.vertex();
+        let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
         assert_eq!(vertices[0], SVector::from([0.70710677, 0.70710677]));
@@ -414,7 +414,7 @@ mod tests {
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
-        let vertices = mirror.vertex();
+        let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 2);
         println!("{:?}", vertices);
         assert_eq!(vertices[0], SVector::from([-0.70710677, -4.2928934]));
@@ -433,7 +433,7 @@ mod tests {
             bounds: [1.0; 3],
             darkness_coef: 1.0,
         };
-        let vertices = mirror.vertex();
+        let vertices = mirror.get_vertices();
         assert_eq!(vertices.len(), 4);
         println!("{:?}", vertices);
         assert_eq!(vertices[0], SVector::from([0.0, -1.0, -1.0]));

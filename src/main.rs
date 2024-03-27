@@ -330,7 +330,7 @@ fn render(display: &glium::backend::glutin::Display, program3d: &mut Program, ca
     target.draw(&vertex_buffer, &indices_linestrip, &program3d, &uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]}, &params).unwrap();
 
     for mirror in mirrors {
-        let vertices: Vec<Vertex> = mirror.vertex().iter().map(|vector| Vertex { position: [vector.x, vector.y, vector.z] }).collect();
+        let vertices: Vec<Vertex> = mirror.get_vertices().iter().map(|vector| Vertex { position: [vector.x, vector.y, vector.z] }).collect();
 
         for x in &vertices {
             println!("{:?}", x);
