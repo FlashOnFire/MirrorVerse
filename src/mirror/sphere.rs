@@ -58,7 +58,7 @@ mod tests {
         });
 
         let mirror =
-            SphereMirror::<DEFAULT_DIM>::from_json(&json).expect("json deserialisation failed");
+            SphereMirror::<2>::from_json(&json).expect("json deserialisation failed");
 
         assert_eq!(mirror.center, SVector::from([1.0, 2.0]));
         assert_eq!(mirror.radius, 4.0);
