@@ -1,4 +1,5 @@
 use super::*;
+use core::{mem, ops::Add};
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,6 +19,10 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> PlaneMirror<D> {
+    pub fn vector_bounds(&self) -> &[f32] {
+        &self.bounds[1..]
+    }
+
     pub fn get_vertices(&self) -> Vec<SVector<f32, D>> {
         // WARNING: black magic
 
@@ -27,7 +32,7 @@ impl<const D: usize> PlaneMirror<D> {
         
         let start_pt = *self.plane.v_0();
         (0..1 << D - 1).into_iter().map(|i| {
-            self.bounds()
+            self.vector_bounds()
                 .iter()
                 .enumerate()
                 // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
