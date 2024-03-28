@@ -174,7 +174,8 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
                 0.0,
                 ReflectionPoint::new(
                     SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
-                    Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO calculate the normal
+                    Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO with the new method of momo aucun soucis on utilise la tangent
+                    //self.get_tangent(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])).unwrap(),
                 ),
             ));
         }
