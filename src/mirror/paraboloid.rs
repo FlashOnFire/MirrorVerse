@@ -2,7 +2,6 @@ use nalgebra::{Point2, Vector2};
 
 use super::*;
 
-/// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
     /// The plane this mirror belongs to.
