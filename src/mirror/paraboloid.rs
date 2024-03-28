@@ -1,5 +1,6 @@
-use super::*;
 use nalgebra::{Point2, Vector2};
+
+use super::*;
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,6 +19,9 @@ pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> ParaboloidMirror<D> {
     fn get_tangent(&self, point: &SVector<f32, D>) -> Option<Plane<D>> {
+        if !self.is_point_on_parabola(point) {
+            return None;
+        }
         match D {
             2 => {
                 //calculate the line to the directrix
@@ -36,6 +40,12 @@ impl<const D: usize> ParaboloidMirror<D> {
             }
             _ => None
         }
+    }
+
+    fn is_point_on_parabola(&self, point: &SVector<f32, D>) -> bool {
+        let dist_to_directrix = (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
+        let dist_to_focus = (self.focus - *point).norm();
+        dist_to_directrix.powi(2) - 2. * dist_to_focus < f32::EPSILON
     }
 
     // fn new(
@@ -175,8 +185,8 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         /*
         example json:
@@ -188,8 +198,8 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
 }
 
 fn newton_raphson<F>(guess: f32, f: F) -> Option<f32>
-where
-    F: Fn(f32) -> f32,
+    where
+        F: Fn(f32) -> f32,
 {
     let mut x = guess;
     let mut dx;
@@ -239,6 +249,7 @@ mod tests {
         assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., 1.]));
         assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([1., 1.]));
     }
+
     #[test]
     fn test_intersection_2() {
         let directrix_plane =
@@ -261,6 +272,7 @@ mod tests {
         assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., -1.]));
         assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([-1., 1.]));
     }
+
     #[test]
     fn test_intersection_3() {
         let directrix_plane =
@@ -370,5 +382,25 @@ mod tests {
         let tangent = mirror.get_tangent(&point).unwrap();
         assert_eq!(*tangent.v_0(), point);
         assert!(tangent.basis()[0] - SVector::<f32, 2>::from([1., 1.]) < SVector::<f32, 2>::from([f32::EPSILON, f32::EPSILON]));
+    }
+
+    #[test]
+    fn test_point_on_parabola() {
+        let directrix_plane = Plane::new([
+            SVector::from([0., -2.]),
+            SVector::from([1., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from([0., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
+
+        assert!(mirror.is_point_on_parabola(&SVector::from([-1., -1.])));
+        assert!(mirror.is_point_on_parabola(&SVector::from([1., 1.])));
     }
 }
