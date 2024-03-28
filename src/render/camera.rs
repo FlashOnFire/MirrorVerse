@@ -15,7 +15,7 @@ pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone)]
 pub struct CameraUniform {
     view_pos: [f32; 4],
     view_proj: [[f32; 4]; 4],
