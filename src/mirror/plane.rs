@@ -48,13 +48,13 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
         let mut list = vec![];
-        self.append_intersecting_planes(ray, &mut list);
+        self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
         /* // bien vuu le boss
@@ -191,7 +191,7 @@ mod tests {
             direction: Unit::new_normalize([1.0, 0.0].into()),
             brightness: 1.0,
         };
-        let reflections = mirror.intersecting_planes(&ray);
+        let reflections = mirror.intersecting_points(&ray);
 
         let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -230,7 +230,7 @@ mod tests {
             direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
             brightness: 1.0,
         };
-        let reflections = mirror.intersecting_planes(&ray);
+        let reflections = mirror.intersecting_points(&ray);
 
         let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -264,7 +264,7 @@ mod tests {
             brightness: 1.0,
         };
 
-        let reflections = mirror.intersecting_planes(&ray);
+        let reflections = mirror.intersecting_points(&ray);
 
         let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
@@ -302,7 +302,7 @@ mod tests {
             brightness: 1.0,
         };
 
-        let reflections = mirror.intersecting_planes(&ray);
+        let reflections = mirror.intersecting_points(&ray);
         assert!(reflections.is_empty());
     }
 
@@ -330,7 +330,7 @@ mod tests {
             brightness: 1.0,
         };
 
-        let reflections = mirror.intersecting_planes(&ray);
+        let reflections = mirror.intersecting_points(&ray);
         assert!(reflections.is_empty());
     }
 

@@ -88,13 +88,13 @@ impl<const D: usize> ParaboloidMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
-    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
         let mut list = vec![];
-        self.append_intersecting_planes(ray, &mut list);
+        self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -201,7 +201,7 @@ mod tests {
             brightness: 1.0,
         };
         let mut list = vec![];
-        mirror.append_intersecting_planes(&ray, &mut list);
+        mirror.append_intersecting_points(&ray, &mut list);
         println!("{:?}", list);
 
         assert!(true);

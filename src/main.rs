@@ -97,7 +97,7 @@ fn main() {
     let reflection_limit = 100;
 
     for _ in 0..reflection_limit {
-        let mut intersections = mirrors.intersecting_planes(&ray);
+        let mut intersections = mirrors.intersecting_points(&ray);
         println!("{:?}", ray);
         //sort the intersections by distance using distance_to_point
         intersections.sort_by(|a, b| {
