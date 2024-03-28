@@ -151,6 +151,12 @@ impl<const D: usize> Plane<D> {
         self.basis().iter().map(|e| v.dot(e) * e).sum()
     }
 
+    /// Project a point onto the plane
+    pub fn orthogonal_point_projection(&self, point: SVector<f32, D>) -> SVector<f32, D> {
+        let v = point - self.v_0();
+        self.v_0() + self.orthogonal_projection(v)
+    }
+
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
         match D {
