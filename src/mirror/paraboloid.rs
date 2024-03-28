@@ -17,74 +17,95 @@ pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> ParaboloidMirror<D> {
-    fn new(
-        directrix_plane: Plane<D>,
-        focus: SVector<f32, D>,
-        limit_plane: Plane<D>,
-        darkness_coef: f32,
-    ) -> Self {
-        //ax+by+c=0
-        //F=(f_1,f_2)
-        //(ax+by+c)^2/(a^2+b^2)=(x-f_1)^2+(y-f_2)^2
+    fn get_tangent(&self, point: &SVector<f32, D>) -> Option<Plane<D>> {
+        match D {
+            2 => {
+                //calculate the line to the directrix
+                let point_to_directrix_direction = self.directrix_plane.orthogonal_point_projection(*point) - *point;
+                //calculate the line to the focus
+                let point_to_focus_direction = self.focus - *point;
 
-        /*
+                //calculate the tangent
+                let direction = point_to_directrix_direction + point_to_focus_direction;
 
-        //calculate the equation of the paraboloid
-        let k = directrix_plane.orthogonal_projection(focus);
-        let p = (focus - k).norm(); //distance between the focus and the directrix plane
-        let s: SVector<f32, D> = (focus + k) / 2.; // the center of focus to k
-                                                   // we now have the basis (s, (k - focus).normalize(), ...) with      j = K to focus
-                                                   //now construct the complete basis
-        let mut rng = rand::thread_rng();
-        let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
-        basis[0] = (k - focus).normalize();
-        for i in 1..D {
-            let mut count: i8 = 0;
-            let mut success = false;
-            while !success && count < 100 {
-                //put some random values in the new vector
-                for j in 0..D {
-                    basis[i][j] = rng.gen();
-                }
-
-                SVector::orthonormalize(&mut basis);
-                success = true;
-                //check that there is no equal vectors
-                for j in 0..i {
-                    if (basis[i] - basis[j]).norm() < f32::EPSILON || (basis[i] + basis[j]).norm() < f32::EPSILON {
-                        success = false;
-                        break;
-                    }
-                }
-                count += 1;
+                //rust il es trop con il sais pas voir que j'ai un putain de match et je suis obligé de le feinter
+                let mut plane_vectors = [SVector::zeros(); D];
+                plane_vectors[0] = *point;
+                plane_vectors[1] = direction;
+                Some(Plane::new(plane_vectors).unwrap())
             }
-        }
-        //here we have a basis and the coef so in 2d the equation is y = x^2/(2p)
-        println!("basis: {:?}", basis);
-        println!("p: {}", p);
-        println!("s: {}", s);
-        println!("k: {}", k);
-        println!("focus: {}", focus);
-        println!("directrix_plane: {:?}", directrix_plane);
-        println!("limit_plane: {:?}", limit_plane);
-        println!("darkness_coef: {}", darkness_coef);
-        println!("y = x^2/(2*{})", p);
-
-        //considerring the code above is right, we now have to do a basis change to the canonical basis
-        let original_application_matrix = SMatrix::<f32, D, D>::from_fn(|i, j| basis[j][i]);
-
-        // create the transformation matrix to the new basis
-        let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
-
-        */
-
-        Self {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
+            _ => None
         }
     }
+
+    // fn new(
+    //     directrix_plane: Plane<D>,
+    //     focus: SVector<f32, D>,
+    //     limit_plane: Plane<D>,
+    //     darkness_coef: f32,
+    // ) -> Self {
+    //     //ax+by+c=0
+    //     //F=(f_1,f_2)
+    //     //(ax+by+c)^2/(a^2+b^2)=(x-f_1)^2+(y-f_2)^2
+    //
+    //     /*
+    //
+    //     //calculate the equation of the paraboloid
+    //     let k = directrix_plane.orthogonal_projection(focus);
+    //     let p = (focus - k).norm(); //distance between the focus and the directrix plane
+    //     let s: SVector<f32, D> = (focus + k) / 2.; // the center of focus to k
+    //                                                // we now have the basis (s, (k - focus).normalize(), ...) with      j = K to focus
+    //                                                //now construct the complete basis
+    //     let mut rng = rand::thread_rng();
+    //     let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
+    //     basis[0] = (k - focus).normalize();
+    //     for i in 1..D {
+    //         let mut count: i8 = 0;
+    //         let mut success = false;
+    //         while !success && count < 100 {
+    //             //put some random values in the new vector
+    //             for j in 0..D {
+    //                 basis[i][j] = rng.gen();
+    //             }
+    //
+    //             SVector::orthonormalize(&mut basis);
+    //             success = true;
+    //             //check that there is no equal vectors
+    //             for j in 0..i {
+    //                 if (basis[i] - basis[j]).norm() < 1e-6 || (basis[i] + basis[j]).norm() < 1e-6 {
+    //                     success = false;
+    //                     break;
+    //                 }
+    //             }
+    //             count += 1;
+    //         }
+    //     }
+    //     //here we have a basis and the coef so in 2d the equation is y = x^2/(2p)
+    //     println!("basis: {:?}", basis);
+    //     println!("p: {}", p);
+    //     println!("s: {}", s);
+    //     println!("k: {}", k);
+    //     println!("focus: {}", focus);
+    //     println!("directrix_plane: {:?}", directrix_plane);
+    //     println!("limit_plane: {:?}", limit_plane);
+    //     println!("darkness_coef: {}", darkness_coef);
+    //     println!("y = x^2/(2*{})", p);
+    //
+    //     //considerring the code above is right, we now have to do a basis change to the canonical basis
+    //     let original_application_matrix = SMatrix::<f32, D, D>::from_fn(|i, j| basis[j][i]);
+    //
+    //     // create the transformation matrix to the new basis
+    //     let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
+    //
+    //     */
+    //
+    //     Self {
+    //         directrix_plane,
+    //         focus,
+    //         limit_plane,
+    //         darkness_coef,
+    //     }
+    // }
 }
 
 impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
@@ -188,9 +209,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::mirror::Plane;
+    use std::f32::consts::FRAC_1_SQRT_2;
+
     use nalgebra::SVector;
+
+    use crate::mirror::Plane;
+
+    use super::*;
 
     #[test]
     fn test_intersection() {
@@ -199,7 +224,7 @@ mod tests {
         let focus = SVector::from([0., 1.]);
         let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
 
         let ray = Ray {
             origin: SVector::from([-10., 1.]),
@@ -221,7 +246,7 @@ mod tests {
         let focus = SVector::from([-1., 0.]);
         let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
 
         let ray = Ray {
             origin: SVector::from([-1., -10.]),
@@ -243,7 +268,7 @@ mod tests {
         let focus = SVector::from([-1., 1.]);
         let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
 
         let ray = Ray {
             origin: SVector::from([-4., -2.]),
@@ -257,5 +282,93 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert!((list[0].1.origin - SVector::<f32, 2>::from([-2., 0.])).norm() < f32::EPSILON);
         assert!((list[1].1.origin - SVector::<f32, 2>::from([0., 2.])).norm() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_tangent_1() {
+        let directrix_plane = Plane::new([
+            SVector::from_vec(vec![1., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from_vec(vec![0., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
+
+        let point = SVector::from_vec(vec![0., -1.]);
+        let tangent = mirror.get_tangent(&point).unwrap();
+        assert_eq!(*tangent.v_0(), point);
+        assert_eq!(tangent.basis()[0], SVector::<f32, 2>::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]));
+    }
+
+    #[test]
+    fn test_tangent_2() {
+        let directrix_plane = Plane::new([
+            SVector::from_vec(vec![1., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from([0., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
+
+        let point = SVector::from([0., 1.]);
+        let tangent = mirror.get_tangent(&point).unwrap();
+        assert_eq!(*tangent.v_0(), point);
+        assert_eq!(tangent.basis()[0], SVector::<f32, 2>::from([FRAC_1_SQRT_2, -FRAC_1_SQRT_2]));
+    }
+
+    #[test]
+    fn test_tangent_3() {
+        let directrix_plane = Plane::new([
+            SVector::from([0., -2.]),
+            SVector::from([1., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from([0., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
+
+        let point = SVector::from([1., 1.]);
+        let tangent = mirror.get_tangent(&point).unwrap();
+        assert_eq!(*tangent.v_0(), point);
+        assert!(tangent.basis()[0] - SVector::<f32, 2>::from([0., -1.]) < SVector::<f32, 2>::from([f32::EPSILON, f32::EPSILON]));
+    }
+
+    #[test]
+    fn test_tangent_4() {
+        let directrix_plane = Plane::new([
+            SVector::from([0., -2.]),
+            SVector::from([1., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from([0., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
+
+        let point = SVector::from([-1., -1.]);
+        let tangent = mirror.get_tangent(&point).unwrap();
+        assert_eq!(*tangent.v_0(), point);
+        assert!(tangent.basis()[0] - SVector::<f32, 2>::from([1., 1.]) < SVector::<f32, 2>::from([f32::EPSILON, f32::EPSILON]));
     }
 }
