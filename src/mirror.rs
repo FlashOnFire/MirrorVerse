@@ -150,42 +150,58 @@ impl<const D: usize> Plane<D> {
 
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<SVector<f32, D>> {
-        //copy the basis in a mutable array
-        let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
-        for (i, item) in self.basis().iter().enumerate() {
-            basis[i] = *item;
-        }
+        match D {
+            2 => {
+                let mut normal = SVector::<f32, D>::zeros();
+                normal[0] = -self.basis()[0][1];
+                normal[1] = self.basis()[0][0];
+                Some(normal)
+            },
+            3 => {
+                // use vectorial product
+                let mut normal = SVector::<f32, D>::zeros();
+                normal = self.basis()[0].cross(&self.basis()[1]);
+                Some(normal)
+            },
+            _ => {
+                //copy the basis in a mutable array
+                let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
+                for (i, item) in self.basis().iter().enumerate() {
+                    basis[i] = *item;
+                }
 
-        basis[D - 1] = SVector::<f32, D>::zeros();
+                basis[D - 1] = SVector::<f32, D>::zeros();
 
-        let mut count: i8 = 0;
-        let mut success = false;
-        while !success && count < 100 {
-            //put some random values in the new vector
-            let mut rng = rand::thread_rng();
-            for i in 0..D {
-                basis[D - 1][i] = rng.gen();
-            }
+                let mut count: i8 = 0;
+                let mut success = false;
+                while !success && count < 100 {
+                    //put some random values in the new vector
+                    let mut rng = rand::thread_rng();
+                    for i in 0..D {
+                        basis[D - 1][i] = rng.gen();
+                    }
 
-            basis[D - 1] = basis[D - 1] - self.orthogonal_projection(basis[D - 1]);
-            basis[D - 1] = basis[D - 1].normalize();
+                    basis[D - 1] = basis[D - 1] - self.orthogonal_projection(basis[D - 1]);
+                    basis[D - 1] = basis[D - 1].normalize();
 
-            success = true;
-            //check that there is no equal vectors
-            for i in 0..D - 1 {
-                if (basis[D - 1] - basis[i]).norm() < 1e-6
-                    || (basis[D - 1] + basis[i]).norm() < 1e-6
-                {
-                    success = false;
-                    break;
+                    success = true;
+                    //check that there is no equal vectors
+                    for i in 0..D - 1 {
+                        if (basis[D - 1] - basis[i]).norm() < 1e-6
+                            || (basis[D - 1] + basis[i]).norm() < 1e-6
+                        {
+                            success = false;
+                            break;
+                        }
+                    }
+                    count += 1;
+                }
+                if success {
+                    Some(basis[D - 1])
+                } else {
+                    None
                 }
             }
-            count += 1;
-        }
-        if success {
-            Some(basis[D - 1])
-        } else {
-            None
         }
     }
 
