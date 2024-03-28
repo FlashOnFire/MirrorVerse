@@ -221,9 +221,9 @@ mod tests {
 
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
+                SVector::from([0.0, 0.0]),
                 //                      x    y
-                SVector::from_vec(vec![1.0, 0.0]),
+                SVector::from([1.0, 0.0]),
             ])
             .unwrap(),
             bounds: [1.0; 2],
@@ -231,7 +231,7 @@ mod tests {
         };
         let ray = Ray {
             origin: [0.0, -1.0].into(),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![0.0, 1.0])),
+            direction: nalgebra::Unit::new_normalize(SVector::from([0.0, 1.0])),
             brightness: 1.0,
         };
         let reflections = mirror.intersecting_points(&ray);
@@ -254,8 +254,8 @@ mod tests {
     fn test_2d_diagonal() {
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
+                SVector::from([0.0, 0.0]),
+                SVector::from([FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
             ])
             .unwrap(),
             bounds: [1.0; 2],
@@ -264,7 +264,7 @@ mod tests {
 
         let ray = Ray {
             origin: [-1.0, 1.0].into(),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, -1.0])),
+            direction: nalgebra::Unit::new_normalize(SVector::from([1.0, -1.0])),
             brightness: 1.0,
         };
 
@@ -297,8 +297,8 @@ mod tests {
 
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![1.0, 0.0]),
+                SVector::from([0.0, 0.0]),
+                SVector::from([1.0, 0.0]),
             ])
             .unwrap(),
             bounds: [1.0; 2],
@@ -307,7 +307,7 @@ mod tests {
 
         let ray = Ray {
             origin: [0.0, 1.0].into(),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![1.0, 0.0])),
+            direction: nalgebra::Unit::new_normalize(SVector::from([1.0, 0.0])),
             brightness: 1.0,
         };
 
@@ -325,8 +325,8 @@ mod tests {
 
         let mirror = PlaneMirror {
             plane: Plane::new([
-                SVector::from_vec(vec![1.0, 0.0]),
-                SVector::from_vec(vec![0.0, 1.0]),
+                SVector::from([1.0, 0.0]),
+                SVector::from([0.0, 1.0]),
             ])
             .unwrap(),
             bounds: [1.0; 2],
@@ -335,7 +335,7 @@ mod tests {
 
         let ray = Ray {
             origin: [0.0, 0.0].into(),
-            direction: nalgebra::Unit::new_normalize(SVector::from_vec(vec![-1.0, 0.0])),
+            direction: nalgebra::Unit::new_normalize(SVector::from([-1.0, 0.0])),
             brightness: 1.0,
         };
 
@@ -360,9 +360,9 @@ mod tests {
             mirror,
             PlaneMirror {
                 plane: Plane::new([
-                    SVector::from_vec(vec![0.0, 0.0, 0.0]),
-                    SVector::from_vec(vec![1.0, 0.0, 0.0]),
-                    SVector::from_vec(vec![0.0, 1.0, 0.0]),
+                    SVector::from([0.0, 0.0, 0.0]),
+                    SVector::from([1.0, 0.0, 0.0]),
+                    SVector::from([0.0, 1.0, 0.0]),
                 ])
                 .unwrap(),
                 bounds: [0., 1., 1.],

@@ -51,7 +51,7 @@ impl<const D: usize> ParaboloidMirror<D> {
                 success = true;
                 //check that there is no equal vectors
                 for j in 0..i {
-                    if (basis[i] - basis[j]).norm() < 1e-6 || (basis[i] + basis[j]).norm() < 1e-6 {
+                    if (basis[i] - basis[j]).norm() < f32::EPSILON || (basis[i] + basis[j]).norm() < f32::EPSILON {
                         success = false;
                         break;
                     }
@@ -143,7 +143,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
                 0.0,
                 ReflectionPoint::new(
                     SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
-                    SVector::from_vec(vec![1., 1.]), //TODO calculate the normal
+                    Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO calculate the normal
                 ),
             ));
         }
@@ -176,7 +176,7 @@ where
     for _ in 0..1000 {
         // Maximum 1000 iterations
         dx = f(x) / (f(x + 0.01) - f(x)) * 0.01; // Numerical derivative
-        if dx.abs() < 1e-6 {
+        if dx.abs() < f32::EPSILON {
             // Convergence criterion
             return Some(x);
         }
@@ -195,22 +195,22 @@ mod tests {
     #[test]
     fn test_intersection() {
         let directrix_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![1., 0.]),
+            SVector::from([0., 0.]),
+            SVector::from([1., 0.]),
         ])
         .unwrap();
-        let focus = SVector::from_vec(vec![0., 1.]);
+        let focus = SVector::from([0., 1.]);
         let limit_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![0., 1.]),
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
         ])
         .unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 
         let ray = Ray {
-            origin: SVector::from_vec(vec![-10., 1.]),
-            direction: Unit::new_normalize(SVector::from_vec(vec![1., 0.])),
+            origin: SVector::from([-10., 1.]),
+            direction: Unit::new_normalize(SVector::from([1., 0.])),
             brightness: 1.0,
         };
         let mut list = vec![];
@@ -218,28 +218,28 @@ mod tests {
         println!("{:?}", list);
 
         assert_eq!(list.len(), 2);
-        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from_vec(vec![-1., 1.]));
-        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from_vec(vec![1., 1.]));
+        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., 1.]));
+        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([1., 1.]));
     }
     #[test]
     fn test_intersection_2() {
         let directrix_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![0., 1.]),
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
         ])
         .unwrap();
-        let focus = SVector::from_vec(vec![-1., 0.]);
+        let focus = SVector::from([-1., 0.]);
         let limit_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![0., 1.]),
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
         ])
         .unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 
         let ray = Ray {
-            origin: SVector::from_vec(vec![-1., -10.]),
-            direction: Unit::new_normalize(SVector::from_vec(vec![0., 1.])),
+            origin: SVector::from([-1., -10.]),
+            direction: Unit::new_normalize(SVector::from([0., 1.])),
             brightness: 1.0,
         };
         let mut list = vec![];
@@ -249,29 +249,29 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert_eq!(
             list[0].1.origin,
-            SVector::<f32, 2>::from_vec(vec![-1., -1.])
+            SVector::<f32, 2>::from([-1., -1.])
         );
-        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from_vec(vec![-1., 1.]));
+        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([-1., 1.]));
     }
     #[test]
     fn test_intersection_3() {
         let directrix_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![1., 1.]),
+            SVector::from([0., 0.]),
+            SVector::from([1., 1.]),
         ])
         .unwrap();
-        let focus = SVector::from_vec(vec![-1., 1.]);
+        let focus = SVector::from([-1., 1.]);
         let limit_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![0., 1.]),
+            SVector::from([0., 0.]),
+            SVector::from([0., 1.]),
         ])
         .unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 
         let ray = Ray {
-            origin: SVector::from_vec(vec![-4., -2.]),
-            direction: Unit::new_normalize(SVector::from_vec(vec![1., 1.])),
+            origin: SVector::from([-4., -2.]),
+            direction: Unit::new_normalize(SVector::from([1., 1.])),
             brightness: 1.0,
         };
         let mut list = vec![];
@@ -279,7 +279,7 @@ mod tests {
         println!("{:?}", list);
 
         assert_eq!(list.len(), 2);
-        assert!((list[0].1.origin - SVector::<f32, 2>::from_vec(vec![-2., 0.])).norm() < 1e-6);
-        assert!((list[1].1.origin - SVector::<f32, 2>::from_vec(vec![0., 2.])).norm() < 1e-6);
+        assert!((list[0].1.origin - SVector::<f32, 2>::from([-2., 0.])).norm() < f32::EPSILON);
+        assert!((list[1].1.origin - SVector::<f32, 2>::from([0., 2.])).norm() < f32::EPSILON);
     }
 }

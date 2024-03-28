@@ -1,6 +1,6 @@
 use core::{fmt, iter, ops::Sub};
 use format as f;
-use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
+use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit, SVD};
 use rand::Rng;
 use serde_json::Value;
 use std::error::Error;
@@ -40,7 +40,7 @@ impl<const D: usize> Ray<D> {
             .direction
             .sub(2.0 * self.direction.dot(&plane_normal) * plane_normal);
 
-        let reflected_origin = intersection_point - self.direction.into_inner() * 1e-6; // add a small offset to avoid self-intersection
+        let reflected_origin = intersection_point - self.direction.into_inner() * f32::EPSILON; // add a small offset to avoid self-intersection
         Ray {
             origin: reflected_origin,
             direction: Unit::new_normalize(reflected_direction),
@@ -62,22 +62,25 @@ impl<const D: usize> Ray<D> {
             "brightness": 0.5
         }
         */
+
         let origin = json
             .get("origin")
             .and_then(Value::as_array)
             .ok_or("Missing ray origin")?;
+
         let direction = json
             .get("direction")
             .and_then(Value::as_array)
             .ok_or("Missing ray direction")?;
+
         let brightness = json.get("brightness").ok_or("Missing ray brightness")?;
 
-        let origin = json_array_to_vector::<D>(origin).ok_or("Invalid ray origin")?;
+        let origin = json_array_to_vector(origin).ok_or("Invalid ray origin")?;
 
-        let direction = json_array_to_vector::<D>(direction).ok_or("Invalid ray direction")?;
+        let direction = json_array_to_vector(direction).ok_or("Invalid ray direction")?;
 
         let direction =
-            Unit::try_new(direction, 1e-6).ok_or("Unable to normalize ray direction")?;
+            Unit::try_new(direction, f32::EPSILON).ok_or("Unable to normalize ray direction")?;
 
         let brightness = brightness
             .as_f64()
@@ -102,10 +105,10 @@ pub struct ReflectionPoint<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> ReflectionPoint<D> {
     /// Create a new reflection point with a given point and normal
-    pub fn new(point: SVector<f32, D>, normal: SVector<f32, D>) -> Self {
+    pub fn new(point: SVector<f32, D>, normal: Unit<SVector<f32, D>>) -> Self {
         Self {
             origin: point,
-            normal: Unit::new_normalize(normal),
+            normal: normal,
         }
     }
 
@@ -149,67 +152,37 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Calculate the normal vector of the plane by solving a linear system
-    pub fn normal(&self) -> Option<SVector<f32, D>> {
+    pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
         match D {
             2 => {
                 let mut normal = SVector::<f32, D>::zeros();
                 normal[0] = -self.basis()[0][1];
                 normal[1] = self.basis()[0][0];
-                Some(normal)
+                Some(Unit::new_normalize(normal))
             },
             3 => {
-                // use vectorial product
+                // use cross product
                 let mut normal = SVector::<f32, D>::zeros();
-                normal = self.basis()[0].cross(&self.basis()[1]);
-                Some(normal)
+                let basis = self.basis();
+                normal = basis[0].cross(&basis[1]);
+                Some(Unit::new_normalize(normal))
             },
             _ => {
-                //copy the basis in a mutable array
-                let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
-                for (i, item) in self.basis().iter().enumerate() {
-                    basis[i] = *item;
-                }
+                const TRIAL_LIMIT: usize = 100;
 
-                basis[D - 1] = SVector::<f32, D>::zeros();
-
-                let mut count: i8 = 0;
-                let mut success = false;
-                while !success && count < 100 {
-                    //put some random values in the new vector
-                    let mut rng = rand::thread_rng();
-                    for i in 0..D {
-                        basis[D - 1][i] = rng.gen();
-                    }
-
-                    basis[D - 1] = basis[D - 1] - self.orthogonal_projection(basis[D - 1]);
-                    basis[D - 1] = basis[D - 1].normalize();
-
-                    success = true;
-                    //check that there is no equal vectors
-                    for i in 0..D - 1 {
-                        if (basis[D - 1] - basis[i]).norm() < 1e-6
-                            || (basis[D - 1] + basis[i]).norm() < 1e-6
-                        {
-                            success = false;
-                            break;
-                        }
-                    }
-                    count += 1;
-                }
-                if success {
-                    Some(basis[D - 1])
-                } else {
-                    None
-                }
+                (0..TRIAL_LIMIT)
+                    .map(|_| SVector::from_fn(|_, _| rand::random()))
+                    // v in H <=> v == p_H(v)
+                    .find_map(|v| Unit::try_new(v - self.orthogonal_projection(v), f32::EPSILON))
             }
         }
     }
 
     /// Calculate the normal vector of the plane and orient it to the side of the point
-    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<SVector<f32, D>> {
+    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<Unit<SVector<f32, D>>> {
         let normal = self.normal().unwrap();
-        let pointed_by_normal = self.v_0() + normal;
-        let pointed_by_neg_normal = self.v_0() - normal;
+        let pointed_by_normal = self.v_0() + normal.as_ref();
+        let pointed_by_neg_normal = self.v_0() - normal.as_ref();
         if (point - pointed_by_normal).norm() < (point - pointed_by_neg_normal).norm() {
             Some(normal)
         } else {
@@ -229,14 +202,14 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Returns the distance between the plane and a ray
-    /// This function take care of the ray direction
+    /// This function takes care of the ray direction
     pub fn distance_to_ray(&self, ray: Ray<D>) -> f32 {
         let plane_origin = self.v_0();
-        let plane_normal = self.normal();
+        let plane_normal = self.normal().unwrap();
 
         let plane_to_ray_origin = ray.origin - plane_origin;
         let distance_along_normal =
-            plane_to_ray_origin.dot(&plane_normal.unwrap_or(SVector::zeros()));
+            plane_to_ray_origin.dot(&plane_normal);
 
         if distance_along_normal < 0.0 {
             // The closest point on the ray is behind the plane's origin
@@ -418,7 +391,7 @@ mod tests {
         assert_eq!(ray.origin, SVector::from([1., 2., 3.]));
         assert_eq!(
             ray.direction,
-            Unit::new_normalize(SVector::from_vec(vec![4., 5., 6.]))
+            Unit::new_normalize(SVector::from([4., 5., 6.]))
         );
         assert_eq!(ray.brightness, 0.5);
     }
@@ -426,70 +399,70 @@ mod tests {
     #[test]
     fn test_normal_3d() {
         let plane = Plane::<3>::new([
-            SVector::from_vec(vec![0., 0., 0.]),
-            SVector::from_vec(vec![1., 0., 0.]),
-            SVector::from_vec(vec![0., 1., 0.]),
+            SVector::from([0., 0., 0.]),
+            SVector::from([1., 0., 0.]),
+            SVector::from([0., 1., 0.]),
         ])
         .unwrap();
         assert_eq!(
-            plane.normal().unwrap(),
-            SVector::<f32, 3>::from_vec(vec![0., 0., 1.])
+            plane.normal().unwrap().into_inner(),
+            SVector::<f32, 3>::from([0., 0., 1.])
         );
     }
 
     #[test]
     fn test_normal_3d_2() {
         let plane = Plane::<3>::new([
-            SVector::from_vec(vec![0., 0., 0.]),
-            SVector::from_vec(vec![-2., 1., 3.]),
-            SVector::from_vec(vec![1., 0., 3.]),
+            SVector::from([0., 0., 0.]),
+            SVector::from([-2., 1., 3.]),
+            SVector::from([1., 0., 3.]),
         ])
         .unwrap();
         let normal = plane.normal().unwrap();
-        let theoric_normal = SVector::<f32, 3>::from_vec(vec![-3., -9., 1.]);
+        let theoric_normal = SVector::<f32, 3>::from([-3., -9., 1.]);
         //check that the normal is a multiple of the theoric normal
         println!("{:?} {:?}", normal, theoric_normal);
         for i in 0..3 {
-            assert!(normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round() < 1e-6);
+            assert!(normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round() < f32::EPSILON);
         }
     }
 
     #[test]
     fn test_normal_2d() {
         let plane = Plane::<2>::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![1., 0.]),
+            SVector::from([0., 0.]),
+            SVector::from([1., 0.]),
         ])
         .unwrap();
         assert_eq!(
-            plane.normal().unwrap(),
-            SVector::<f32, 2>::from_vec(vec![0., 1.])
+            plane.normal().unwrap().into_inner(),
+            SVector::<f32, 2>::from([0., 1.])
         );
     }
 
     #[test]
     fn test_normal_4d() {
         let plane = Plane::<4>::new([
-            SVector::from_vec(vec![0., 0., 0., 0.]),
-            SVector::from_vec(vec![1., 0., 0., 0.]),
-            SVector::from_vec(vec![0., 1., 0., 0.]),
-            SVector::from_vec(vec![0., 0., 1., 0.]),
+            SVector::from([0., 0., 0., 0.]),
+            SVector::from([1., 0., 0., 0.]),
+            SVector::from([0., 1., 0., 0.]),
+            SVector::from([0., 0., 1., 0.]),
         ])
         .unwrap();
         assert_eq!(
-            plane.normal().unwrap(),
-            SVector::<f32, 4>::from_vec(vec![0., 0., 0., 1.])
+            plane.normal().unwrap().into_inner(),
+            SVector::<f32, 4>::from([0., 0., 0., 1.])
         );
     }
 
     #[test]
     fn test_normal_2d_diagonal() {
         let plane = Plane::<2>::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![-1.0, -1.0]),
+            SVector::from([0., 0.]),
+            SVector::from([-1.0, -1.0]),
         ])
         .unwrap();
-        let normal = plane.normal().unwrap();
-        assert!(normal[0] + normal[1] < 1e-6);
+
+        assert!(plane.normal().unwrap().sum() < f32::EPSILON * 8.0);
     }
 }

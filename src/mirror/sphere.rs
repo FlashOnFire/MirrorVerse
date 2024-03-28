@@ -14,14 +14,16 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         let a = ray.direction.norm_squared();
         let b = oc.dot(&ray.direction);
         let c = oc.norm_squared() - self.radius * self.radius;
-        let discriminant = b * b - a * c;
+        let delta = b * b - a * c;
 
-        if discriminant > 0.0 {
-            let t = [-b - discriminant.sqrt() / a, -b + discriminant.sqrt() / a];
+        if delta > 0.0 {
+            let sqrt_delta = delta.sqrt();
+            let neg_b = -b;
+            let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
             for &t in t.iter() {
                 if t > 0.0 {
                     let point = ray.at(t);
-                    let normal = (point - self.center).normalize();
+                    let normal = Unit::new_normalize(point - self.center);
                     //orient the normal to the ray
                     let normal = if normal.dot(&ray.direction) > 0.0 {
                         -normal
@@ -66,7 +68,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         let darkness_coef = json
             .get("darkness_coef")
             .and_then(Value::as_f64)
-            .unwrap_or(1.0) as f32;
+            .ok_or("Failed to parse darkness coeff")? as f32;
 
         Ok(Self {
             center,
@@ -143,6 +145,8 @@ mod tests {
         };
 
         let reflection_points = mirror.intersecting_points(&ray);
+
+        println!("{reflection_points:?}");
 
         assert_eq!(reflection_points.len(), 1);
         let (t, reflection_point) = &reflection_points[0];
