@@ -20,7 +20,13 @@ impl<const D: usize> ParaboloidMirror<D> {
     fn is_point_on_parabola(&self, point: &SVector<f32, D>) -> bool {
         let dist_to_directrix = (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
         let dist_to_focus = (self.focus - *point).norm();
-        dist_to_directrix.powi(2) - 2. * dist_to_focus < f32::EPSILON
+        let distance_ok = dist_to_directrix.powi(2) - 2. * dist_to_focus < f32::EPSILON;
+        //check if the point is on the right side of the limit plane
+        let point_projection_on_limit_plane = self.limit_plane.orthogonal_projection(*point);
+        let focus_projection_on_limit_plane = self.limit_plane.orthogonal_projection(self.focus);
+        //check if the two vector are in the same direction
+        let same_direction = (point_projection_on_limit_plane - focus_projection_on_limit_plane).dot(&(point - focus_projection_on_limit_plane)) > f32::EPSILON;
+        distance_ok && same_direction
     }
 }
 
@@ -162,14 +168,16 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         intersection_points[1] = line_point + solution * line_direction.into_inner();
 
         for intersection_point in intersection_points.iter() {
-            list.push((
-                0.0,
-                ReflectionPoint::new(
-                    SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
-                    Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO with the new method of momo aucun soucis on utilise la tangent
-                    //self.get_tangent(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])).unwrap(),
-                ),
-            ));
+            if self.is_point_on_parabola(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])) {
+                list.push((
+                    0.0,
+                    ReflectionPoint::new(
+                        SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
+                        Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO with the new method of momo aucun soucis on utilise la tangent
+                        //self.get_tangent(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])).unwrap(),
+                    ),
+                ));
+            }
         }
     }
 
@@ -225,7 +233,7 @@ mod tests {
         let directrix_plane =
             Plane::new([SVector::from([0., 0.]), SVector::from([1., 0.])]).unwrap();
         let focus = SVector::from([0., 1.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
+        let limit_plane = Plane::new([SVector::from([0., 2.]), SVector::from([1., 0.])]).unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror { directrix_plane, focus, limit_plane, darkness_coef };
 
@@ -378,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn test_point_on_parabola() {
+    fn test_point_on_parabola_1() {
         let directrix_plane = Plane::new([
             SVector::from([0., -2.]),
             SVector::from([1., 1.]),
@@ -395,5 +403,8 @@ mod tests {
 
         assert!(mirror.is_point_on_parabola(&SVector::from([-1., -1.])));
         assert!(mirror.is_point_on_parabola(&SVector::from([1., 1.])));
+        assert!(!mirror.is_point_on_parabola(&SVector::from([-2., -1.])));
+        assert!(!mirror.is_point_on_parabola(&SVector::from([1., 2.])));
+        assert!(mirror.is_point_on_parabola(&SVector::from([2., 1.])));
     }
 }
