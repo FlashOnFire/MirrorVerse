@@ -194,17 +194,10 @@ mod tests {
 
     #[test]
     fn test_intersection() {
-        let directrix_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([1., 0.]),
-        ])
-        .unwrap();
+        let directrix_plane =
+            Plane::new([SVector::from([0., 0.]), SVector::from([1., 0.])]).unwrap();
         let focus = SVector::from([0., 1.]);
-        let limit_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([0., 1.]),
-        ])
-        .unwrap();
+        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 
@@ -223,17 +216,10 @@ mod tests {
     }
     #[test]
     fn test_intersection_2() {
-        let directrix_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([0., 1.]),
-        ])
-        .unwrap();
+        let directrix_plane =
+            Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let focus = SVector::from([-1., 0.]);
-        let limit_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([0., 1.]),
-        ])
-        .unwrap();
+        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 
@@ -247,25 +233,15 @@ mod tests {
         println!("{:?}", list);
 
         assert_eq!(list.len(), 2);
-        assert_eq!(
-            list[0].1.origin,
-            SVector::<f32, 2>::from([-1., -1.])
-        );
+        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., -1.]));
         assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([-1., 1.]));
     }
     #[test]
     fn test_intersection_3() {
-        let directrix_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([1., 1.]),
-        ])
-        .unwrap();
+        let directrix_plane =
+            Plane::new([SVector::from([0., 0.]), SVector::from([1., 1.])]).unwrap();
         let focus = SVector::from([-1., 1.]);
-        let limit_plane = Plane::new([
-            SVector::from([0., 0.]),
-            SVector::from([0., 1.]),
-        ])
-        .unwrap();
+        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
         let darkness_coef = 0.5;
         let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
 

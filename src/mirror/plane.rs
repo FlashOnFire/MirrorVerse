@@ -296,11 +296,7 @@ mod tests {
         */
 
         let mirror = PlaneMirror {
-            plane: Plane::new([
-                SVector::from([0.0, 0.0]),
-                SVector::from([1.0, 0.0]),
-            ])
-            .unwrap(),
+            plane: Plane::new([SVector::from([0.0, 0.0]), SVector::from([1.0, 0.0])]).unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };
@@ -324,11 +320,7 @@ mod tests {
         */
 
         let mirror = PlaneMirror {
-            plane: Plane::new([
-                SVector::from([1.0, 0.0]),
-                SVector::from([0.0, 1.0]),
-            ])
-            .unwrap(),
+            plane: Plane::new([SVector::from([1.0, 0.0]), SVector::from([0.0, 1.0])]).unwrap(),
             bounds: [1.0; 2],
             darkness_coef: 1.0,
         };

@@ -36,11 +36,10 @@ impl<const D: usize> Ray<D> {
 
         let intersection_point = ray_origin + t * ray_direction;
 
-        let reflected_direction: SVector<f32, D> = self
-            .direction
-            .sub(2.0 * self.direction.dot(&plane_normal) * plane_normal);
+        let reflected_direction: SVector<f32, D> =
+            ray_direction - 2.0 * self.direction.dot(&plane_normal) * plane_normal;
 
-        let reflected_origin = intersection_point - self.direction.into_inner() * f32::EPSILON; // add a small offset to avoid self-intersection
+        let reflected_origin = intersection_point - ray_direction * f32::EPSILON; // add a small offset to avoid self-intersection
         Ray {
             origin: reflected_origin,
             direction: Unit::new_normalize(reflected_direction),
@@ -165,14 +164,14 @@ impl<const D: usize> Plane<D> {
                 normal[0] = -self.basis()[0][1];
                 normal[1] = self.basis()[0][0];
                 Some(Unit::new_normalize(normal))
-            },
+            }
             3 => {
                 // use cross product
                 let mut normal = SVector::<f32, D>::zeros();
                 let basis = self.basis();
                 normal = basis[0].cross(&basis[1]);
                 Some(Unit::new_normalize(normal))
-            },
+            }
             _ => {
                 const TRIAL_LIMIT: usize = 100;
 
@@ -214,8 +213,7 @@ impl<const D: usize> Plane<D> {
         let plane_normal = self.normal().unwrap();
 
         let plane_to_ray_origin = ray.origin - plane_origin;
-        let distance_along_normal =
-            plane_to_ray_origin.dot(&plane_normal);
+        let distance_along_normal = plane_to_ray_origin.dot(&plane_normal);
 
         if distance_along_normal < 0.0 {
             // The closest point on the ray is behind the plane's origin
@@ -429,17 +427,16 @@ mod tests {
         //check that the normal is a multiple of the theoric normal
         println!("{:?} {:?}", normal, theoric_normal);
         for i in 0..3 {
-            assert!(normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round() < f32::EPSILON);
+            assert!(
+                normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round()
+                    < f32::EPSILON
+            );
         }
     }
 
     #[test]
     fn test_normal_2d() {
-        let plane = Plane::<2>::new([
-            SVector::from([0., 0.]),
-            SVector::from([1., 0.]),
-        ])
-        .unwrap();
+        let plane = Plane::<2>::new([SVector::from([0., 0.]), SVector::from([1., 0.])]).unwrap();
         assert_eq!(
             plane.normal().unwrap().into_inner(),
             SVector::<f32, 2>::from([0., 1.])
@@ -463,11 +460,8 @@ mod tests {
 
     #[test]
     fn test_normal_2d_diagonal() {
-        let plane = Plane::<2>::new([
-            SVector::from([0., 0.]),
-            SVector::from([-1.0, -1.0]),
-        ])
-        .unwrap();
+        let plane =
+            Plane::<2>::new([SVector::from([0., 0.]), SVector::from([-1.0, -1.0])]).unwrap();
 
         assert!(plane.normal().unwrap().sum() < f32::EPSILON * 8.0);
     }
