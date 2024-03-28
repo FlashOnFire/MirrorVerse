@@ -221,4 +221,61 @@ mod tests {
         assert_eq!(list[0].1.origin, SVector::<f32, 2>::from_vec(vec![-1., 1.]));
         assert_eq!(list[1].1.origin, SVector::<f32, 2>::from_vec(vec![1., 1.]));
     }
+    #[test]
+    fn test_intersection_2() {
+        let directrix_plane = Plane::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+            .unwrap();
+        let focus = SVector::from_vec(vec![-1., 0.]);
+        let limit_plane = Plane::new([
+            SVector::from_vec(vec![0., 0.]),
+            SVector::from_vec(vec![0., 1.]),
+        ])
+            .unwrap();
+        let darkness_coef = 0.5;
+        let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+
+        let ray = Ray {
+            origin: SVector::from_vec(vec![-1., -10.]),
+            direction: Unit::new_normalize(SVector::from_vec(vec![0., 1.])),
+            brightness: 1.0,
+        };
+        let mut list = vec![];
+        mirror.append_intersecting_points(&ray, &mut list);
+        println!("{:?}", list);
+
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from_vec(vec![-1., -1.]));
+        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from_vec(vec![-1., 1.]));
+    }#[test]
+fn test_intersection_3() {
+    let directrix_plane = Plane::new([
+        SVector::from_vec(vec![0., 0.]),
+        SVector::from_vec(vec![1., 1.]),
+    ])
+        .unwrap();
+    let focus = SVector::from_vec(vec![-1., 1.]);
+    let limit_plane = Plane::new([
+        SVector::from_vec(vec![0., 0.]),
+        SVector::from_vec(vec![0., 1.]),
+    ])
+        .unwrap();
+    let darkness_coef = 0.5;
+    let mirror = ParaboloidMirror::new(directrix_plane, focus, limit_plane, darkness_coef);
+
+    let ray = Ray {
+        origin: SVector::from_vec(vec![-4., -2.]),
+        direction: Unit::new_normalize(SVector::from_vec(vec![1., 1.])),
+        brightness: 1.0,
+    };
+    let mut list = vec![];
+    mirror.append_intersecting_points(&ray, &mut list);
+    println!("{:?}", list);
+
+    assert_eq!(list.len(), 2);
+    assert!((list[0].1.origin - SVector::<f32, 2>::from_vec(vec![-2., 0.])).norm() < 1e-6);
+    assert!((list[1].1.origin - SVector::<f32, 2>::from_vec(vec![0., 2.])).norm() < 1e-6);
+}
 }
