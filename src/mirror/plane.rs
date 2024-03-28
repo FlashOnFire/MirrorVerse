@@ -48,13 +48,13 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
         let mut list = vec![];
         self.append_intersecting_planes(ray, &mut list);
         list
     }
 
-    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, Plane<D>)>) {
+    fn append_intersecting_planes(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
         /* // bien vuu le boss
@@ -81,7 +81,10 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                     .dot(&-self.plane.normal_directed(ray.origin).unwrap())
                     > 0.0
             {
-                list.push((self.darkness_coef, self.plane));
+                list.push((self.darkness_coef, ReflectionPoint::new(
+                     ray.at(v[0]),
+                     self.plane.normal_directed(ray.origin).unwrap(),
+                )));
             }
         }
     }
@@ -190,15 +193,17 @@ mod tests {
         };
         let reflections = mirror.intersecting_planes(&ray);
 
-        let &[(brightness, plane)] = reflections.as_slice() else {
+        let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(
-            plane,
-            Plane::new([[0.0, 0.0].into(), [0.0, 1.0].into(),]).unwrap()
-        )
+        //assert with a small delta
+        for (a, b) in reflection_point.origin.iter().zip([0.0, 0.0].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }for (a, b) in reflection_point.normal.iter().zip([-1.0, 0.0].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }
     }
 
     #[test]
@@ -227,19 +232,18 @@ mod tests {
         };
         let reflections = mirror.intersecting_planes(&ray);
 
-        let &[(brightness, plane)] = reflections.as_slice() else {
+        let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(
-            plane,
-            Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![1.0, 0.0]),
-            ])
-            .unwrap()
-        );
+        //assert with a small delta
+        for (a, b) in reflection_point.origin.iter().zip([0.0, 0.0].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }
+        for (a, b) in reflection_point.normal.iter().zip([0., -1.].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }
     }
 
     #[test]
@@ -262,19 +266,17 @@ mod tests {
 
         let reflections = mirror.intersecting_planes(&ray);
 
-        let &[(brightness, plane)] = reflections.as_slice() else {
+        let &[(brightness, reflection_point)] = reflections.as_slice() else {
             panic!("there must be one plane");
         };
 
         assert_eq!(brightness, 1.0);
-        assert_eq!(
-            plane,
-            Plane::new([
-                SVector::from_vec(vec![0.0, 0.0]),
-                SVector::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2]),
-            ])
-            .unwrap()
-        );
+        //assert with a small delta
+        for (a, b) in reflection_point.origin.iter().zip([0.0, 0.0].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }for (a, b) in reflection_point.normal.iter().zip([-FRAC_1_SQRT_2, FRAC_1_SQRT_2].iter()) {
+            assert!((a - b).abs() < 10e-6);
+        }
     }
 
     #[test]

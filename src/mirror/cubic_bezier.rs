@@ -7,7 +7,7 @@ pub struct CubicBezierMirror {
 }
 
 impl Mirror for CubicBezierMirror {
-    fn intersecting_planes(&self, ray: &Ray) -> Vec<(f32, Plane)> {
+    fn intersecting_planes(&self, ray: &Ray) -> Vec<(f32, ReflectionPoint)> {
         vec![]
     }
     fn get_type(&self) -> &str {

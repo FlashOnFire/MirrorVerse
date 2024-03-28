@@ -10,7 +10,7 @@ pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
-    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, Plane<D>)> {
+    fn intersecting_planes(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
         // TODO: implement spherical mirror reflection
         vec![]
     }
