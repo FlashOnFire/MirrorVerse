@@ -7,13 +7,38 @@ use super::*;
 pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
     center: SVector<f32, D>,
     radius: f32,
+    darkness_coef: f32,
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
     fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
-        // TODO: implement spherical mirror reflection
-        vec![]
+        let mut list = vec![];
+        let oc = ray.origin - self.center;
+        let a = ray.direction.norm_squared();
+        let b = oc.dot(&ray.direction);
+        let c = oc.norm_squared() - self.radius * self.radius;
+        let discriminant = b * b - a * c;
+
+        if discriminant > 0.0 {
+            let t = [-b - discriminant.sqrt() / a, -b + discriminant.sqrt() / a];
+            for &t in t.iter() {
+                if t > 0.0 {
+                    let point = ray.at(t);
+                    let normal = (point - self.center).normalize();
+                    //orient the normal to the ray
+                    let normal = if normal.dot(&ray.direction) > 0.0 {
+                        -normal
+                    } else {
+                        normal
+                    };
+                    list.push((self.darkness_coef, ReflectionPoint::new(point, normal)));
+                }
+            }
+        }
+        list
     }
+
+
 
     fn get_type(&self) -> &str {
         "sphere"
@@ -26,7 +51,8 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         /* example json
         {
             "center": [1.0, 2.0, 3.0],
-            "radius": 4.0
+            "radius": 4.0,
+            "darkness_coef": 0.5
         }
          */
 
@@ -42,7 +68,12 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             .and_then(Value::as_f64)
             .ok_or("Failed to parse radius")? as f32;
 
-        Ok(Self { center, radius })
+        let darkness_coef = json
+            .get("darkness_coef")
+            .and_then(Value::as_f64)
+            .unwrap_or(1.0) as f32;
+
+        Ok(Self { center, radius, darkness_coef })
     }
 }
 
@@ -54,15 +85,93 @@ mod tests {
     fn test_sphere_mirror_from_json() {
         let json = serde_json::json!({
             "center": [1.0, 2.0],
-            "radius": 4.0
+            "radius": 4.0,
+            "darkness_coef": 0.5,
         });
 
         let mirror = SphereMirror::<2>::from_json(&json).expect("json deserialisation failed");
 
         assert_eq!(mirror.center, SVector::from([1.0, 2.0]));
         assert_eq!(mirror.radius, 4.0);
+        assert_eq!(mirror.darkness_coef, 0.5);
     }
 
     #[test]
-    fn test_sphere_mirror_reflect() {}
+    fn test_sphere_mirror_reflect() {
+        let mirror = SphereMirror::<2> {
+            center: SVector::from([0.0, 0.0]),
+            radius: 1.0,
+            darkness_coef: 1.0,
+        };
+
+        let ray = Ray {
+            origin: SVector::from([-5.0, 0.0]),
+            direction: Unit::new_normalize(SVector::from([1.0, 0.0])),
+            brightness: 1.0,
+        };
+
+        let reflection_points = mirror.intersecting_points(&ray);
+
+        assert_eq!(reflection_points.len(), 2);
+        let (t, reflection_point) = &reflection_points[0];
+        assert_eq!(*t, 1.0);
+        assert_eq!(reflection_point.origin, SVector::from([-1.0, 0.0]));
+        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+
+        let (t, reflection_point) = &reflection_points[1];
+        assert_eq!(*t, 1.0);
+        assert_eq!(reflection_point.origin, SVector::from([1.0, 0.0]));
+        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+    }
+    #[test]
+    fn test_sphere_mirror_reflect_2() {
+        let mirror = SphereMirror::<2> {
+            center: SVector::from([0.0, 0.0]),
+            radius: 1.0,
+            darkness_coef: 1.0,
+        };
+
+        let ray = Ray {
+            origin: SVector::from([0.0, 0.0]),
+            direction: Unit::new_normalize(SVector::from([1.0, 0.0])),
+            brightness: 1.0,
+        };
+
+        let reflection_points = mirror.intersecting_points(&ray);
+
+        assert_eq!(reflection_points.len(), 1);
+        let (t, reflection_point) = &reflection_points[0];
+        assert_eq!(*t, 1.0);
+        assert_eq!(reflection_point.origin, SVector::from([1.0, 0.0]));
+        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+    }
+
+    #[test]
+    fn test_sphere_mirror_reflect_3() {
+        let mirror = SphereMirror::<2> {
+            center: SVector::from([0.0, 0.0]),
+            radius: 1.0,
+            darkness_coef: 1.0,
+        };
+
+        let ray = Ray {
+            origin: SVector::from([0.0, -5.0]),
+            direction: Unit::new_normalize(SVector::from([0.0, 1.0])),
+            brightness: 1.0,
+        };
+
+        let reflection_points = mirror.intersecting_points(&ray);
+
+
+        assert_eq!(reflection_points.len(), 2);
+        let (t, reflection_point) = &reflection_points[0];
+        assert_eq!(*t, 1.0);
+        assert_eq!(reflection_point.origin, SVector::from([0.0, -1.0]));
+        assert_eq!(reflection_point.normal.into_inner(), SVector::from([0.0, -1.0]));
+
+        let (t, reflection_point) = &reflection_points[1];
+        assert_eq!(*t, 1.0);
+        assert_eq!(reflection_point.origin, SVector::from([0.0, 1.0]));
+        assert_eq!(reflection_point.normal.into_inner(), SVector::from([0.0, -1.0]));
+    }
 }
