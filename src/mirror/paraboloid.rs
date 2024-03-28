@@ -122,18 +122,31 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         // Solve the equation
         let t0 = 1.0; // Initial guess for the first root
         let solution = newton_raphson(t0, func).unwrap(); // You need to implement the Newton-Raphson method
-        let intersection_point = line_point + solution * line_direction.into_inner();
+        let mut intersection_points = [Point2::new(0.0, 0.0); 2];
+        intersection_points[0] = line_point + solution * line_direction.into_inner();
 
-        //calculate the t1 by adding the width of the parabola to solution
+        //calculate the t1 by adding the distance beetween the ray and the focus or substract if if we are on the right side
 
-        let focus_to_directrix = (focus - directrix_point).norm(); // Distance from the focus to the directrix
-                                                                   //TODO change the addition in substract in certain cases.
-        let t1 = solution + focus_to_directrix;
-        let solution2 = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
-        let intersection_point2 = line_point + solution2 * line_direction.into_inner();
+        let ray_to_focus = focus - line_point;
+        let mut t1: f32;
+        if ray_to_focus.dot(&line_direction) > 0. {
+            t1 = solution + ray_to_focus.norm();
+        } else {
+            t1 = solution - ray_to_focus.norm();
+        }
 
-        println!("The intersection point is: {:?}", intersection_point);
-        println!("The intersection point is: {:?}", intersection_point2);
+        let solution = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
+        intersection_points[1] = line_point + solution * line_direction.into_inner();
+
+        for intersection_point in intersection_points.iter() {
+            list.push((
+                0.0,
+                ReflectionPoint::new(
+                    SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
+                    SVector::from_vec(vec![1., 1.]), //TODO calculate the normal
+                ),
+            ));
+        }
     }
 
     fn get_type(&self) -> &str {
@@ -197,17 +210,15 @@ mod tests {
 
         let ray = Ray {
             origin: SVector::from_vec(vec![-10., 1.]),
-            direction: Unit::try_new(SVector::from_vec(vec![1., 0.]), 1e-6).unwrap(),
+            direction: Unit::new_normalize(SVector::from_vec(vec![1., 0.])),
             brightness: 1.0,
         };
         let mut list = vec![];
         mirror.append_intersecting_points(&ray, &mut list);
         println!("{:?}", list);
 
-        assert!(true);
-        // assert_eq!(mirror.directrix_plane, directrix_plane);
-        // assert_eq!(mirror.focus, focus);
-        // assert_eq!(mirror.limit_plane, limit_plane);
-        // assert_eq!(mirror.darkness_coef, darkness_coef);
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from_vec(vec![-1., 1.]));
+        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from_vec(vec![1., 1.]));
     }
 }
