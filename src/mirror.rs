@@ -35,7 +35,7 @@ impl<const D: usize> Ray<D> {
 
         let intersection_point = ray_origin + t * ray_direction;
 
-        let reflected_direction:SVector<f32,D> = self
+        let reflected_direction: SVector<f32, D> = self
             .direction
             .sub(2.0 * self.direction.dot(&plane_normal) * plane_normal);
 
@@ -102,7 +102,10 @@ pub struct ReflectionPoint<const D: usize = DEFAULT_DIM> {
 impl<const D: usize> ReflectionPoint<D> {
     /// Create a new reflection point with a given point and normal
     pub fn new(point: SVector<f32, D>, normal: SVector<f32, D>) -> Self {
-        Self { origin: point, normal: Unit::new_normalize(normal) }
+        Self {
+            origin: point,
+            normal: Unit::new_normalize(normal),
+        }
     }
 
     pub fn distance_to_ray(&self, ray: Ray<D>) -> f32 {
@@ -205,7 +208,6 @@ impl<const D: usize> Plane<D> {
     pub fn distance_to_point(&self, point: SVector<f32, D>) -> f32 {
         let v = point - self.v_0();
         let projection = self.orthogonal_projection(v);
-        println!("{:?} {:?} {:}", v, projection, (v - projection).norm());
         (v - projection).norm()
     }
 
@@ -227,9 +229,6 @@ impl<const D: usize> Plane<D> {
         let closest_point_on_ray = ray.origin + ray.direction.into_inner() * distance_along_normal;
         let distance_to_plane =
             (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
-
-        //print all the values for debug purpose
-        dbg!("plane_origin: {:?}, plane_normal: {:?}, plane_to_ray_origin: {:?}, distance_along_normal: {:?}, closest_point_on_ray: {:?}, distance_to_plane: {:?}", plane_origin, plane_normal, plane_to_ray_origin, distance_along_normal, closest_point_on_ray, distance_to_plane);
 
         distance_to_plane
     }

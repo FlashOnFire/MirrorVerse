@@ -81,10 +81,13 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                     .dot(&-self.plane.normal_directed(ray.origin).unwrap())
                     > 0.0
             {
-                list.push((self.darkness_coef, ReflectionPoint::new(
-                     ray.at(v[0]),
-                     self.plane.normal_directed(ray.origin).unwrap(),
-                )));
+                list.push((
+                    self.darkness_coef,
+                    ReflectionPoint::new(
+                        ray.at(v[0]),
+                        self.plane.normal_directed(ray.origin).unwrap(),
+                    ),
+                ));
             }
         }
     }
@@ -201,7 +204,8 @@ mod tests {
         //assert with a small delta
         for (a, b) in reflection_point.origin.iter().zip([0.0, 0.0].iter()) {
             assert!((a - b).abs() < 10e-6);
-        }for (a, b) in reflection_point.normal.iter().zip([-1.0, 0.0].iter()) {
+        }
+        for (a, b) in reflection_point.normal.iter().zip([-1.0, 0.0].iter()) {
             assert!((a - b).abs() < 10e-6);
         }
     }
@@ -274,7 +278,12 @@ mod tests {
         //assert with a small delta
         for (a, b) in reflection_point.origin.iter().zip([0.0, 0.0].iter()) {
             assert!((a - b).abs() < 10e-6);
-        }for (a, b) in reflection_point.normal.iter().zip([-FRAC_1_SQRT_2, FRAC_1_SQRT_2].iter()) {
+        }
+        for (a, b) in reflection_point
+            .normal
+            .iter()
+            .zip([-FRAC_1_SQRT_2, FRAC_1_SQRT_2].iter())
+        {
             assert!((a - b).abs() < 10e-6);
         }
     }

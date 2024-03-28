@@ -38,8 +38,6 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         list
     }
 
-
-
     fn get_type(&self) -> &str {
         "sphere"
     }
@@ -73,7 +71,11 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             .and_then(Value::as_f64)
             .unwrap_or(1.0) as f32;
 
-        Ok(Self { center, radius, darkness_coef })
+        Ok(Self {
+            center,
+            radius,
+            darkness_coef,
+        })
     }
 }
 
@@ -116,12 +118,18 @@ mod tests {
         let (t, reflection_point) = &reflection_points[0];
         assert_eq!(*t, 1.0);
         assert_eq!(reflection_point.origin, SVector::from([-1.0, 0.0]));
-        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+        assert_eq!(
+            reflection_point.normal.into_inner(),
+            SVector::from([-1.0, 0.0])
+        );
 
         let (t, reflection_point) = &reflection_points[1];
         assert_eq!(*t, 1.0);
         assert_eq!(reflection_point.origin, SVector::from([1.0, 0.0]));
-        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+        assert_eq!(
+            reflection_point.normal.into_inner(),
+            SVector::from([-1.0, 0.0])
+        );
     }
     #[test]
     fn test_sphere_mirror_reflect_2() {
@@ -143,7 +151,10 @@ mod tests {
         let (t, reflection_point) = &reflection_points[0];
         assert_eq!(*t, 1.0);
         assert_eq!(reflection_point.origin, SVector::from([1.0, 0.0]));
-        assert_eq!(reflection_point.normal.into_inner(), SVector::from([-1.0, 0.0]));
+        assert_eq!(
+            reflection_point.normal.into_inner(),
+            SVector::from([-1.0, 0.0])
+        );
     }
 
     #[test]
@@ -162,16 +173,21 @@ mod tests {
 
         let reflection_points = mirror.intersecting_points(&ray);
 
-
         assert_eq!(reflection_points.len(), 2);
         let (t, reflection_point) = &reflection_points[0];
         assert_eq!(*t, 1.0);
         assert_eq!(reflection_point.origin, SVector::from([0.0, -1.0]));
-        assert_eq!(reflection_point.normal.into_inner(), SVector::from([0.0, -1.0]));
+        assert_eq!(
+            reflection_point.normal.into_inner(),
+            SVector::from([0.0, -1.0])
+        );
 
         let (t, reflection_point) = &reflection_points[1];
         assert_eq!(*t, 1.0);
         assert_eq!(reflection_point.origin, SVector::from([0.0, 1.0]));
-        assert_eq!(reflection_point.normal.into_inner(), SVector::from([0.0, -1.0]));
+        assert_eq!(
+            reflection_point.normal.into_inner(),
+            SVector::from([0.0, -1.0])
+        );
     }
 }
