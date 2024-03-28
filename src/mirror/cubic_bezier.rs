@@ -10,7 +10,7 @@ impl Mirror for CubicBezierMirror {
     fn intersecting_points(&self, ray: &Ray) -> Vec<(f32, ReflectionPoint)> {
         vec![]
     }
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "cubicBezier"
     }
 
@@ -29,25 +29,24 @@ impl Mirror for CubicBezierMirror {
         }
          */
 
-        let control_points = json
+        let mut control_points = vec![];
+
+        for (i, point_json) in json
             .get("control_points")
             .and_then(Value::as_array)
             .ok_or("Failed to parse control_points")?
             .iter()
-            .filter_map(|point| {
-                let point: [_; DEFAULT_DIM] = point
-                    .as_array()?
-                    .iter()
-                    .filter_map(serde_json::Value::as_f64)
-                    .map(|val| val as f32)
-                    // TODO: optimize out this allocation
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .ok()?;
-
-                Some(Point::from_slice(&point))
-            })
-            .collect();
+            .enumerate()
+        {
+            control_points.push(
+                point_json
+                    .as_array()
+                    .map(Vec::as_slice)
+                    .and_then(json_array_to_float_array)
+                    .map(Point::from)
+                    .ok_or(f!("Failed to parse {i}th control point"))?,
+            );
+        }
 
         Ok(Self { control_points })
     }

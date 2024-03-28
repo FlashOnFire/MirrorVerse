@@ -149,7 +149,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         }
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "parabola"
     }
 

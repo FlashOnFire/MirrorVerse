@@ -1,4 +1,5 @@
 use core::{fmt, iter, ops::Sub};
+use format as f;
 use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit};
 use rand::Rng;
 use serde_json::Value;
@@ -257,9 +258,8 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     /// Returns a string slice, unique to the type
     /// (or inner type if type-erased) and coherent with it's json representation
     // TODO: should this be 'static ?
-    fn get_type(&self) -> &str;
+    fn get_type(&self) -> &'static str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
-    // TODO: use Result and an enum for clearer error handling
     fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
@@ -273,7 +273,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
         self.as_ref().intersecting_points(ray)
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         self.as_ref().get_type()
     }
 
@@ -290,7 +290,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         self.as_ref().intersecting_points(ray)
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "dynamic"
     }
 
@@ -336,7 +336,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "composite"
     }
 
@@ -367,17 +367,19 @@ pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
     Some(vec)
 }
 
-/// This is essentially `try_into` then `try_map` but the latter is nightly-only
-pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVector<f32, D>> {
+pub fn json_array_to_float_array<const D: usize>(json_array: &[Value]) -> Option<[f32; D]> {
     let array: &[Value; D] = json_array.try_into().ok()?;
 
     let mut center_coords_array = [0.; D];
     for (coord, value) in center_coords_array.iter_mut().zip(array) {
         *coord = value.as_f64()? as f32;
     }
-    Some(SVector::from_array_storage(ArrayStorage([
-        center_coords_array,
-    ])))
+    Some(center_coords_array)
+}
+
+/// This is essentially `try_into` then `try_map` but the latter is nightly-only
+pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVector<f32, D>> {
+    json_array_to_float_array(json_array).map(SVector::from)
 }
 
 #[cfg(test)]

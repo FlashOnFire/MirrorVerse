@@ -1,8 +1,5 @@
 use super::*;
 
-// TODO: explore the possbility of generalising the definition
-// of a sphere to other p-norms (for strictly positive p)
-
 #[derive(Clone, Copy)]
 pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
     center: SVector<f32, D>,
@@ -38,7 +35,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         list
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "sphere"
     }
 

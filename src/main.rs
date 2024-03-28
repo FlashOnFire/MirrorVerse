@@ -27,7 +27,9 @@ gl::implement_vertex!(Vertex, position);
 
 impl Vertex {
     pub fn from_vector(v: nalgebra::SVector<f32, 3>) -> Self {
-        Self { position: [v.x, v.y, v.z] }
+        Self {
+            position: [v.x, v.y, v.z],
+        }
     }
 }
 

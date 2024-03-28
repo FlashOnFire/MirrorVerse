@@ -92,7 +92,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         }
     }
 
-    fn get_type(&self) -> &str {
+    fn get_type(&self) -> &'static str {
         "plane"
     }
 
