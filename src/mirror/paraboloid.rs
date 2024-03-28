@@ -17,34 +17,27 @@ pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> ParaboloidMirror<D> {
-    fn get_tangent(&self, point: &SVector<f32, D>) -> Option<Plane<D>> {
-        if !self.is_point_on_parabola(point) {
-            return None;
-        }
-        match D {
-            2 => {
-                //calculate the line to the directrix
-                let point_to_directrix_direction = self.directrix_plane.orthogonal_point_projection(*point) - *point;
-                //calculate the line to the focus
-                let point_to_focus_direction = self.focus - *point;
-
-                //calculate the tangent
-                let direction = point_to_directrix_direction + point_to_focus_direction;
-
-                //rust il es trop con il sais pas voir que j'ai un putain de match et je suis obligé de le feinter
-                let mut plane_vectors = [SVector::zeros(); D];
-                plane_vectors[0] = *point;
-                plane_vectors[1] = direction;
-                Some(Plane::new(plane_vectors).unwrap())
-            }
-            _ => None
-        }
-    }
-
     fn is_point_on_parabola(&self, point: &SVector<f32, D>) -> bool {
         let dist_to_directrix = (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
         let dist_to_focus = (self.focus - *point).norm();
         dist_to_directrix.powi(2) - 2. * dist_to_focus < f32::EPSILON
+    }
+}
+
+impl ParaboloidMirror<2> {
+    fn get_tangent(&self, point: &SVector<f32, 2>) -> Option<Plane<2>> {
+        if !self.is_point_on_parabola(point) {
+            return None;
+        }
+        //calculate the line to the directrix
+        let point_to_directrix_direction = self.directrix_plane.orthogonal_point_projection(*point) - *point;
+        //calculate the line to the focus
+        let point_to_focus_direction = self.focus - *point;
+
+        //calculate the tangent
+        let direction = point_to_directrix_direction + point_to_focus_direction;
+
+        Some(Plane::new([*point, direction]).unwrap())
     }
 
     // fn new(
