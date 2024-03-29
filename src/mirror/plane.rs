@@ -1,5 +1,6 @@
-use super::*;
 use core::{mem, ops::Add};
+
+use super::*;
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]

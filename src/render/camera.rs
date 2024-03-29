@@ -1,10 +1,10 @@
-use cgmath::{Matrix4, Rad, Vector3};
 use core::{f32::consts::FRAC_PI_2, time::Duration};
+
+use cgmath::{Matrix4, Rad, Vector3};
 use glium::glutin::{
     dpi::PhysicalPosition,
     event::{ElementState, MouseScrollDelta, VirtualKeyCode},
 };
-use winit::keyboard::NativeKeyCode;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(

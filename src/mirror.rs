@@ -1,17 +1,19 @@
-use core::{fmt, iter, ops::Sub};
-use format as f;
-use nalgebra::{ArrayStorage, Point, SMatrix, SVector, Unit, SVD};
+use core::{iter, ops::Sub};
+use std::error::Error;
+
+use nalgebra::{Point, SMatrix, SVector, Unit};
 use rand::Rng;
 use serde_json::Value;
-use std::error::Error;
+
+use crate::DEFAULT_DIM;
+
+use format as f;
 
 pub mod bezier;
 pub mod cubic_bezier;
 pub mod paraboloid;
 pub mod plane;
 pub mod sphere;
-
-use crate::DEFAULT_DIM;
 
 /// A light ray
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -377,8 +379,9 @@ pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVec
 
 #[cfg(test)]
 mod tests {
-    use crate::mirror::Plane;
     use nalgebra::SVector;
+
+    use crate::mirror::Plane;
 
     #[test]
     fn test_json_to_ray() {

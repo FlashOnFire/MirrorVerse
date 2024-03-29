@@ -2,14 +2,15 @@
 
 extern crate alloc;
 
-use cgmath as cg;
 use core::cmp;
+use std::time;
+
+use cgmath as cg;
 use glium::{
     self as gl,
     glutin::{self, event, event_loop},
 };
 use nalgebra::Point3;
-use std::time;
 
 use mirror::{plane::PlaneMirror, Mirror, Ray};
 use render::camera::{Camera, CameraController, Projection};

@@ -1,5 +1,6 @@
-use nalgebra::Point3;
 use std::{sync::Arc, time::Duration};
+
+use nalgebra::Point3;
 use wgpu::{
     util::DeviceExt, CompositeAlphaMode, DeviceDescriptor, Features, Instance, InstanceDescriptor,
     Limits, PresentMode, RequestAdapterOptions, SurfaceConfiguration, TextureUsages,

@@ -111,8 +111,9 @@ impl CubicBezierMirror {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Write;
+
+    use super::*;
 
     fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
         vec.resize(DEFAULT_DIM, 0.0);
