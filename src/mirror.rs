@@ -163,8 +163,9 @@ impl<const D: usize> Plane<D> {
         match D {
             2 => {
                 let mut normal = SVector::<f32, D>::zeros();
-                normal[0] = -self.basis()[0][1];
-                normal[1] = self.basis()[0][0];
+                let vector = &self.basis()[0];
+                normal[0] = -vector[1];
+                normal[1] = vector[0];
                 Some(Unit::new_normalize(normal))
             }
             3 => {
@@ -177,10 +178,11 @@ impl<const D: usize> Plane<D> {
             _ => {
                 const TRIAL_LIMIT: usize = 100;
 
-                (0..TRIAL_LIMIT)
-                    .map(|_| SVector::from_fn(|_, _| rand::random()))
-                    // v in H <=> v == p_H(v)
-                    .find_map(|v| Unit::try_new(v - self.orthogonal_projection(v), f32::EPSILON))
+                (0..TRIAL_LIMIT).find_map(|_| {
+                    let v = SVector::from_fn(|_, _| rand::random());
+                    // v in H <=> v == p_H(v) <=> v - p_H(v) = 0
+                    Unit::try_new(v - self.orthogonal_projection(v), f32::EPSILON)
+                })
             }
         }
     }
