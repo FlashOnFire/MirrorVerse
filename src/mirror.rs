@@ -187,14 +187,15 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Calculate the normal vector of the plane and orient it to the side of the point
-    pub fn normal_directed(&self, point: SVector<f32, D>) -> Unit<SVector<f32, D>> {
-        let mut normal = self.normal().unwrap();
-        let n = normal.into_inner();
-        let p = point - self.v_0();
-        if (p - n).norm() >= (p + n).norm() {
-            normal = -normal;
-        }
-        normal
+    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<Unit<SVector<f32, D>>> {
+        self.normal().map(|mut normal| {
+            let n = normal.into_inner();
+            let p = point - self.v_0();
+            if (p - n).norm() >= (p + n).norm() {
+                normal = -normal;
+            }
+            normal
+        })
     }
 
     /// Returns the distance between the plane and a point
