@@ -162,18 +162,17 @@ impl<const D: usize> Plane<D> {
     pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
         match D {
             2 => {
-                let mut normal = SVector::<f32, D>::zeros();
-                let vector = &self.basis()[0];
-                normal[0] = -vector[1];
-                normal[1] = vector[0];
+                let mut normal = self.basis()[0];
+                (normal[0], normal[1]) = (-normal[1], normal[0]);
                 Some(Unit::new_normalize(normal))
             }
             3 => {
                 // use cross product
-                let mut normal = SVector::<f32, D>::zeros();
-                let basis = self.basis();
-                normal = basis[0].cross(&basis[1]);
-                Some(Unit::new_normalize(normal))
+                let [a, b]: &[SVector<f32, D> ; 2] = self
+                    .basis()
+                    .try_into()
+                    .unwrap();
+                Some(Unit::new_normalize(a.cross(b)))
             }
             _ => {
                 const TRIAL_LIMIT: usize = 100;
@@ -188,15 +187,14 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Calculate the normal vector of the plane and orient it to the side of the point
-    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<Unit<SVector<f32, D>>> {
-        let normal = self.normal().unwrap();
-        let pointed_by_normal = self.v_0() + normal.as_ref();
-        let pointed_by_neg_normal = self.v_0() - normal.as_ref();
-        if (point - pointed_by_normal).norm() < (point - pointed_by_neg_normal).norm() {
-            Some(normal)
-        } else {
-            Some(-normal)
+    pub fn normal_directed(&self, point: SVector<f32, D>) -> Unit<SVector<f32, D>> {
+        let mut normal = self.normal().unwrap();
+        let n = normal.into_inner();
+        let p = point - self.v_0();
+        if (p - n).norm() < (p + n).norm() {
+            normal = -normal;
         }
+        normal
     }
 
     /// Returns the distance between the plane and a point

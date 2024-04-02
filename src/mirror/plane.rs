@@ -86,7 +86,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                     self.darkness_coef,
                     ReflectionPoint::new(
                         ray.at(v[0]),
-                        self.plane.normal_directed(ray.origin).unwrap(),
+                        self.plane.normal_directed(ray.origin),
                     ),
                 ));
             }
