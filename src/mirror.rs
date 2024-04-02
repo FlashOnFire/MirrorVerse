@@ -191,7 +191,7 @@ impl<const D: usize> Plane<D> {
         let mut normal = self.normal().unwrap();
         let n = normal.into_inner();
         let p = point - self.v_0();
-        if (p - n).norm() < (p + n).norm() {
+        if (p - n).norm() >= (p + n).norm() {
             normal = -normal;
         }
         normal
