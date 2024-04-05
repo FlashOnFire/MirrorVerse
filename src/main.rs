@@ -7,12 +7,12 @@ use std::time;
 
 use cgmath as cg;
 use glium::{
-    self as gl,
     glutin::{self, event, event_loop},
+    self as gl,
 };
 use nalgebra::Point3;
 
-use mirror::{plane::PlaneMirror, Mirror, Ray};
+use mirror::{Mirror, plane::PlaneMirror, Ray};
 use render::camera::{Camera, CameraController, Projection};
 
 mod mirror;
@@ -80,7 +80,7 @@ fn main() {
     let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0), cg::Deg(90.0), cg::Deg(0.0));
 
     let mut projection = Projection::new(1280, 720, cg::Deg(70.0), 0.1, 100.0);
-    let mut camera_controller = CameraController::new(5.0, 0.4);
+    let mut camera_controller = CameraController::new(5.0, 0.5);
 
     let mut program3d =
         gl::Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None)
@@ -91,7 +91,12 @@ fn main() {
     let mut mouse_pressed = false;
 
     /// Load the mirror list from the json file
-    let json = std::fs::read_to_string("assets/simple_3d.json").unwrap();
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        panic!("Please provide a file path as a command-line argument.");
+    }
+    let file_path = &args[1];
+    let json = std::fs::read_to_string(file_path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
     let mut mirrors =
@@ -279,7 +284,7 @@ fn render(
             indices_trianglestrip,
             &program3d,
             &gl::uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]},
-            &params
+            &params,
         ).expect("ooooooo c'est la panique");
     }
 
