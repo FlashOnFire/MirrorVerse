@@ -9,8 +9,7 @@
       8.0,
       2.0,
       0.0
-    ],
-    "brightness": 1.0
+    ]
   },
   "mirrors": [
     {
@@ -34,8 +33,7 @@
       "bounds": [
         -1.46,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -58,8 +56,7 @@
       "bounds": [
         1.51,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -82,8 +79,7 @@
       "bounds": [
         1.15,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -106,8 +102,7 @@
       "bounds": [
         -2.49,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -130,8 +125,7 @@
       "bounds": [
         0.28,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -154,8 +148,7 @@
       "bounds": [
         0.1,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -178,8 +171,7 @@
       "bounds": [
         1.74,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -202,8 +194,7 @@
       "bounds": [
         -1.09,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -226,8 +217,7 @@
       "bounds": [
         0.39,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -250,8 +240,7 @@
       "bounds": [
         0.14,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -274,8 +263,7 @@
       "bounds": [
         0.67,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -298,8 +286,7 @@
       "bounds": [
         1.95,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -322,8 +309,7 @@
       "bounds": [
         2.9,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -346,8 +332,7 @@
       "bounds": [
         1.75,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -370,8 +355,7 @@
       "bounds": [
         0.35,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -394,8 +378,7 @@
       "bounds": [
         -0.47,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -418,8 +401,7 @@
       "bounds": [
         -1.43,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -442,8 +424,7 @@
       "bounds": [
         -3.56,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -466,8 +447,7 @@
       "bounds": [
         -1.98,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -490,8 +470,7 @@
       "bounds": [
         -0.92,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -514,8 +493,7 @@
       "bounds": [
         0.2,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -538,8 +516,7 @@
       "bounds": [
         1.21,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -562,8 +539,7 @@
       "bounds": [
         -0.73,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -586,8 +562,7 @@
       "bounds": [
         0.91,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -610,8 +585,7 @@
       "bounds": [
         -0.41,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -634,8 +608,7 @@
       "bounds": [
         0.61,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -658,8 +631,7 @@
       "bounds": [
         -1.55,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -682,8 +654,7 @@
       "bounds": [
         -0.82,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -706,8 +677,7 @@
       "bounds": [
         1.29,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -730,8 +700,7 @@
       "bounds": [
         -0.16,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -754,8 +723,7 @@
       "bounds": [
         -0.65,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -778,8 +746,7 @@
       "bounds": [
         1.34,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -802,8 +769,7 @@
       "bounds": [
         1.34,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -826,8 +792,7 @@
       "bounds": [
         0.22,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -850,8 +815,7 @@
       "bounds": [
         0.79,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -874,8 +838,7 @@
       "bounds": [
         1.39,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -898,8 +861,7 @@
       "bounds": [
         -1.04,
         0.02
-      ],
-      "darkness": 1
+      ]
     },
     {
       "center": [
@@ -922,8 +884,7 @@
       "bounds": [
         -1.53,
         0.02
-      ],
-      "darkness": 1
+      ]
     }
   ],
   "description": [

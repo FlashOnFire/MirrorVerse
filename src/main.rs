@@ -76,9 +76,8 @@ fn main() {
             println!("{:?}", intersections);
 
             let mut reflection_data = None;
-            for point in intersections.iter() {
-                let dist = point
-                    .1
+            for tangent in intersections.iter() {
+                let dist = tangent
                     .try_intersection_distance(ray)
                     .expect("the ray must intersect with the plane");
 
@@ -86,15 +85,15 @@ fn main() {
                     if let Some((t, pt)) = reflection_data.as_mut() {
                         if dist < *t {
                             *t = dist;
-                            *pt = point;
+                            *pt = tangent;
                         }
                     } else {
-                        reflection_data = Some((dist, point));
+                        reflection_data = Some((dist, tangent));
                     }
                 }
             }
 
-            if let Some((distance, (_, tangent))) = reflection_data {
+            if let Some((distance, tangent)) = reflection_data {
                 ray.advance(distance);
                 ray.reflect_direction(tangent);
             } else {

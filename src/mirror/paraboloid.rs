@@ -10,10 +10,6 @@ pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
     focus: SVector<f32, D>,
     /// The limit of the parabola
     limit_plane: Plane<D>,
-    /// Coefficient describing the darkness of the mirror which will be applied to the brightness
-    darkness_coef: f32,
-    // /// the coefficient of the parabola (distance between the home and the guide plane)
-    // magic_coef: f32,
 }
 
 impl<const D: usize> ParaboloidMirror<D> {
@@ -49,85 +45,16 @@ impl ParaboloidMirror<2> {
 
         Some(Plane::new([*point, direction]).unwrap())
     }
-
-    // fn new(
-    //     directrix_plane: Plane<D>,
-    //     focus: SVector<f32, D>,
-    //     limit_plane: Plane<D>,
-    //     darkness_coef: f32,
-    // ) -> Self {
-    //     //ax+by+c=0
-    //     //F=(f_1,f_2)
-    //     //(ax+by+c)^2/(a^2+b^2)=(x-f_1)^2+(y-f_2)^2
-    //
-    //     /*
-    //
-    //     //calculate the equation of the paraboloid
-    //     let k = directrix_plane.orthogonal_projection(focus);
-    //     let p = (focus - k).norm(); //distance between the focus and the directrix plane
-    //     let s: SVector<f32, D> = (focus + k) / 2.; // the center of focus to k
-    //                                                // we now have the basis (s, (k - focus).normalize(), ...) with      j = K to focus
-    //                                                //now construct the complete basis
-    //     let mut rng = rand::thread_rng();
-    //     let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
-    //     basis[0] = (k - focus).normalize();
-    //     for i in 1..D {
-    //         let mut count: i8 = 0;
-    //         let mut success = false;
-    //         while !success && count < 100 {
-    //             //put some random values in the new vector
-    //             for j in 0..D {
-    //                 basis[i][j] = rng.gen();
-    //             }
-    //
-    //             SVector::orthonormalize(&mut basis);
-    //             success = true;
-    //             //check that there is no equal vectors
-    //             for j in 0..i {
-    //                 if (basis[i] - basis[j]).norm() < 1e-6 || (basis[i] + basis[j]).norm() < 1e-6 {
-    //                     success = false;
-    //                     break;
-    //                 }
-    //             }
-    //             count += 1;
-    //         }
-    //     }
-    //     //here we have a basis and the coef so in 2d the equation is y = x^2/(2p)
-    //     println!("basis: {:?}", basis);
-    //     println!("p: {}", p);
-    //     println!("s: {}", s);
-    //     println!("k: {}", k);
-    //     println!("focus: {}", focus);
-    //     println!("directrix_plane: {:?}", directrix_plane);
-    //     println!("limit_plane: {:?}", limit_plane);
-    //     println!("darkness_coef: {}", darkness_coef);
-    //     println!("y = x^2/(2*{})", p);
-    //
-    //     //considerring the code above is right, we now have to do a basis change to the canonical basis
-    //     let original_application_matrix = SMatrix::<f32, D, D>::from_fn(|i, j| basis[j][i]);
-    //
-    //     // create the transformation matrix to the new basis
-    //     let mut transformation_matrix = SMatrix::<f32, D, D>::zeros();
-    //
-    //     */
-    //
-    //     Self {
-    //         directrix_plane,
-    //         focus,
-    //         limit_plane,
-    //         darkness_coef,
-    //     }
-    // }
 }
 
 impl Mirror<2> for ParaboloidMirror<2> {
-    fn intersecting_points(&self, ray: &Ray<2>) -> Vec<(f32, Tangent<2>)> {
+    fn intersecting_points(&self, ray: &Ray<2>) -> Vec<Tangent<2>> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<(f32, Tangent<2>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -176,15 +103,16 @@ impl Mirror<2> for ParaboloidMirror<2> {
                 intersection_point[0],
                 intersection_point[1],
             ])) {
-                list.push((
-                    0.0,
-                    //TODO with the new method of momo aucun soucis on utilise la tangent
-                    //self.get_tangent(&[intersection_point[0], intersection_point[1]].into()).unwrap(),
+                list.push(
+                    // TODO with the new method of momo aucun soucis on utilise
+                    // la tangent self.get_tangent(
+                    //     &[intersection_point[0], intersection_point[1]].into()
+                    // ).unwrap(),
                     Tangent::Normal {
                         origin: [intersection_point[0], intersection_point[1]].into(),
                         normal: Unit::new_normalize([1., 1.].into()),
                     },
-                ));
+                );
             }
         }
     }

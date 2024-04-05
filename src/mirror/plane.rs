@@ -15,8 +15,6 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     ///
     /// Note: the first value of this array is irrelevant
     pub bounds: [f32; D],
-    /// Coefficient describing the darkness of the mirror which will be applied to the brightness
-    darkness_coef: f32,
 }
 
 impl<const D: usize> PlaneMirror<D> {
@@ -42,20 +40,20 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         if let Some(coords) = self.plane.intersection_coordinates(ray).filter(|v| {
             v.iter()
                 .skip(1)
                 .zip(self.vector_bounds())
                 .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
         }) {
-            list.push((self.darkness_coef, Tangent::Plane(self.plane)));
+            list.push((Tangent::Plane(self.plane)));
         }
     }
 
@@ -127,7 +125,6 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         Ok(Self {
             plane,
             bounds,
-            darkness_coef,
         })
     }
 }
@@ -148,17 +145,15 @@ mod tests {
                 [0.0, 1.0],
             ],
             "bounds": [1.0],
-            "darkness": 0.5,
         }))
         .expect("json monke");
 
         let mut ray = Ray {
             origin: [-1.0, 0.0].into(),
             direction: Unit::new_normalize([1.0, 0.0].into()),
-            brightness: 1.0,
         };
 
-        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -190,17 +185,15 @@ mod tests {
                 [0.0, 1.0],
             ],
             "bounds": [1.0],
-            "darkness": 0.5,
         }))
         .expect("json monke");
 
         let mut ray = Ray {
             origin: [1.0, 0.0].into(),
             direction: Unit::new_normalize([-1.0, 0.0].into()),
-            brightness: 1.0,
         };
 
-        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -232,17 +225,15 @@ mod tests {
                 [FRAC_1_SQRT_2, FRAC_1_SQRT_2],
             ],
             "bounds": [1.0],
-            "darkness": 0.5,
         }))
         .expect("json monke");
 
         let mut ray = Ray {
             origin: [-1.0, 1.0].into(),
             direction: Unit::new_normalize([1.0, -1.0].into()),
-            brightness: 1.0,
         };
 
-        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -274,7 +265,6 @@ mod tests {
                 [0., 1.],
             ],
             "bounds": [1.0],
-            "darkness": 0.5,
         }))
         .expect("json monke");
 
@@ -284,20 +274,19 @@ mod tests {
                 [0., 1.],
             ],
             "bounds": [1.0],
-            "darkness": 0.5,
         }))
         .expect("json monke");
 
         let mut ray = Ray {
             origin: [0.0, 0.5].into(),
             direction: Unit::new_normalize([1.0, 0.0].into()),
-            brightness: 1.0,
+            
         };
 
         let mut pts = m1.intersecting_points(&ray);
         m2.append_intersecting_points(&ray, &mut pts);
 
-        let &[(_, t1), (_, t2)] = pts.as_slice() else {
+        let &[t1, t2] = pts.as_slice() else {
             panic!("there must be an intersection");
         };
 

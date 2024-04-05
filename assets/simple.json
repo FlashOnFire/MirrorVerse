@@ -7,8 +7,7 @@
     "direction": [
       1.0,
       0.0
-    ],
-    "brightness": 1.0
+    ]
   },
   "mirrors": [
     {
@@ -24,8 +23,7 @@
       ],
       "bounds": [
         1.0
-      ],
-      "darkness": 1.0
+      ]
     },
     {
       "center": [
@@ -40,8 +38,7 @@
       ],
       "bounds": [
         1.0
-      ],
-      "darkness": 1.0
+      ]
     
     },
     { 
@@ -57,8 +54,7 @@
       ],
       "bounds": [
         1.0
-      ],
-      "darkness": 1.0
+      ]
     }
   ],
   "description": [

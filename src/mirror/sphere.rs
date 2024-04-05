@@ -4,11 +4,10 @@ use super::*;
 pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
     center: SVector<f32, D>,
     radius: f32,
-    darkness_coef: f32,
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
         let mut list = vec![];
         let oc = ray.origin - self.center;
         let a = ray.direction.norm_squared();
@@ -30,13 +29,12 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
                     } else {
                         normal
                     };
-                    list.push((
-                        self.darkness_coef,
+                    list.push(
                         Tangent::Normal {
                             origin: point,
                             normal,
                         },
-                    ));
+                    );
                 }
             }
         }
@@ -55,7 +53,6 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         {
             "center": [1.0, 2.0, 3.0],
             "radius": 4.0,
-            "darkness_coef": 0.5
         }
          */
 
@@ -71,15 +68,9 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             .and_then(Value::as_f64)
             .ok_or("Failed to parse radius")? as f32;
 
-        let darkness_coef = json
-            .get("darkness_coef")
-            .and_then(Value::as_f64)
-            .ok_or("Failed to parse darkness coeff")? as f32;
-
         Ok(Self {
             center,
             radius,
-            darkness_coef,
         })
     }
 }

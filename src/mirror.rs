@@ -22,8 +22,6 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
     pub origin: SVector<f32, D>,
     /// Current direction of the ray
     pub direction: Unit<SVector<f32, D>>,
-    /// Current brightness of the ray (0.0 to 1.0)
-    pub brightness: f32,
 }
 
 impl<const D: usize> Ray<D> {
@@ -61,8 +59,6 @@ impl<const D: usize> Ray<D> {
             .and_then(Value::as_array)
             .ok_or("Missing ray direction")?;
 
-        let brightness = json.get("brightness").ok_or("Missing ray brightness")?;
-
         let origin = json_array_to_vector(origin).ok_or("Invalid ray origin")?;
 
         let direction = json_array_to_vector(direction).ok_or("Invalid ray direction")?;
@@ -70,14 +66,9 @@ impl<const D: usize> Ray<D> {
         let direction =
             Unit::try_new(direction, f32::EPSILON).ok_or("Unable to normalize ray direction")?;
 
-        let brightness = brightness
-            .as_f64()
-            .ok_or("Invalid ray brightness (not a number)")? as f32;
-
         Ok(Self {
             origin,
             direction,
-            brightness,
         })
     }
 }
@@ -265,12 +256,12 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     ///       respect to the subspace defining the plane's "orientation"
     ///
     /// Returns an empty list if the vector doesn't intersect with the mirror.
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)>;
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>>;
     /// An optimised version of `Self::reflect` that potentially saves
     /// an allocation by writing into another `Vec`. Override this if needed.
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         list.append(&mut self.intersecting_points(ray))
     }
     /// Returns a string slice, unique to the type, coherent with it's json representation
@@ -283,7 +274,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
         self.as_ref().intersecting_points(ray)
     }
 
@@ -322,13 +313,13 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.iter()
             .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }
