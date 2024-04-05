@@ -129,7 +129,7 @@ fn main() {
 
                 if dist > f32::EPSILON {
                     if let Some((t, pt)) = &mut reflection_data {
-                        if dist > *t {
+                        if dist < *t {
                             *t = dist;
                             *pt = point;
                         }

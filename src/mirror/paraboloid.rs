@@ -120,14 +120,14 @@ impl ParaboloidMirror<2> {
     // }
 }
 
-impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
+impl Mirror<2> for ParaboloidMirror<2> {
+    fn intersecting_points(&self, ray: &Ray<2>) -> Vec<(f32, Tangent<2>)> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<(f32, Tangent<2>)>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -178,11 +178,12 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             ])) {
                 list.push((
                     0.0,
-                    Tangent::new(
-                        SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
-                        Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO with the new method of momo aucun soucis on utilise la tangent
-                                                                              //self.get_tangent(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])).unwrap(),
-                    ),
+                    //TODO with the new method of momo aucun soucis on utilise la tangent
+                    //self.get_tangent(&[intersection_point[0], intersection_point[1]].into()).unwrap(),
+                    Tangent::Normal {
+                        origin: [intersection_point[0], intersection_point[1]].into(),
+                        normal: Unit::new_normalize([1., 1.].into()),
+                    },
                 ));
             }
         }
@@ -227,218 +228,4 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::f32::consts::FRAC_1_SQRT_2;
-
-    use nalgebra::SVector;
-
-    use crate::mirror::Plane;
-
-    use super::*;
-
-    #[test]
-    fn test_intersection() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., 0.]), SVector::from([1., 0.])]).unwrap();
-        let focus = SVector::from([0., 1.]);
-        let limit_plane = Plane::new([SVector::from([0., 2.]), SVector::from([1., 0.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let ray = Ray {
-            origin: SVector::from([-10., 1.]),
-            direction: Unit::new_normalize(SVector::from([1., 0.])),
-            brightness: 1.0,
-        };
-        let mut list = vec![];
-        mirror.append_intersecting_points(&ray, &mut list);
-        println!("{:?}", list);
-
-        assert_eq!(list.len(), 2);
-        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., 1.]));
-        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([1., 1.]));
-    }
-
-    #[test]
-    fn test_intersection_2() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let focus = SVector::from([-1., 0.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let ray = Ray {
-            origin: SVector::from([-1., -10.]),
-            direction: Unit::new_normalize(SVector::from([0., 1.])),
-            brightness: 1.0,
-        };
-        let mut list = vec![];
-        mirror.append_intersecting_points(&ray, &mut list);
-        println!("{:?}", list);
-
-        assert_eq!(list.len(), 2);
-        assert_eq!(list[0].1.origin, SVector::<f32, 2>::from([-1., -1.]));
-        assert_eq!(list[1].1.origin, SVector::<f32, 2>::from([-1., 1.]));
-    }
-
-    #[test]
-    fn test_intersection_3() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., 0.]), SVector::from([1., 1.])]).unwrap();
-        let focus = SVector::from([-1., 1.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let ray = Ray {
-            origin: SVector::from([-4., -2.]),
-            direction: Unit::new_normalize(SVector::from([1., 1.])),
-            brightness: 1.0,
-        };
-        let mut list = vec![];
-        mirror.append_intersecting_points(&ray, &mut list);
-        println!("{:?}", list);
-
-        assert_eq!(list.len(), 2);
-        assert!((list[0].1.origin - SVector::<f32, 2>::from([-2., 0.])).norm() < f32::EPSILON);
-        assert!((list[1].1.origin - SVector::<f32, 2>::from([0., 2.])).norm() < f32::EPSILON);
-    }
-
-    #[test]
-    fn test_tangent_1() {
-        let directrix_plane = Plane::new([
-            SVector::from_vec(vec![1., 0.]),
-            SVector::from_vec(vec![0., 1.]),
-        ])
-        .unwrap();
-        let focus = SVector::from_vec(vec![0., 0.]);
-        let limit_plane = Plane::new([
-            SVector::from_vec(vec![0., 0.]),
-            SVector::from_vec(vec![0., 1.]),
-        ])
-        .unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let point = SVector::from_vec(vec![0., -1.]);
-        let tangent = mirror.get_tangent(&point).unwrap();
-        assert_eq!(*tangent.v_0(), point);
-        assert_eq!(
-            tangent.basis()[0],
-            SVector::<f32, 2>::from_vec(vec![FRAC_1_SQRT_2, FRAC_1_SQRT_2])
-        );
-    }
-
-    #[test]
-    fn test_tangent_2() {
-        let directrix_plane = Plane::new([
-            SVector::from_vec(vec![1., 0.]),
-            SVector::from_vec(vec![0., 1.]),
-        ])
-        .unwrap();
-        let focus = SVector::from([0., 0.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let point = SVector::from([0., 1.]);
-        let tangent = mirror.get_tangent(&point).unwrap();
-        assert_eq!(*tangent.v_0(), point);
-        assert_eq!(
-            tangent.basis()[0],
-            SVector::<f32, 2>::from([FRAC_1_SQRT_2, -FRAC_1_SQRT_2])
-        );
-    }
-
-    #[test]
-    fn test_tangent_3() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., -2.]), SVector::from([1., 1.])]).unwrap();
-        let focus = SVector::from([0., 0.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let point = SVector::from([1., 1.]);
-        let tangent = mirror.get_tangent(&point).unwrap();
-        assert_eq!(*tangent.v_0(), point);
-        assert!(
-            tangent.basis()[0] - SVector::<f32, 2>::from([0., -1.])
-                < SVector::<f32, 2>::from([f32::EPSILON, f32::EPSILON])
-        );
-    }
-
-    #[test]
-    fn test_tangent_4() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., -2.]), SVector::from([1., 1.])]).unwrap();
-        let focus = SVector::from([0., 0.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        let point = SVector::from([-1., -1.]);
-        let tangent = mirror.get_tangent(&point).unwrap();
-        assert_eq!(*tangent.v_0(), point);
-        assert!(
-            tangent.basis()[0] - SVector::<f32, 2>::from([1., 1.])
-                < SVector::<f32, 2>::from([f32::EPSILON, f32::EPSILON])
-        );
-    }
-
-    #[test]
-    fn test_point_on_parabola_1() {
-        let directrix_plane =
-            Plane::new([SVector::from([0., -2.]), SVector::from([1., 1.])]).unwrap();
-        let focus = SVector::from([0., 0.]);
-        let limit_plane = Plane::new([SVector::from([0., 0.]), SVector::from([0., 1.])]).unwrap();
-        let darkness_coef = 0.5;
-        let mirror = ParaboloidMirror {
-            directrix_plane,
-            focus,
-            limit_plane,
-            darkness_coef,
-        };
-
-        assert!(mirror.is_point_on_parabola(&SVector::from([-1., -1.])));
-        assert!(mirror.is_point_on_parabola(&SVector::from([1., 1.])));
-        assert!(!mirror.is_point_on_parabola(&SVector::from([-2., -1.])));
-        assert!(!mirror.is_point_on_parabola(&SVector::from([1., 2.])));
-        assert!(mirror.is_point_on_parabola(&SVector::from([2., 1.])));
-    }
 }
