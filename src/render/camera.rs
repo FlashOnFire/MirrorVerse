@@ -8,10 +8,10 @@ use glium::glutin::{
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.0, 0.0, 0.5, 1.0,
+    1., 0., 0., 0.,
+    0., 1., 0., 0.,
+    0., 0., 0.5, 0.,
+    0., 0., 0.5, 1.,
 );
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
@@ -26,7 +26,7 @@ pub struct CameraUniform {
 impl CameraUniform {
     pub(crate) fn new() -> Self {
         Self {
-            view_pos: [0.0; 4],
+            view_pos: [0.; 4],
             view_proj: nalgebra::Matrix4::identity().into(),
         }
     }
@@ -141,15 +141,15 @@ pub struct CameraController {
 impl CameraController {
     pub fn new(speed: f32, sensitivity: f32) -> Self {
         Self {
-            amount_left: 0.0,
-            amount_right: 0.0,
-            amount_forward: 0.0,
-            amount_backwards: 0.0,
-            amount_up: 0.0,
-            amount_down: 0.0,
-            rotate_horizontal: 0.0,
-            rotate_vertical: 0.0,
-            scroll: 0.0,
+            amount_left: 0.,
+            amount_right: 0.,
+            amount_forward: 0.,
+            amount_backwards: 0.,
+            amount_up: 0.,
+            amount_down: 0.,
+            rotate_horizontal: 0.,
+            rotate_vertical: 0.,
+            scroll: 0.,
             speed,
             sensitivity,
         }
@@ -157,9 +157,9 @@ impl CameraController {
 
     pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) -> bool {
         let amount = if state == ElementState::Pressed {
-            1.0
+            1.
         } else {
-            0.0
+            0.
         };
 
         match key {
@@ -198,7 +198,7 @@ impl CameraController {
 
     pub fn process_scroll(&mut self, delta: &MouseScrollDelta) {
         self.scroll = -match delta {
-            MouseScrollDelta::LineDelta(_, scroll) => scroll * 100.0,
+            MouseScrollDelta::LineDelta(_, scroll) => scroll * 100.,
             MouseScrollDelta::PixelDelta(PhysicalPosition { y: scroll, .. }) => *scroll as f32,
         }
     }
@@ -207,8 +207,8 @@ impl CameraController {
         let dt = dt.as_secs_f32();
 
         let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = nalgebra::Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
-        let right = nalgebra::Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
+        let forward = nalgebra::Vector3::new(yaw_cos, 0., yaw_sin).normalize();
+        let right = nalgebra::Vector3::new(-yaw_sin, 0., yaw_cos).normalize();
 
         let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
         let scrollward =
@@ -219,15 +219,15 @@ impl CameraController {
         camera.position += right * (self.amount_right - self.amount_left) * self.speed * dt;
 
         camera.position += scrollward * self.scroll * self.speed * self.sensitivity * dt;
-        self.scroll = 0.0;
+        self.scroll = 0.;
 
         camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
 
         camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;
         camera.pitch += Rad(-self.rotate_vertical) * self.sensitivity * dt;
 
-        self.rotate_horizontal = 0.0;
-        self.rotate_vertical = 0.0;
+        self.rotate_horizontal = 0.;
+        self.rotate_vertical = 0.;
 
         if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
             camera.pitch = -Rad(SAFE_FRAC_PI_2);

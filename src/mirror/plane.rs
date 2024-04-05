@@ -118,7 +118,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .get("darkness")
             .and_then(Value::as_f64)
             .map(|f| f as f32)
-            .unwrap_or(1.0);
+            .unwrap_or(1.);
 
         let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
 
@@ -142,15 +142,15 @@ mod tests {
         let mirror = PlaneMirror::<2>::from_json(&json!({
             "center": [0., 0.],
             "basis": [
-                [0.0, 1.0],
+                [0., 1.],
             ],
-            "bounds": [1.0],
+            "bounds": [1.],
         }))
         .expect("json monke");
 
         let mut ray = Ray {
-            origin: [-1.0, 0.0].into(),
-            direction: Unit::new_normalize([1.0, 0.0].into()),
+            origin: [-1., 0.].into(),
+            direction: Unit::new_normalize([1., 0.].into()),
         };
 
         let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
@@ -160,7 +160,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.0).abs() < f32::EPSILON);
+            assert!((t - 1.).abs() < f32::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -168,9 +168,9 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-1.0, 0.0]))
+            (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
                 < f32::EPSILON
@@ -182,15 +182,15 @@ mod tests {
         let mirror = PlaneMirror::<2>::from_json(&json!({
             "center": [0., 0.],
             "basis": [
-                [0.0, 1.0],
+                [0., 1.],
             ],
-            "bounds": [1.0],
+            "bounds": [1.],
         }))
         .expect("json monke");
 
         let mut ray = Ray {
-            origin: [1.0, 0.0].into(),
-            direction: Unit::new_normalize([-1.0, 0.0].into()),
+            origin: [1., 0.].into(),
+            direction: Unit::new_normalize([-1., 0.].into()),
         };
 
         let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
@@ -200,7 +200,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.0).abs() < f32::EPSILON);
+            assert!((t - 1.).abs() < f32::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -208,9 +208,9 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
         assert!(
-            (ray.direction.into_inner() - SVector::from([1.0, 0.0]))
+            (ray.direction.into_inner() - SVector::from([1., 0.]))
                 .norm()
                 .abs()
                 < f32::EPSILON
@@ -224,13 +224,13 @@ mod tests {
             "basis": [
                 [FRAC_1_SQRT_2, FRAC_1_SQRT_2],
             ],
-            "bounds": [1.0],
+            "bounds": [1.],
         }))
         .expect("json monke");
 
         let mut ray = Ray {
-            origin: [-1.0, 1.0].into(),
-            direction: Unit::new_normalize([1.0, -1.0].into()),
+            origin: [-1., 1.].into(),
+            direction: Unit::new_normalize([1., -1.].into()),
         };
 
         let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
@@ -240,7 +240,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - SQRT_2).abs() < f32::EPSILON * 2.0);
+            assert!((t - SQRT_2).abs() < f32::EPSILON * 2.);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -248,7 +248,7 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([-FRAC_1_SQRT_2, FRAC_1_SQRT_2]))
                 .norm()
@@ -264,7 +264,7 @@ mod tests {
             "basis": [
                 [0., 1.],
             ],
-            "bounds": [1.0],
+            "bounds": [1.],
         }))
         .expect("json monke");
 
@@ -273,13 +273,13 @@ mod tests {
             "basis": [
                 [0., 1.],
             ],
-            "bounds": [1.0],
+            "bounds": [1.],
         }))
         .expect("json monke");
 
         let mut ray = Ray {
-            origin: [0.0, 0.5].into(),
-            direction: Unit::new_normalize([1.0, 0.0].into()),
+            origin: [0., 0.5].into(),
+            direction: Unit::new_normalize([1., 0.].into()),
             
         };
 
@@ -294,23 +294,23 @@ mod tests {
         let d2 = t2.try_intersection_distance(&ray);
 
         if let Some(t) = d1 {
-            assert!((t - 10.0).abs() < f32::EPSILON * 2.0);
+            assert!((t - 10.).abs() < f32::EPSILON * 2.);
             ray.advance(t);
         } else {
             panic!("there must be distance");
         }
 
         if let Some(t) = d2 {
-            assert!((t - -1.0).abs() < f32::EPSILON * 2.0);
+            assert!((t - -1.).abs() < f32::EPSILON * 2.);
         } else {
             panic!("there must be distance");
         }
 
         ray.reflect_direction(&t1);
 
-        assert!((ray.origin - SVector::from([10.0, 0.5])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < f32::EPSILON);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-1.0, 0.0]))
+            (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
                 < f32::EPSILON

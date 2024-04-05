@@ -2,7 +2,6 @@ use core::{iter, ops::Sub};
 use std::error::Error;
 
 use nalgebra::{Point, SMatrix, SVector, Unit};
-use rand::Rng;
 use serde_json::Value;
 
 use crate::DEFAULT_DIM;
@@ -178,31 +177,6 @@ impl<const D: usize> Plane<D> {
         self.v_0() + self.orthogonal_projection(v)
     }
 
-    /// Calculate the normal vector of the plane by solving a linear system
-    pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
-        match D {
-            2 => {
-                let mut normal = self.basis()[0];
-                (normal[0], normal[1]) = (-normal[1], normal[0]);
-                Some(Unit::new_normalize(normal))
-            }
-            3 => {
-                // use cross product
-                let [a, b]: &[SVector<f32, D>; 2] = self.basis().try_into().unwrap();
-                Some(Unit::new_normalize(a.cross(b)))
-            }
-            _ => {
-                const TRIAL_LIMIT: usize = 100;
-
-                (0..TRIAL_LIMIT).find_map(|_| {
-                    let v = SVector::from_fn(|_, _| rand::random());
-                    // v in H <=> v == p_H(v) <=> v - p_H(v) = 0
-                    Unit::try_new(v - self.orthogonal_projection(v), f32::EPSILON)
-                })
-            }
-        }
-    }
-
     /// Returns a vector `[t_1, ..., t_d]` whose coordinates represent
     /// the `intersection` of the given `ray` and `self`.
     ///
@@ -229,18 +203,6 @@ impl<const D: usize> Plane<D> {
             .for_each(|(mut i, o)| i.set_column(0, o));
 
         a.try_inverse_mut().then(|| a * (ray.origin - self.v_0()))
-    }
-
-    /// Calculate the normal vector of the plane and orient it to the side of the point
-    pub fn normal_directed(&self, point: SVector<f32, D>) -> Option<Unit<SVector<f32, D>>> {
-        self.normal().map(|mut normal| {
-            let n = normal.into_inner();
-            let p = point - self.v_0();
-            if (p - n).norm() >= (p + n).norm() {
-                normal = -normal;
-            }
-            normal
-        })
     }
 }
 

@@ -15,16 +15,16 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
         let c = oc.norm_squared() - self.radius * self.radius;
         let delta = b * b - a * c;
 
-        if delta > 0.0 {
+        if delta > 0. {
             let sqrt_delta = delta.sqrt();
             let neg_b = -b;
             let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
             for &t in t.iter() {
-                if t > 0.0 {
+                if t > 0. {
                     let point = ray.at(t);
                     let normal = Unit::new_normalize(point - self.center);
                     //orient the normal to the ray
-                    let normal = if normal.dot(&ray.direction) > 0.0 {
+                    let normal = if normal.dot(&ray.direction) > 0. {
                         -normal
                     } else {
                         normal
@@ -51,8 +51,8 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
     {
         /* example json
         {
-            "center": [1.0, 2.0, 3.0],
-            "radius": 4.0,
+            "center": [1., 2., 3.],
+            "radius": 4.,
         }
          */
 

@@ -80,9 +80,9 @@ impl Mirror<2> for ParaboloidMirror<2> {
         };
 
         // Solve the equation
-        let t0 = 1.0; // Initial guess for the first root
+        let t0 = 1.; // Initial guess for the first root
         let solution = newton_raphson(t0, func).unwrap(); // You need to implement the Newton-Raphson method
-        let mut intersection_points = [Point2::new(0.0, 0.0); 2];
+        let mut intersection_points = [Point2::new(0., 0.); 2];
         intersection_points[0] = line_point + solution * line_direction.into_inner();
 
         //calculate the t1 by adding the distance beetween the ray and the focus or substract if if we are on the right side

@@ -21,9 +21,9 @@ impl Mirror for CubicBezierMirror {
         /* example json
         {
             "control_points": [
-                [1.0, 2.0, 3.0, ...],
-                [4.0, 5.0, 6.0, ...],
-                [7.0, 8.0, 9.0, ...],
+                [1., 2., 3., ...],
+                [4., 5., 6., ...],
+                [7., 8., 9., ...],
                 ...
             ]
         }
@@ -61,7 +61,7 @@ impl CubicBezierMirror {
         // P(t) = (1 - t)^3 * P0 + 3t(1-t)^2 * P1 + 3t^2 (1-t) * P2 + t^3 * P3
         let t2 = t * t;
         let t3 = t2 * t;
-        let one_minus_t = 1.0 - t;
+        let one_minus_t = 1. - t;
         let one_minus_t2 = one_minus_t * one_minus_t;
         let one_minus_t3 = one_minus_t2 * one_minus_t;
 
@@ -74,8 +74,8 @@ impl CubicBezierMirror {
             let p3 = &self.control_points[3][i];
 
             let x = one_minus_t3 * p0
-                + 3.0 * one_minus_t2 * t * p1
-                + 3.0 * one_minus_t * t2 * p2
+                + 3. * one_minus_t2 * t * p1
+                + 3. * one_minus_t * t2 * p2
                 + t3 * p3;
 
             result[i] = x;
@@ -87,7 +87,7 @@ impl CubicBezierMirror {
     pub fn calculate_tangent(&self, t: f32) -> SVector<f32, DEFAULT_DIM> {
         // dP(t) / dt =  3(1-t)^2 * (P1-P0) + 6(1-t) * t * (P2 -P1) + 3t^2 * (P3-P2)
         let t2 = t * t;
-        let one_minus_t = 1.0 - t;
+        let one_minus_t = 1. - t;
         let one_minus_t2 = one_minus_t * one_minus_t;
 
         let mut result = SVector::<f32, DEFAULT_DIM>::zeros();
@@ -98,9 +98,9 @@ impl CubicBezierMirror {
             let p2 = &self.control_points[2][i];
             let p3 = &self.control_points[3][i];
 
-            let x = 3.0 * one_minus_t2 * (p1 - p0)
-                + 6.0 * one_minus_t * t * (p2 - p1)
-                + 3.0 * t2 * (p3 - p2);
+            let x = 3. * one_minus_t2 * (p1 - p0)
+                + 6. * one_minus_t * t * (p2 - p1)
+                + 3. * t2 * (p3 - p2);
 
             result[i] = x;
         }
@@ -115,32 +115,27 @@ mod tests {
 
     use super::*;
 
-    fn complete_with_0(mut vec: Vec<f32>) -> Vec<f32> {
-        vec.resize(DEFAULT_DIM, 0.0);
-        vec
-    }
-
     #[test]
     fn test_calculate_linear_point_2d() {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
-                [0.0, 0.0, 0.0].into(),
-                [0.0, 0.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
+                [0., 0., 0.].into(),
+                [0., 0., 0.].into(),
+                [1., 1., 0.].into(),
+                [1., 1., 0.].into(),
             ],
         };
         assert_eq!(
-            bezier_mirror.calculate_point(0.0),
-            [0.0, 0.0, 0.0].into()
+            bezier_mirror.calculate_point(0.),
+            [0., 0., 0.].into()
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.0].into()
+            [0.5, 0.5, 0.].into()
         );
         assert_eq!(
-            bezier_mirror.calculate_point(1.0),
-            [1.0, 1.0, 0.0].into()
+            bezier_mirror.calculate_point(1.),
+            [1., 1., 0.].into()
         );
     }
 
@@ -148,38 +143,38 @@ mod tests {
     fn test_ease_in_out_point_2d() {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
-                [0.0, 0.0, 0.0].into(),
-                [1.0, 0.0, 0.0].into(),
-                [0.0, 1.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
+                [0., 0., 0.].into(),
+                [1., 0., 0.].into(),
+                [0., 1., 0.].into(),
+                [1., 1., 0.].into(),
             ],
         };
         // calculate position
         assert_eq!(
-            bezier_mirror.calculate_point(0.0),
-            [0.0, 0.0, 0.0].into()
+            bezier_mirror.calculate_point(0.),
+            [0., 0., 0.].into()
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.0].into()
+            [0.5, 0.5, 0.].into()
         );
         assert_eq!(
-            bezier_mirror.calculate_point(1.0),
-            [1.0, 1.0, 0.0].into()
+            bezier_mirror.calculate_point(1.),
+            [1., 1., 0.].into()
         );
         // calculate tangent
 
         assert_eq!(
-            bezier_mirror.calculate_tangent(0.0),
-            SVector::from([1.0, 0.0, 0.0])
+            bezier_mirror.calculate_tangent(0.),
+            SVector::from([1., 0., 0.])
         );
         assert_eq!(
             bezier_mirror.calculate_tangent(0.5),
-            SVector::from([0.0, 1.0, 0.0])
+            SVector::from([0., 1., 0.])
         );
         assert_eq!(
-            bezier_mirror.calculate_tangent(1.0),
-            SVector::from([1.0, 0.0, 0.0])
+            bezier_mirror.calculate_tangent(1.),
+            SVector::from([1., 0., 0.])
         );
     }
 
@@ -187,57 +182,57 @@ mod tests {
     fn test_ease_in_out_point_3d() {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
-                [0.0, 0.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
-                [0.0, 0.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
+                [0., 0., 0.].into(),
+                [1., 1., 0.].into(),
+                [0., 0., 0.].into(),
+                [1., 1., 0.].into(),
             ],
         };
         // calculate position
         assert_eq!(
-            bezier_mirror.calculate_point(0.0),
-            [0.0, 0.0, 0.0].into()
+            bezier_mirror.calculate_point(0.),
+            [0., 0., 0.].into()
         );
         assert_eq!(
             bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.0].into()
+            [0.5, 0.5, 0.].into()
         );
         assert_eq!(
-            bezier_mirror.calculate_point(1.0),
-            [1.0, 1.0, 0.0].into()
+            bezier_mirror.calculate_point(1.),
+            [1., 1., 0.].into()
         );
         // calculate tangent
 
         assert_eq!(
-            bezier_mirror.calculate_tangent(0.0)[0],
-            bezier_mirror.calculate_tangent(0.0)[1]
+            bezier_mirror.calculate_tangent(0.)[0],
+            bezier_mirror.calculate_tangent(0.)[1]
         );
-        assert_ne!(bezier_mirror.calculate_tangent(0.0)[0], 0.0);
+        assert_ne!(bezier_mirror.calculate_tangent(0.)[0], 0.);
         assert_eq!(
             bezier_mirror.calculate_tangent(0.5),
-            SVector::from([0.0, 0.0, 1.0])
+            SVector::from([0., 0., 1.])
         );
         assert_eq!(
-            bezier_mirror.calculate_tangent(1.0)[0],
-            bezier_mirror.calculate_tangent(1.0)[1]
+            bezier_mirror.calculate_tangent(1.)[0],
+            bezier_mirror.calculate_tangent(1.)[1]
         );
-        assert_ne!(bezier_mirror.calculate_tangent(1.0)[0], 0.0);
+        assert_ne!(bezier_mirror.calculate_tangent(1.)[0], 0.);
     }
 
     #[test]
     fn generate_point_in_csv() {
         let bezier_mirror = CubicBezierMirror {
             control_points: vec![
-                [0.0, 0.0, 0.0].into(),
-                [1.0, 0.0, 0.0].into(),
-                [0.0, 1.0, 0.0].into(),
-                [1.0, 1.0, 0.0].into(),
+                [0., 0., 0.].into(),
+                [1., 0., 0.].into(),
+                [0., 1., 0.].into(),
+                [1., 1., 0.].into(),
             ],
         };
 
         let mut file = std::fs::File::create("points.csv").unwrap();
         for i in 0..100 {
-            let t = i as f32 / 100.0;
+            let t = i as f32 / 100.;
             let point = bezier_mirror.calculate_point(t);
             writeln!(file, "{},{}", point[0], point[1]).unwrap();
         }
@@ -247,9 +242,9 @@ mod tests {
     fn test_from_json() {
         let json = serde_json::json!({
             "control_points": [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [1.0, 1.0, 0.0],
+                [0., 0., 0.],
+                [1., 0., 0.],
+                [1., 1., 0.],
             ]
         });
 
@@ -259,15 +254,15 @@ mod tests {
         assert_eq!(bezier_mirror.control_points.len(), 3);
         assert_eq!(
             bezier_mirror.control_points[0],
-            [0.0, 0.0, 0.0].into()
+            [0., 0., 0.].into()
         );
         assert_eq!(
             bezier_mirror.control_points[1],
-            [1.0, 0.0, 0.0].into()
+            [1., 0., 0.].into()
         );
         assert_eq!(
             bezier_mirror.control_points[2],
-            [1.0, 1.0, 0.0].into()
+            [1., 1., 0.].into()
         );
     }
 }

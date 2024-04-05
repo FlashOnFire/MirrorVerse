@@ -6,13 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-env_logger = "0.11.0"
-log = "0.4.20"
 nalgebra = "0.32.3"
 winit = "0.29.10"
 serde = "1.0.195"
 serde_json = "1.0.111"
 cgmath = "0.18.0"
-rand = "0.8.5"
 glium = "0.32"
 glium_shapes = { git = "https://github.com/FlashOnFire/glium_shapes.git", branch = "glium-0.32.2" }

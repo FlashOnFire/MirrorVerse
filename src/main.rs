@@ -22,15 +22,15 @@ pub const DEFAULT_DIM: usize = 3;
 fn main() {
     let mut events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
-        .with_inner_size(glutin::dpi::LogicalSize::new(1280.0, 720.0))
+        .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))
         .with_title("MirrorVerse");
     let cb = glutin::ContextBuilder::new();
     let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
-    let mut camera = Camera::new(Point3::new(0.0, 0.0, 0.0), cg::Deg(90.0), cg::Deg(0.0));
+    let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(90.), cg::Deg(0.));
 
-    let mut projection = Projection::new(1280, 720, cg::Deg(70.0), 0.1, 100.0);
-    let mut camera_controller = CameraController::new(5.0, 0.5);
+    let mut projection = Projection::new(1280, 720, cg::Deg(70.), 0.1, 100.);
+    let mut camera_controller = CameraController::new(5., 0.5);
 
     let mut program3d = gl::Program::from_source(
         &display,
@@ -81,7 +81,7 @@ fn main() {
                     .try_intersection_distance(ray)
                     .expect("the ray must intersect with the plane");
 
-                if dist > f32::EPSILON * 16.0 {
+                if dist > f32::EPSILON * 16. {
                     if let Some((t, pt)) = reflection_data.as_mut() {
                         if dist < *t {
                             *t = dist;
@@ -185,16 +185,16 @@ fn render(
     let mut target = display.draw();
 
     use gl::Surface;
-    target.clear_color_and_depth((1.0, 0.95, 0.7, 1.0), 1.0);
+    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.);
 
     let cuboid = glium_shapes::cuboid::CuboidBuilder::new()
-        .translate(0.0, 0.0, 0.0)
+        .translate(0., 0., 0.)
         .scale(0.5, 0.5, 0.5)
         .build(display)
         .expect("Failed to build cuboid shape");
 
     let circle = glium_shapes::sphere::SphereBuilder::new()
-        .translate(0.0, 0.0, 3.0)
+        .translate(0., 0., 3.)
         .scale(0.2, 0.2, 0.2)
         .with_divisions(100, 100)
         .build(display)
@@ -203,7 +203,7 @@ fn render(
     let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
-    let mat = cg::perspective(cg::Deg(45.0), (16.0) / (9.0), 1000.0, 0.1);
+    let mat = cg::perspective(cg::Deg(45.), (16.) / (9.), 1000., 0.1);
     let perspective: [[f32; 4]; 4] = mat.into();
     let view: [[f32; 4]; 4] = camera.calc_matrix().into();
 
@@ -225,7 +225,7 @@ fn render(
         .collect();
 
     if let Some(dir) = ray_path.final_direction() {
-        ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.0).into());
+        ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.).into());
     }
 
     let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
