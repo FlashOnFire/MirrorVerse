@@ -200,8 +200,8 @@ impl<const D: usize> Plane<D> {
 
     /// Returns the distance between the plane and a point
     /// probaly useless for distance to ray because ray have a direction
-    ///           /
-    /// -->     / <- nearest point to the plane using the ray direction
+    ///         /
+    /// -->    / <- nearest point to the plane using the ray direction
     ///       /  <- nearest point with orthogonal projection
     pub fn distance_to_point(&self, point: SVector<f32, D>) -> f32 {
         let v = point - self.v_0();
