@@ -84,8 +84,29 @@ impl<const D: usize> Ray<D> {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct RayPath<const D: usize = DEFAULT_DIM> {
-    pub points: Vec<SVector<f32, D>>,
-    pub final_direction: Option<Unit<SVector<f32, D>>>,
+    points: Vec<SVector<f32, D>>,
+    final_direction: Option<Unit<SVector<f32, D>>>,
+}
+
+impl<const D: usize> RayPath<D> {
+
+    pub fn points(&self) -> &[SVector<f32, D>] {
+        self.points.as_slice()
+    }
+
+    pub fn final_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
+        self.final_direction.as_ref()
+    }
+
+    pub fn push_point(&mut self, pt: SVector<f32, D>) {
+        self.points.push(pt);
+    }
+
+    pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
+        let first_time = self.final_direction.is_none();
+        self.final_direction = Some(dir);
+        first_time
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

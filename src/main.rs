@@ -19,53 +19,6 @@ mod render;
 
 pub const DEFAULT_DIM: usize = 3;
 
-#[derive(Copy, Clone, Debug)]
-struct Vertex {
-    position: [f32; 3],
-}
-gl::implement_vertex!(Vertex, position);
-
-impl From<SVector<f32, 3>> for Vertex {
-    fn from(v: SVector<f32, 3>) -> Self {
-        Self { position: v.into() }
-    }
-}
-
-const VERTEX_SHADER_SRC: &str = r#"
-        #version 140
-
-        in vec2 position;
-        uniform mat4 perspective;
-
-        void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-    "#;
-
-const FRAGMENT_SHADER_SRC: &str = r#"
-        #version 140
-
-        uniform vec3 color_vec;
-
-        out vec4 color;
-
-        void main() {
-            color = vec4(color_vec.xyz, 1.0);
-        }
-    "#;
-
-const VERTEX_SHADER_SRC_3D: &str = r#"
-        #version 140
-
-        in vec3 position;
-        uniform mat4 perspective;
-        uniform mat4 view;
-
-        void main() {
-            gl_Position = perspective * view * vec4(position, 1.0);
-        }
-    "#;
-
 fn main() {
     let mut events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
@@ -79,9 +32,13 @@ fn main() {
     let mut projection = Projection::new(1280, 720, cg::Deg(70.0), 0.1, 100.0);
     let mut camera_controller = CameraController::new(5.0, 0.5);
 
-    let mut program3d =
-        gl::Program::from_source(&display, VERTEX_SHADER_SRC_3D, FRAGMENT_SHADER_SRC, None)
-            .unwrap();
+    let mut program3d = gl::Program::from_source(
+        &display,
+        render::VERTEX_SHADER_SRC_3D,
+        render::FRAGMENT_SHADER_SRC,
+        None,
+    )
+    .unwrap();
 
     let mut last_render_time = time::Instant::now();
 
@@ -112,8 +69,7 @@ fn main() {
 
     for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
         for _ in 0..REFLECTION_LIMIT {
-
-            ray_path.points.push(ray.origin);
+            ray_path.push_point(ray.origin);
 
             mirror.append_intersecting_points(ray, &mut intersections);
 
@@ -142,7 +98,7 @@ fn main() {
                 ray.advance(distance);
                 ray.reflect_direction(tangent);
             } else {
-                ray_path.final_direction.insert(ray.direction);
+                ray_path.set_final_direction(ray.direction);
                 break;
             }
 
@@ -262,10 +218,15 @@ fn render(
         ..Default::default()
     };
 
-    let mut ray_path_vertices: Vec<_> = ray_path.points.iter().copied().map(Vertex::from).collect();
+    let mut ray_path_vertices: Vec<_> = ray_path
+        .points()
+        .iter()
+        .copied()
+        .map(render::Vertex::from)
+        .collect();
 
-    if let Some(dir) = ray_path.final_direction.as_ref() {
-        ray_path_vertices.push((ray_path.points.last().unwrap() + dir.as_ref() * 1000.0).into());
+    if let Some(dir) = ray_path.final_direction() {
+        ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.0).into());
     }
 
     let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
@@ -283,7 +244,7 @@ fn render(
         .unwrap();
 
     for mirror in mirrors {
-        let vertices: Vec<_> = mirror.vertices().map(Vertex::from).collect();
+        let vertices: Vec<_> = mirror.vertices().map(render::Vertex::from).collect();
 
         let vertex_buffer = gl::VertexBuffer::new(display, &vertices).unwrap();
         target.draw(
