@@ -47,6 +47,25 @@ impl ParaboloidMirror<2> {
     }
 }
 
+impl<const D: usize> JsonSerialisable for ParaboloidMirror<D> {
+    
+    fn get_type(&self) -> &'static str {
+        "parabolaoid"
+    }
+
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
+    where
+        Self: Sized,
+    {
+        /*
+        example json:
+
+        */
+
+        todo!()
+    }
+}
+
 impl Mirror<2> for ParaboloidMirror<2> {
     fn intersecting_points(&self, ray: &Ray<2>) -> Vec<Tangent<2>> {
         let mut list = vec![];
@@ -115,22 +134,6 @@ impl Mirror<2> for ParaboloidMirror<2> {
                 );
             }
         }
-    }
-
-    fn get_type(&self) -> &'static str {
-        "parabola"
-    }
-
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
-        /*
-        example json:
-
-        */
-
-        return Err("Not implemented yet".into());
     }
 }
 

@@ -215,6 +215,15 @@ impl<const D: usize> Plane<D> {
     }
 }
 
+pub trait JsonSerialisable {
+    /// Returns a string slice, unique to the type, coherent with it's json representation
+    fn get_type(&self) -> &'static str;
+    /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
+    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
+    where
+        Self: Sized;
+}
+
 pub trait Mirror<const D: usize = DEFAULT_DIM> {
     /// Returns a set of brightness gains and planes, in no particular order.
     ///
@@ -235,20 +244,9 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         list.append(&mut self.intersecting_points(ray))
     }
-    /// Returns a string slice, unique to the type, coherent with it's json representation
-    // TODO: should this be 'static ?
-    fn get_type(&self) -> &'static str;
-    /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
-    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized;
 }
 
-impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        self.as_ref().intersecting_points(ray)
-    }
-
+impl<const D: usize> JsonSerialisable for Box<dyn Mirror<D>> {
     fn get_type(&self) -> &'static str {
         "dynamic"
     }
@@ -282,18 +280,13 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 }
 
-impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
+impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        let mut list = vec![];
-        self.append_intersecting_points(ray, &mut list);
-        list
+        self.as_ref().intersecting_points(ray)
     }
+}
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter()
-            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
-    }
-
+impl<T: JsonSerialisable> JsonSerialisable for Vec<T> {
     fn get_type(&self) -> &'static str {
         "composite"
     }
@@ -311,6 +304,19 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         json.as_array()
             .and_then(|json| try_collect(json.iter().map(T::from_json).map(Result::ok)))
             .ok_or_else(|| "Invalid mirror list".into())
+    }
+}
+
+impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
+        let mut list = vec![];
+        self.append_intersecting_points(ray, &mut list);
+        list
+    }
+
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }
 }
 

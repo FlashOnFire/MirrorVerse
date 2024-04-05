@@ -39,24 +39,7 @@ impl<const D: usize> PlaneMirror<D> {
     }
 }
 
-impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        let mut list = vec![];
-        self.append_intersecting_points(ray, &mut list);
-        list
-    }
-
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        if let Some(coords) = self.plane.intersection_coordinates(ray).filter(|v| {
-            v.iter()
-                .skip(1)
-                .zip(self.vector_bounds())
-                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-        }) {
-            list.push((Tangent::Plane(self.plane)));
-        }
-    }
-
+impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
     fn get_type(&self) -> &'static str {
         "plane"
     }
@@ -123,6 +106,25 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
 
         Ok(Self { plane, bounds })
+    }
+}
+
+impl<const D: usize> Mirror<D> for PlaneMirror<D> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
+        let mut list = vec![];
+        self.append_intersecting_points(ray, &mut list);
+        list
+    }
+
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        if let Some(coords) = self.plane.intersection_coordinates(ray).filter(|v| {
+            v.iter()
+                .skip(1)
+                .zip(self.vector_bounds())
+                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+        }) {
+            list.push((Tangent::Plane(self.plane)));
+        }
     }
 }
 

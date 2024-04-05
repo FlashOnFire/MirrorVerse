@@ -4,13 +4,10 @@ use super::*;
 
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {
-    control_points: Vec<Point<f32, DEFAULT_DIM>>,
+    control_points: Vec<Point<f32, 2>>,
 }
 
-impl Mirror for BezierMirror {
-    fn intersecting_points(&self, ray: &Ray) -> Vec<Tangent> {
-        vec![]
-    }
+impl JsonSerialisable for BezierMirror {
     fn get_type(&self) -> &'static str {
         "bezier"
     }
@@ -53,10 +50,17 @@ impl Mirror for BezierMirror {
     }
 }
 
+impl Mirror for BezierMirror {
+    fn intersecting_points(&self, ray: &Ray) -> Vec<Tangent> {
+        vec![]
+    }
+}
+
 impl BezierMirror {
     // Method to calculate a point on the Bezier curve
-    fn calculate_point(&self, t: f32) -> Point<f32, DEFAULT_DIM> {
-        let mut point: Point<f32, DEFAULT_DIM> = Point::origin();
+    fn calculate_point(&self, t: f32) -> Point<f32, 2> {
+        let mut point: Point<f32, 2
+> = Point::origin();
         let n = self.control_points.len() - 1; // degree of the curve
 
         for (i, control_point) in self.control_points.iter().enumerate() {
@@ -72,9 +76,10 @@ impl BezierMirror {
         point
     }
 
-    fn calculate_tangent(&self, t: f32) -> SVector<f32, DEFAULT_DIM> {
+    fn calculate_tangent(&self, t: f32) -> SVector<f32, 2> {
         let n = self.control_points.len() - 1; // degree of the curve
-        let mut tangent: SVector<f32, DEFAULT_DIM> = SVector::zeros();
+        let mut tangent: SVector<f32, 2
+> = SVector::zeros();
 
         for i in 0..n {
             let bernstein_derivative = (n as f32)
@@ -133,42 +138,42 @@ mod tests {
     #[test]
     fn test_calculate_linear_point_2d() {
         let bezier_mirror = BezierMirror {
-            control_points: vec![[0., 0., 0.].into(), [1., 1., 0.].into()],
+            control_points: vec![[0., 0.].into(), [1., 1.].into()],
         };
-        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
-        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
-        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1.].into());
     }
 
     #[test]
     fn test_calculate_cubic_point_2d() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                [0., 0., 0.].into(),
-                [0.5, 1., 0.].into(),
-                [1., 0., 0.].into(),
+                [0., 0.].into(),
+                [0.5, 1.].into(),
+                [1., 0.].into(),
             ],
         };
-        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
-        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
-        assert_eq!(bezier_mirror.calculate_point(1.), [1., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 0.].into());
     }
 
     #[test]
     fn test_calculate_quadratic_point_2d() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                [0., 0., 0.].into(),
-                [0.5, 0., 0.].into(),
-                [0.5, 1., 0.].into(),
-                [1., 1., 0.].into(),
+                [0., 0.].into(),
+                [0.5, 0.].into(),
+                [0.5, 1.].into(),
+                [1., 1.].into(),
             ],
         };
-        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0.].into());
 
-        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5].into());
 
-        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1.].into());
     }
 
     #[test]
@@ -176,9 +181,9 @@ mod tests {
         //simple function to visualize the bezier curve to check that I dont do shit
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                [0., 0., 0.].into(),
-                [0.5, 1., 0.].into(),
-                [0., 1., 0.].into(),
+                [0., 0.].into(),
+                [0.5, 1.].into(),
+                [0., 1.].into(),
             ],
         };
 
@@ -194,14 +199,15 @@ mod tests {
     fn test_calculate_tangent() {
         let bezier_mirror = BezierMirror {
             control_points: vec![
-                [0., 0., 0.].into(),
-                [0.5, 1., 0.].into(),
-                [1., 0., 0.].into(),
+                [0., 0.].into(),
+                [0.5, 1.].into(),
+                [1., 0.].into(),
             ],
         };
 
         let vector = bezier_mirror.calculate_tangent(1.);
-        let axis = SVector::<f32, DEFAULT_DIM>::from_vec(vec![1., 0., 0.]);
+        let axis = SVector::<f32, 2
+>::from_vec(vec![1., 0., 0.]);
         let dot_product = vector.dot(&axis);
         let reflected_vector = 2. * dot_product * axis - vector;
 
@@ -212,9 +218,8 @@ mod tests {
     fn test_from_json() {
         let json = serde_json::json!({
             "control_points": [
-                vec![1., 2., 3.],
-                vec![4., 5., 6.],
-                vec![7., 8., 9.],
+                [1., 2.],
+                [3., 4.],
             ]
         });
         assert_eq!(
@@ -222,9 +227,8 @@ mod tests {
                 .expect("json deserialisation failed"),
             BezierMirror {
                 control_points: vec![
-                    [1., 2., 3.].into(),
-                    [4., 5., 6.].into(),
-                    [7., 8., 9.].into(),
+                    [1., 2.].into(),
+                    [3., 4.].into(),
                 ],
             }
         );
