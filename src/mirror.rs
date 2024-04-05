@@ -28,25 +28,9 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> Ray<D> {
     /// Reflect the ray with respect to the given plane
-    pub fn reflect(&self, reflection_point: &ReflectionPoint<D>, darkness_coef: &f32) -> Ray<D> {
-        let plane_origin = reflection_point.origin;
-        let plane_normal = reflection_point.normal.into_inner();
-        let ray_origin = self.origin;
-        let ray_direction = self.direction.into_inner();
-
-        let t = (plane_origin - ray_origin).dot(&plane_normal) / ray_direction.dot(&plane_normal);
-
-        let intersection_point = ray_origin + t * ray_direction;
-
-        let reflected_direction: SVector<f32, D> =
-            ray_direction - 2.0 * self.direction.dot(&plane_normal) * plane_normal;
-
-        let reflected_origin = intersection_point - ray_direction * f32::EPSILON; // add a small offset to avoid self-intersection
-        Ray {
-            origin: reflected_origin,
-            direction: Unit::new_normalize(reflected_direction),
-            brightness: self.brightness * darkness_coef,
-        }
+    pub fn reflect(&mut self, reflection_point: &ReflectionPoint<D>, darkness_coef: &f32) {
+        self.direction = reflection_point.reflect_unit(self.direction);
+        self.origin = reflection_point.
     }
 
     pub fn at(&self, t: f32) -> SVector<f32, D> {
@@ -95,26 +79,39 @@ impl<const D: usize> Ray<D> {
     }
 }
 
-/// A vector with an origin representing the normal to a plan used to reflect the ray
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ReflectionPoint<const D: usize = DEFAULT_DIM> {
-    /// The point where the ray intersects the plane
-    pub origin: SVector<f32, D>,
-    /// The normal vector of the plane
-    pub normal: Unit<SVector<f32, D>>,
+pub enum ReflectionPoint<const D: usize = DEFAULT_DIM> {
+    Plane(Plane<D>),
+    Normal {
+        origin: SVector<f32, D>,
+        normal: Unit<SVector<f32, D>>,
+    }
 }
 
 impl<const D: usize> ReflectionPoint<D> {
-    /// Create a new reflection point with a given point and normal
-    pub fn new(point: SVector<f32, D>, normal: Unit<SVector<f32, D>>) -> Self {
-        Self {
-            origin: point,
-            normal: normal,
+
+    pub fn reflect_unit(&self, vector: Unit<SVector<f32, D>>) -> Unit<SVector<f32, D>> {
+        // SAFETY: orthogonal reflection preserves norms
+        Unit::new_unchecked(self.reflect(vector.into_inner()))
+    }
+
+    pub fn reflect(&self, vector: SVector<f32, D>) -> SVector<f32, D> {
+        match self {
+            ReflectionPoint::Plane(plane) => 2.0 * plane.orthogonal_projection(vector) - vector,
+            ReflectionPoint::Normal { normal, .. } => {
+                let n = normal.as_ref();
+                vector - 2.0 * vector.dot(n) * n
+            },
         }
     }
 
-    pub fn distance_to_ray(&self, ray: Ray<D>) -> f32 {
-        (self.origin - ray.origin).norm()
+    pub fn intersection_distance(&self, ray: &Ray<D>) -> f32 {
+        match self {
+            ReflectionPoint::Plane(plane) => ,
+            ReflectionPoint::Normal { origin, normal } => {
+                (origin - ray.origin).dot(normal) / ray.direction.dot(normal)
+            },
+        }
     }
 }
 
@@ -122,7 +119,7 @@ impl<const D: usize> ReflectionPoint<D> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize = DEFAULT_DIM> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
-    /// The remaining N-1 vectors are a family spanning it's associated subspace.
+    /// The remaining N-1 vectors are an orthonormal family spanning it's associated subspace.
     ///
     /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
@@ -158,6 +155,8 @@ impl<const D: usize> Plane<D> {
         self.v_0() + self.orthogonal_projection(v)
     }
 
+    /// returns the coordinates
+
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
         match D {
@@ -184,6 +183,33 @@ impl<const D: usize> Plane<D> {
                 })
             }
         }
+    }
+
+    /// Returns a vector [t1, ..., tn] of scalars that represent the
+    /// coordinates of the `intersection` of the given `ray` and `self`.
+    /// If it exists, the following holds:
+    /// 
+    /// `intersection = ray.origin + t1 * ray.direction` and,
+    /// 
+    /// let `[v_2, ..., v_n]` be the basis of `self`'s associated hyperplane
+    /// 
+    /// `interserction = plane.origin + sum for k in [2 ; n] tk * v_k`
+    pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<f32, D>> {
+        let mut a = SMatrix::<f32, D, D>::zeros();
+
+        /* bien vuu le boss
+        Fill the matrix "a" with the direction of the ray and the basis of the plane
+        exemple
+        | ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...
+        | ray_direction.y | plane_basis_1.y | plane_basis_2.y | ...
+        | ray_direction.z | plane_basis_1.z | plane_basis_2.z | ...
+        */
+
+        a.column_iter_mut()
+            .zip(iter::once((-ray.direction).as_ref()).chain(self.basis().iter()))
+            .for_each(|(mut i, o)| i.set_column(0, o));
+
+        a.try_inverse_mut().then(|| a * (ray.origin - self.v_0()))
     }
 
     /// Calculate the normal vector of the plane and orient it to the side of the point

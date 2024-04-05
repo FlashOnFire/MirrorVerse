@@ -39,7 +39,7 @@ impl<const D: usize> PlaneMirror<D> {
                     .iter()
                     .enumerate()
                     // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
-                    .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
+                    .map(|(j, mu)| f32::from_bits(mu.abs().to_bits() ^ i >> j << SHIFT))
                     .zip(self.plane.basis())
                     .map(|(mu_signed, v)| mu_signed * v)
                     .fold(start_pt, Add::add)
@@ -56,39 +56,17 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     }
 
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
-        let mut a = SMatrix::<f32, D, D>::zeros();
-
-        /* // bien vuu le boss
-        Fill the matrix "a" with the direction of the ray and the basis of the plane
-        exemple
-        | ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...
-        | ray_direction.y | plane_basis_1.y | plane_basis_2.y | ...
-        | ray_direction.z | plane_basis_1.z | plane_basis_2.z | ...
-        */
-
-        a.column_iter_mut()
-            .zip(iter::once(ray.direction.as_ref()).chain(self.plane.basis().iter()))
-            .for_each(|(mut i, o)| i.set_column(0, o));
-
-        if a.try_inverse_mut() {
-
-            let point = *self.plane.v_0();
-
-            // a now contains a^-1
-            let v = a * (ray.origin - point);
-            if v.iter()
-                .zip(&self.bounds)
-                .skip(1)
-                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-            {
-                list.push((
-                    self.darkness_coef,
-                    ReflectionPoint::new(
-                        point,
-                        self.plane.normal_directed(ray.origin).unwrap(),
-                    ),
-                ));
-            }
+        if let Some(coords) = self
+            .plane
+            .intersection_coordinates(ray)
+            .filter(|v| {
+                v.iter()
+                    .skip(1)
+                    .zip(self.vector_bounds())
+                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+            })
+        {
+            list.push((self.darkness_coef, ReflectionPoint::Plane(self.plane)));
         }
     }
 
