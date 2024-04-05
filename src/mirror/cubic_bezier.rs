@@ -149,18 +149,12 @@ mod tests {
         assert_eq!(bezier_mirror.calculate_point(1.), [1., 1.].into());
         // calculate tangent
 
-        assert_eq!(
-            bezier_mirror.calculate_tangent(0.),
-            SVector::from([1., 0.])
-        );
+        assert_eq!(bezier_mirror.calculate_tangent(0.), SVector::from([1., 0.]));
         assert_eq!(
             bezier_mirror.calculate_tangent(0.5),
             SVector::from([0., 1.])
         );
-        assert_eq!(
-            bezier_mirror.calculate_tangent(1.),
-            SVector::from([1., 0.])
-        );
+        assert_eq!(bezier_mirror.calculate_tangent(1.), SVector::from([1., 0.]));
     }
 
     // #[test]
@@ -199,18 +193,17 @@ mod tests {
     fn test_from_json() {
         let json = serde_json::json!({
             "control_points": [
-                [0., 0., 0.],
-                [1., 0., 0.],
-                [1., 1., 0.],
+                [1., 0.],
+                [1., 1.],
             ]
         });
 
         let bezier_mirror =
             CubicBezierMirror::from_json(&json).expect("json deserialisation failed");
 
-        assert_eq!(bezier_mirror.control_points.len(), 3);
-        assert_eq!(bezier_mirror.control_points[0], [0., 0.].into());
-        assert_eq!(bezier_mirror.control_points[1], [1., 0.].into());
-        assert_eq!(bezier_mirror.control_points[2], [1., 1.].into());
+        assert_eq!(
+            &bezier_mirror.control_points,
+            &[[1., 0.].into(), [1., 1.].into()]
+        );
     }
 }

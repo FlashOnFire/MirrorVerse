@@ -48,7 +48,6 @@ impl ParaboloidMirror<2> {
 }
 
 impl<const D: usize> JsonSerialisable for ParaboloidMirror<D> {
-    
     fn get_type(&self) -> &'static str {
         "parabolaoid"
     }

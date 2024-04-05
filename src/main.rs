@@ -53,7 +53,7 @@ fn main() {
     let json = std::fs::read_to_string(file_path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
-    use mirror::{plane::PlaneMirror, Mirror, JsonSerialisable};
+    use mirror::{plane::PlaneMirror, JsonSerialisable, Mirror};
 
     let mut mirror =
         Vec::<PlaneMirror>::from_json(value.get("mirrors").expect("mirrors field expected"))

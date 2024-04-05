@@ -59,8 +59,7 @@ impl Mirror for BezierMirror {
 impl BezierMirror {
     // Method to calculate a point on the Bezier curve
     fn calculate_point(&self, t: f32) -> Point<f32, 2> {
-        let mut point: Point<f32, 2
-> = Point::origin();
+        let mut point: Point<f32, 2> = Point::origin();
         let n = self.control_points.len() - 1; // degree of the curve
 
         for (i, control_point) in self.control_points.iter().enumerate() {
@@ -78,8 +77,7 @@ impl BezierMirror {
 
     fn calculate_tangent(&self, t: f32) -> SVector<f32, 2> {
         let n = self.control_points.len() - 1; // degree of the curve
-        let mut tangent: SVector<f32, 2
-> = SVector::zeros();
+        let mut tangent: SVector<f32, 2> = SVector::zeros();
 
         for i in 0..n {
             let bernstein_derivative = (n as f32)
@@ -148,11 +146,7 @@ mod tests {
     #[test]
     fn test_calculate_cubic_point_2d() {
         let bezier_mirror = BezierMirror {
-            control_points: vec![
-                [0., 0.].into(),
-                [0.5, 1.].into(),
-                [1., 0.].into(),
-            ],
+            control_points: vec![[0., 0.].into(), [0.5, 1.].into(), [1., 0.].into()],
         };
         assert_eq!(bezier_mirror.calculate_point(0.), [0., 0.].into());
         assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5].into());
@@ -180,11 +174,7 @@ mod tests {
     fn generate_point_in_csv() {
         //simple function to visualize the bezier curve to check that I dont do shit
         let bezier_mirror = BezierMirror {
-            control_points: vec![
-                [0., 0.].into(),
-                [0.5, 1.].into(),
-                [0., 1.].into(),
-            ],
+            control_points: vec![[0., 0.].into(), [0.5, 1.].into(), [0., 1.].into()],
         };
 
         let mut file = std::fs::File::create("points.csv").unwrap();
@@ -198,16 +188,11 @@ mod tests {
     #[test]
     fn test_calculate_tangent() {
         let bezier_mirror = BezierMirror {
-            control_points: vec![
-                [0., 0.].into(),
-                [0.5, 1.].into(),
-                [1., 0.].into(),
-            ],
+            control_points: vec![[0., 0.].into(), [0.5, 1.].into(), [1., 0.].into()],
         };
 
         let vector = bezier_mirror.calculate_tangent(1.);
-        let axis = SVector::<f32, 2
->::from_vec(vec![1., 0., 0.]);
+        let axis = SVector::<f32, 2>::from_vec(vec![1., 0., 0.]);
         let dot_product = vector.dot(&axis);
         let reflected_vector = 2. * dot_product * axis - vector;
 
@@ -226,10 +211,7 @@ mod tests {
             BezierMirror::from_json(&serde_json::to_value(json).unwrap())
                 .expect("json deserialisation failed"),
             BezierMirror {
-                control_points: vec![
-                    [1., 2.].into(),
-                    [3., 4.].into(),
-                ],
+                control_points: vec![[1., 2.].into(), [3., 4.].into(),],
             }
         );
     }
