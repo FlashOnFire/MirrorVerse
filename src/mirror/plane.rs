@@ -71,21 +71,20 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             .for_each(|(mut i, o)| i.set_column(0, o));
 
         if a.try_inverse_mut() {
+
+            let point = *self.plane.v_0();
+
             // a now contains a^-1
-            let v = a * (self.plane.v_0() - ray.origin);
+            let v = a * (ray.origin - point);
             if v.iter()
                 .zip(&self.bounds)
                 .skip(1)
                 .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-                && ray
-                    .direction
-                    .dot(&-self.plane.normal_directed(ray.origin).unwrap())
-                    > 0.0
             {
                 list.push((
                     self.darkness_coef,
                     ReflectionPoint::new(
-                        ray.at(v[0]),
+                        point,
                         self.plane.normal_directed(ray.origin).unwrap(),
                     ),
                 ));
@@ -147,7 +146,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
         let mut bounds = [0.; D];
         for (i, o) in bounds[1..].iter_mut().zip(bounds_json.iter()) {
-            *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
+            *i = (o.as_f64().ok_or("Failed to parse bound")? as f32).abs();
         }
 
         let darkness_coef = json
