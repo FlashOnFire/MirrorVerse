@@ -24,27 +24,20 @@ impl<const D: usize> PlaneMirror<D> {
         &self.bounds[1..]
     }
 
-    pub fn get_vertices(&self) -> Vec<SVector<f32, D>> {
+    pub fn vertices(&self) -> impl Iterator<Item = SVector<f32, D>> + '_ {
         // WARNING: black magic
 
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
-        // f32::to_bits is not const yet
-        let f_one_bits = f32::to_bits(1.0);
-
-        let start_pt = *self.plane.v_0();
-        (0..1 << D - 1)
-            .into_iter()
-            .map(|i| {
-                self.vector_bounds()
-                    .iter()
-                    .enumerate()
-                    // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
-                    .map(|(j, mu)| f32::from_bits(mu.abs().to_bits() ^ i >> j << SHIFT))
-                    .zip(self.plane.basis())
-                    .map(|(mu_signed, v)| mu_signed * v)
-                    .fold(start_pt, Add::add)
-            })
-            .collect()
+        (0..1 << D - 1).map(|i| {
+            self.vector_bounds()
+                .iter()
+                .enumerate()
+                // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
+                .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
+                .zip(self.plane.basis())
+                .map(|(mu_signed, v)| mu_signed * v)
+                .fold(*self.plane.v_0(), Add::add)
+        })
     }
 }
 
@@ -56,16 +49,12 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     }
 
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
-        if let Some(coords) = self
-            .plane
-            .intersection_coordinates(ray)
-            .filter(|v| {
-                v.iter()
-                    .skip(1)
-                    .zip(self.vector_bounds())
-                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-            })
-        {
+        if let Some(coords) = self.plane.intersection_coordinates(ray).filter(|v| {
+            v.iter()
+                .skip(1)
+                .zip(self.vector_bounds())
+                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+        }) {
             list.push((self.darkness_coef, Tangent::Plane(self.plane)));
         }
     }
@@ -145,5 +134,197 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
 #[cfg(test)]
 mod tests {
-    
+
+    use core::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
+
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_left_basic_2d() {
+        let mirror = PlaneMirror::<2>::from_json(&json!({
+            "center": [0., 0.],
+            "basis": [
+                [0.0, 1.0],
+            ],
+            "bounds": [1.0],
+            "darkness": 0.5,
+        }))
+        .expect("json monke");
+
+        let mut ray = Ray {
+            origin: [-1.0, 0.0].into(),
+            direction: Unit::new_normalize([1.0, 0.0].into()),
+            brightness: 1.0,
+        };
+
+        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+            panic!("there must be an intersection");
+        };
+
+        let d = tangent.try_intersection_distance(&ray);
+
+        if let Some(t) = d {
+            assert!((t - 1.0).abs() < f32::EPSILON);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(&tangent);
+
+        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([-1.0, 0.0]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
+
+    #[test]
+    fn test_right_basic_2d() {
+        let mirror = PlaneMirror::<2>::from_json(&json!({
+            "center": [0., 0.],
+            "basis": [
+                [0.0, 1.0],
+            ],
+            "bounds": [1.0],
+            "darkness": 0.5,
+        }))
+        .expect("json monke");
+
+        let mut ray = Ray {
+            origin: [1.0, 0.0].into(),
+            direction: Unit::new_normalize([-1.0, 0.0].into()),
+            brightness: 1.0,
+        };
+
+        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+            panic!("there must be an intersection");
+        };
+
+        let d = tangent.try_intersection_distance(&ray);
+
+        if let Some(t) = d {
+            assert!((t - 1.0).abs() < f32::EPSILON);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(&tangent);
+
+        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([1.0, 0.0]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
+
+    #[test]
+    fn test_diagonal_2d() {
+        let mirror = PlaneMirror::<2>::from_json(&json!({
+            "center": [0., 0.],
+            "basis": [
+                [FRAC_1_SQRT_2, FRAC_1_SQRT_2],
+            ],
+            "bounds": [1.0],
+            "darkness": 0.5,
+        }))
+        .expect("json monke");
+
+        let mut ray = Ray {
+            origin: [-1.0, 1.0].into(),
+            direction: Unit::new_normalize([1.0, -1.0].into()),
+            brightness: 1.0,
+        };
+
+        let &[(_, tangent)] = mirror.intersecting_points(&ray).as_slice() else {
+            panic!("there must be an intersection");
+        };
+
+        let d = tangent.try_intersection_distance(&ray);
+
+        if let Some(t) = d {
+            assert!((t - SQRT_2).abs() < f32::EPSILON * 2.0);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(&tangent);
+
+        assert!((ray.origin - SVector::from([0.0, 0.0])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([-FRAC_1_SQRT_2, FRAC_1_SQRT_2]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
+
+    #[test]
+    fn test_multiple_intersections_2d() {
+        let m1 = PlaneMirror::<2>::from_json(&json!({
+            "center": [10., 0.],
+            "basis": [
+                [0., 1.],
+            ],
+            "bounds": [1.0],
+            "darkness": 0.5,
+        }))
+        .expect("json monke");
+
+        let m2 = PlaneMirror::<2>::from_json(&json!({
+            "center": [-1., 0.],
+            "basis": [
+                [0., 1.],
+            ],
+            "bounds": [1.0],
+            "darkness": 0.5,
+        }))
+        .expect("json monke");
+
+        let mut ray = Ray {
+            origin: [0.0, 0.5].into(),
+            direction: Unit::new_normalize([1.0, 0.0].into()),
+            brightness: 1.0,
+        };
+
+        let mut pts = m1.intersecting_points(&ray);
+        m2.append_intersecting_points(&ray, &mut pts);
+
+        let &[(_, t1), (_, t2)] = pts.as_slice() else {
+            panic!("there must be an intersection");
+        };
+
+        let d1 = t1.try_intersection_distance(&ray);
+        let d2 = t2.try_intersection_distance(&ray);
+
+        if let Some(t) = d1 {
+            assert!((t - 10.0).abs() < f32::EPSILON * 2.0);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        if let Some(t) = d2 {
+            assert!((t - -1.0).abs() < f32::EPSILON * 2.0);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(&t1);
+
+        assert!((ray.origin - SVector::from([10.0, 0.5])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([-1.0, 0.0]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
 }

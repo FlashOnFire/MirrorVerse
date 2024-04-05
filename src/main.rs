@@ -7,10 +7,10 @@ use std::time;
 
 use cgmath as cg;
 use glium::{
-    glutin::{self, event, event_loop},
     self as gl,
+    glutin::{self, event, event_loop},
 };
-use nalgebra::{Point3, Reflection};
+use nalgebra::{Point3, Reflection, SVector};
 
 use render::camera::{Camera, CameraController, Projection};
 
@@ -25,11 +25,9 @@ struct Vertex {
 }
 gl::implement_vertex!(Vertex, position);
 
-impl Vertex {
-    pub fn from_vector(v: nalgebra::SVector<f32, 3>) -> Self {
-        Self {
-            position: [v.x, v.y, v.z],
-        }
+impl From<SVector<f32, 3>> for Vertex {
+    fn from(v: SVector<f32, 3>) -> Self {
+        Self { position: v.into() }
     }
 }
 
@@ -98,7 +96,7 @@ fn main() {
     let json = std::fs::read_to_string(file_path).unwrap();
     let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
-    use mirror::{Mirror, plane::PlaneMirror};
+    use mirror::{plane::PlaneMirror, Mirror};
 
     let mut mirror =
         Vec::<PlaneMirror>::from_json(value.get("mirrors").expect("mirrors field expected"))
@@ -108,27 +106,29 @@ fn main() {
     const REFLECTION_LIMIT: usize = 300;
 
     let mut intersections = vec![];
-    let mut ray_path = mirror::RayPath::default();
+    let mut ray_paths = vec![mirror::RayPath::default()];
 
     // TODO: clean this up
 
-    for ray in rays.iter_mut() {
+    for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
         for _ in 0..REFLECTION_LIMIT {
+
+            println!("o: {:?}", ray.origin);
+            println!("d: {:?}", ray.direction);
 
             ray_path.points.push(ray.origin);
 
-            dbg!(&ray);
-
             mirror.append_intersecting_points(ray, &mut intersections);
-            
+
             let mut reflection_data = None;
-            for point @ (_, tangent) in intersections.iter() {
-                let dist = tangent
+            for point in intersections.iter() {
+                let dist = point
+                    .1
                     .try_intersection_distance(ray)
                     .expect("the ray must intersect with the plane");
 
                 if dist > f32::EPSILON {
-                    if let Some((t, pt)) = &mut reflection_data {
+                    if let Some((t, pt)) = reflection_data.as_mut() {
                         if dist < *t {
                             *t = dist;
                             *pt = point;
@@ -139,9 +139,10 @@ fn main() {
                 }
             }
 
-            if let Some((distance, (_darkness, tangent))) = reflection_data {
-                ray.reflect_direction(tangent);
+            if let Some((distance, (_, tangent))) = reflection_data {
+                println!("{}", distance);
                 ray.advance(distance);
+                ray.reflect_direction(tangent);
             } else {
                 ray_path.final_direction.insert(ray.direction);
                 break;
@@ -199,7 +200,7 @@ fn main() {
                 &mut program3d,
                 &camera,
                 &projection,
-                &ray_path,
+                &ray_paths[0],
                 &mirror,
             );
         }
@@ -262,16 +263,10 @@ fn render(
         ..Default::default()
     };
 
-    let mut ray_path_vertices: Vec<Vertex> = ray_path.points
-        .iter()
-        .copied()
-        .map(Vertex::from_vector)
-        .collect();
+    let mut ray_path_vertices: Vec<_> = ray_path.points.iter().copied().map(Vertex::from).collect();
 
     if let Some(dir) = ray_path.final_direction.as_ref() {
-        ray_path_vertices.push(
-            Vertex::from_vector(ray_path.points.last().unwrap() + dir.as_ref() * 1000.0)
-        );
+        ray_path_vertices.push((ray_path.points.last().unwrap() + dir.as_ref() * 1000.0).into());
     }
 
     let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
@@ -289,12 +284,7 @@ fn render(
         .unwrap();
 
     for mirror in mirrors {
-        let vertices: Vec<_> = mirror
-            .get_vertices()
-            .iter()
-            .copied()
-            .map(Vertex::from_vector)
-            .collect();
+        let vertices: Vec<_> = mirror.vertices().map(Vertex::from).collect();
 
         let vertex_buffer = gl::VertexBuffer::new(display, &vertices).unwrap();
         target.draw(

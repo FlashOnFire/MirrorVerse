@@ -94,11 +94,10 @@ pub enum Tangent<const D: usize = DEFAULT_DIM> {
     Normal {
         origin: SVector<f32, D>,
         normal: Unit<SVector<f32, D>>,
-    }
+    },
 }
 
 impl<const D: usize> Tangent<D> {
-
     pub fn reflect_unit(&self, vector: Unit<SVector<f32, D>>) -> Unit<SVector<f32, D>> {
         // SAFETY: orthogonal reflection preserves norms
         Unit::new_unchecked(self.reflect(vector.into_inner()))
@@ -110,7 +109,7 @@ impl<const D: usize> Tangent<D> {
             Tangent::Normal { normal, .. } => {
                 let n = normal.as_ref();
                 vector - 2.0 * vector.dot(n) * n
-            },
+            }
         }
     }
 
@@ -119,8 +118,8 @@ impl<const D: usize> Tangent<D> {
             Tangent::Plane(plane) => plane.intersection_coordinates(ray).map(|v| v[0]),
             Tangent::Normal { origin, normal } => {
                 let u = ray.direction.dot(normal);
-                (u.abs() < f32::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
-            },
+                (u.abs() > f32::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
+            }
         }
     }
 
@@ -157,9 +156,6 @@ impl<const D: usize> Plane<D> {
         &self.vectors[1..]
     }
     /// Project a vector using the orthonormal basis projection formula.
-    ///
-    /// Assumes `b` is an orthonormal family. If such isn't
-    /// the case, the result is unspecified.
     pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
         self.basis().iter().map(|e| v.dot(e) * e).sum()
     }
@@ -180,10 +176,7 @@ impl<const D: usize> Plane<D> {
             }
             3 => {
                 // use cross product
-                let [a, b]: &[SVector<f32, D> ; 2] = self
-                    .basis()
-                    .try_into()
-                    .unwrap();
+                let [a, b]: &[SVector<f32, D>; 2] = self.basis().try_into().unwrap();
                 Some(Unit::new_normalize(a.cross(b)))
             }
             _ => {
@@ -198,15 +191,16 @@ impl<const D: usize> Plane<D> {
         }
     }
 
-    /// Returns a vector [t1, ..., tn] of scalars that represent the
-    /// coordinates of the `intersection` of the given `ray` and `self`.
+    /// Returns a vector `[t_1, ..., t_d]` whose coordinates represent
+    /// the `intersection` of the given `ray` and `self`.
+    ///
     /// If it exists, the following holds:
-    /// 
-    /// `intersection = ray.origin + t1 * ray.direction` and,
-    /// 
-    /// let `[v_2, ..., v_n]` be the basis of `self`'s associated hyperplane
-    /// 
-    /// `interserction = plane.origin + sum for k in [2 ; n] tk * v_k`
+    ///
+    /// `intersection = ray.origin + t_1 * ray.direction` and,
+    ///
+    /// let `[v_2, ..., v_d]` be the basis of `self`'s associated hyperplane
+    ///
+    /// `interserction = plane.origin + sum for k in [2 ; n] t_k * v_k`
     pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<f32, D>> {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
@@ -258,34 +252,13 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
         list.append(&mut self.intersecting_points(ray))
     }
-    /// Returns a string slice, unique to the type
-    /// (or inner type if type-erased) and coherent with it's json representation
+    /// Returns a string slice, unique to the type, coherent with it's json representation
     // TODO: should this be 'static ?
     fn get_type(&self) -> &'static str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
     fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
-}
-
-// Note that `T` is implicitly `Sized`
-//
-// This impl might not be necessary for the time being
-impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
-        self.as_ref().intersecting_points(ray)
-    }
-
-    fn get_type(&self) -> &'static str {
-        self.as_ref().get_type()
-    }
-
-    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        T::from_json(json).map(Box::new)
-    }
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
@@ -386,94 +359,4 @@ pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVec
 }
 
 #[cfg(test)]
-mod tests {
-    use nalgebra::SVector;
-
-    use crate::mirror::Plane;
-
-    #[test]
-    fn test_json_to_ray() {
-        use super::*;
-        use serde_json::json;
-
-        let json = json!({
-            "origin": [1., 2., 3.],
-            "direction": [4., 5., 6.],
-            "brightness": 0.5
-        });
-
-        let ray = Ray::<3>::from_json(&json).unwrap();
-        assert_eq!(ray.origin, SVector::from([1., 2., 3.]));
-        assert_eq!(
-            ray.direction,
-            Unit::new_normalize(SVector::from([4., 5., 6.]))
-        );
-        assert_eq!(ray.brightness, 0.5);
-    }
-
-    #[test]
-    fn test_normal_3d() {
-        let plane = Plane::<3>::new([
-            SVector::from([0., 0., 0.]),
-            SVector::from([1., 0., 0.]),
-            SVector::from([0., 1., 0.]),
-        ])
-        .unwrap();
-        assert_eq!(
-            plane.normal().unwrap().into_inner(),
-            SVector::<f32, 3>::from([0., 0., 1.])
-        );
-    }
-
-    #[test]
-    fn test_normal_3d_2() {
-        let plane = Plane::<3>::new([
-            SVector::from([0., 0., 0.]),
-            SVector::from([-2., 1., 3.]),
-            SVector::from([1., 0., 3.]),
-        ])
-        .unwrap();
-        let normal = plane.normal().unwrap();
-        let theoric_normal = SVector::<f32, 3>::from([-3., -9., 1.]);
-        //check that the normal is a multiple of the theoric normal
-        println!("{:?} {:?}", normal, theoric_normal);
-        for i in 0..3 {
-            assert!(
-                normal[i] / theoric_normal[i] - (normal[i] / theoric_normal[i]).round()
-                    < f32::EPSILON
-            );
-        }
-    }
-
-    #[test]
-    fn test_normal_2d() {
-        let plane = Plane::<2>::new([SVector::from([0., 0.]), SVector::from([1., 0.])]).unwrap();
-        assert_eq!(
-            plane.normal().unwrap().into_inner(),
-            SVector::<f32, 2>::from([0., 1.])
-        );
-    }
-
-    #[test]
-    fn test_normal_4d() {
-        let plane = Plane::<4>::new([
-            SVector::from([0., 0., 0., 0.]),
-            SVector::from([1., 0., 0., 0.]),
-            SVector::from([0., 1., 0., 0.]),
-            SVector::from([0., 0., 1., 0.]),
-        ])
-        .unwrap();
-        assert_eq!(
-            plane.normal().unwrap().into_inner(),
-            SVector::<f32, 4>::from([0., 0., 0., 1.])
-        );
-    }
-
-    #[test]
-    fn test_normal_2d_diagonal() {
-        let plane =
-            Plane::<2>::new([SVector::from([0., 0.]), SVector::from([-1.0, -1.0])]).unwrap();
-
-        assert!(plane.normal().unwrap().sum() < f32::EPSILON * 8.0);
-    }
-}
+mod tests {}

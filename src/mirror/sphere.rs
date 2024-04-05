@@ -34,8 +34,8 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
                         self.darkness_coef,
                         Tangent::Normal {
                             origin: point,
-                            normal 
-                        }
+                            normal,
+                        },
                     ));
                 }
             }
@@ -85,5 +85,4 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
