@@ -49,13 +49,13 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
         if let Some(coords) = self
             .plane
             .intersection_coordinates(ray)
@@ -66,7 +66,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                     .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
             })
         {
-            list.push((self.darkness_coef, ReflectionPoint::Plane(self.plane)));
+            list.push((self.darkness_coef, Tangent::Plane(self.plane)));
         }
     }
 

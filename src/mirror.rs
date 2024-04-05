@@ -28,9 +28,12 @@ pub struct Ray<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> Ray<D> {
     /// Reflect the ray with respect to the given plane
-    pub fn reflect(&mut self, reflection_point: &ReflectionPoint<D>, darkness_coef: &f32) {
-        self.direction = reflection_point.reflect_unit(self.direction);
-        self.origin = reflection_point.
+    pub fn reflect_direction(&mut self, tangent: &Tangent<D>) {
+        self.direction = tangent.reflect_unit(self.direction);
+    }
+
+    pub fn advance(&mut self, t: f32) {
+        self.origin += t * self.direction.into_inner();
     }
 
     pub fn at(&self, t: f32) -> SVector<f32, D> {
@@ -79,8 +82,14 @@ impl<const D: usize> Ray<D> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct RayPath<const D: usize = DEFAULT_DIM> {
+    pub points: Vec<SVector<f32, D>>,
+    pub final_direction: Option<Unit<SVector<f32, D>>>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ReflectionPoint<const D: usize = DEFAULT_DIM> {
+pub enum Tangent<const D: usize = DEFAULT_DIM> {
     Plane(Plane<D>),
     Normal {
         origin: SVector<f32, D>,
@@ -88,7 +97,7 @@ pub enum ReflectionPoint<const D: usize = DEFAULT_DIM> {
     }
 }
 
-impl<const D: usize> ReflectionPoint<D> {
+impl<const D: usize> Tangent<D> {
 
     pub fn reflect_unit(&self, vector: Unit<SVector<f32, D>>) -> Unit<SVector<f32, D>> {
         // SAFETY: orthogonal reflection preserves norms
@@ -97,21 +106,26 @@ impl<const D: usize> ReflectionPoint<D> {
 
     pub fn reflect(&self, vector: SVector<f32, D>) -> SVector<f32, D> {
         match self {
-            ReflectionPoint::Plane(plane) => 2.0 * plane.orthogonal_projection(vector) - vector,
-            ReflectionPoint::Normal { normal, .. } => {
+            Tangent::Plane(plane) => 2.0 * plane.orthogonal_projection(vector) - vector,
+            Tangent::Normal { normal, .. } => {
                 let n = normal.as_ref();
                 vector - 2.0 * vector.dot(n) * n
             },
         }
     }
 
-    pub fn intersection_distance(&self, ray: &Ray<D>) -> f32 {
+    pub fn try_intersection_distance(&self, ray: &Ray<D>) -> Option<f32> {
         match self {
-            ReflectionPoint::Plane(plane) => ,
-            ReflectionPoint::Normal { origin, normal } => {
-                (origin - ray.origin).dot(normal) / ray.direction.dot(normal)
+            Tangent::Plane(plane) => plane.intersection_coordinates(ray).map(|v| v[0]),
+            Tangent::Normal { origin, normal } => {
+                let u = ray.direction.dot(normal);
+                (u.abs() < f32::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
             },
         }
+    }
+
+    pub fn intersection_distance(&self, ray: &Ray<D>) -> f32 {
+        self.try_intersection_distance(ray).unwrap()
     }
 }
 
@@ -128,6 +142,7 @@ pub struct Plane<const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
+    /// returns None if the provided family isn't free
     pub fn new(mut vectors: [SVector<f32, D>; D]) -> Option<Self> {
         (SVector::orthonormalize(&mut vectors[1..]) == D - 1).then_some(Self { vectors })
     }
@@ -154,8 +169,6 @@ impl<const D: usize> Plane<D> {
         let v = point - self.v_0();
         self.v_0() + self.orthogonal_projection(v)
     }
-
-    /// returns the coordinates
 
     /// Calculate the normal vector of the plane by solving a linear system
     pub fn normal(&self) -> Option<Unit<SVector<f32, D>>> {
@@ -223,38 +236,6 @@ impl<const D: usize> Plane<D> {
             normal
         })
     }
-
-    /// Returns the distance between the plane and a point
-    /// probaly useless for distance to ray because ray have a direction
-    ///         /
-    /// -->    / <- nearest point to the plane using the ray direction
-    ///       /  <- nearest point with orthogonal projection
-    pub fn distance_to_point(&self, point: SVector<f32, D>) -> f32 {
-        let v = point - self.v_0();
-        let projection = self.orthogonal_projection(v);
-        (v - projection).norm()
-    }
-
-    /// Returns the distance between the plane and a ray
-    /// This function takes care of the ray direction
-    pub fn distance_to_ray(&self, ray: Ray<D>) -> f32 {
-        let plane_origin = self.v_0();
-        let plane_normal = self.normal().unwrap();
-
-        let plane_to_ray_origin = ray.origin - plane_origin;
-        let distance_along_normal = plane_to_ray_origin.dot(&plane_normal);
-
-        if distance_along_normal < 0.0 {
-            // The closest point on the ray is behind the plane's origin
-            return plane_to_ray_origin.norm();
-        }
-
-        let closest_point_on_ray = ray.origin + ray.direction.into_inner() * distance_along_normal;
-        let distance_to_plane =
-            (closest_point_on_ray - plane_origin).norm() + distance_along_normal;
-
-        distance_to_plane
-    }
 }
 
 pub trait Mirror<const D: usize = DEFAULT_DIM> {
@@ -269,12 +250,12 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
     ///       respect to the subspace defining the plane's "orientation"
     ///
     /// Returns an empty list if the vector doesn't intersect with the mirror.
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)>;
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)>;
     /// An optimised version of `Self::reflect` that potentially saves
     /// an allocation by writing into another `Vec`. Override this if needed.
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
         list.append(&mut self.intersecting_points(ray))
     }
     /// Returns a string slice, unique to the type
@@ -291,7 +272,7 @@ pub trait Mirror<const D: usize = DEFAULT_DIM> {
 //
 // This impl might not be necessary for the time being
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         self.as_ref().intersecting_points(ray)
     }
 
@@ -308,7 +289,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Box<T> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         self.as_ref().intersecting_points(ray)
     }
 
@@ -347,13 +328,13 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
         self.iter()
             .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }

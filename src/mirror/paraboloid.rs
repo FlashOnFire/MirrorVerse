@@ -121,13 +121,13 @@ impl ParaboloidMirror<2> {
 }
 
 impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         let mut list = vec![];
         self.append_intersecting_points(ray, &mut list);
         list
     }
 
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, ReflectionPoint<D>)>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<(f32, Tangent<D>)>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -178,7 +178,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             ])) {
                 list.push((
                     0.0,
-                    ReflectionPoint::new(
+                    Tangent::new(
                         SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
                         Unit::new_normalize(SVector::from_vec(vec![1., 1.])), //TODO with the new method of momo aucun soucis on utilise la tangent
                                                                               //self.get_tangent(&SVector::from_vec(vec![intersection_point[0], intersection_point[1]])).unwrap(),

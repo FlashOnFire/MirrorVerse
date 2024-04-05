@@ -8,7 +8,7 @@ pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> Mirror<D> for SphereMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, ReflectionPoint<D>)> {
+    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<(f32, Tangent<D>)> {
         let mut list = vec![];
         let oc = ray.origin - self.center;
         let a = ray.direction.norm_squared();
@@ -30,7 +30,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
                     } else {
                         normal
                     };
-                    list.push((self.darkness_coef, ReflectionPoint::new(point, normal)));
+                    list.push((self.darkness_coef, Tangent::new(point, normal)));
                 }
             }
         }
