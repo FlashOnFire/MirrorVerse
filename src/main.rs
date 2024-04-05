@@ -185,19 +185,6 @@ fn render(
     use gl::Surface;
     target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.);
 
-    let cuboid = glium_shapes::cuboid::CuboidBuilder::new()
-        .translate(0., 0., 0.)
-        .scale(0.5, 0.5, 0.5)
-        .build(display)
-        .expect("Failed to build cuboid shape");
-
-    let circle = glium_shapes::sphere::SphereBuilder::new()
-        .translate(0., 0., 3.)
-        .scale(0.2, 0.2, 0.2)
-        .with_divisions(100, 100)
-        .build(display)
-        .expect("failed to build sphere shape");
-
     let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 

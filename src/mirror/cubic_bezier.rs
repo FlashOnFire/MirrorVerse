@@ -15,16 +15,12 @@ impl JsonSerialisable for CubicBezierMirror {
     where
         Self: Sized,
     {
-        /* example json
-        {
+        /* example json {
             "control_points": [
-                [1., 2., 3., ...],
-                [4., 5., 6., ...],
-                [7., 8., 9., ...],
-                ...
+                [1., 2.],
+                [3., 4.],
             ]
-        }
-         */
+        } */
 
         let mut control_points = vec![];
 
