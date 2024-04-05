@@ -73,8 +73,6 @@ fn main() {
 
             mirror.append_intersecting_points(ray, &mut intersections);
 
-            println!("{:?}", intersections);
-
             let mut reflection_data = None;
             for tangent in intersections.iter() {
                 let dist = tangent

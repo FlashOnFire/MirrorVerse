@@ -187,7 +187,6 @@ mod tests {
             let t = i as f32 / 100.;
             let point = bezier_mirror.calculate_point(t);
             writeln!(file, "{},{}", point[0], point[1]).unwrap();
-            println!("{} : {}", t, point);
         }
     }
 

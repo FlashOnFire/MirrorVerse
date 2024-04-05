@@ -1,12 +1,12 @@
 use super::*;
 
 #[derive(Clone, Copy)]
-pub struct SphereMirror<const D: usize = DEFAULT_DIM> {
+pub struct EuclideanSphereMirror<const D: usize = DEFAULT_DIM> {
     center: SVector<f32, D>,
     radius: f32,
 }
 
-impl<const D: usize> Mirror<D> for SphereMirror<D> {
+impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
         let mut list = vec![];
         let oc = ray.origin - self.center;

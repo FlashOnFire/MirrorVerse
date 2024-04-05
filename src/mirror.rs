@@ -144,13 +144,20 @@ pub struct Plane<const D: usize = DEFAULT_DIM> {
     /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
     vectors: [SVector<f32, D>; D],
+    /// A cache containing an orthonormalized version of the family in the `vectors`
+    /// field, to facilitate orthogonal projection
+    orthonormalized: [SVector<f32, D>; D],
 }
 
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
     /// returns None if the provided family isn't free
-    pub fn new(mut vectors: [SVector<f32, D>; D]) -> Option<Self> {
-        (SVector::orthonormalize(&mut vectors[1..]) == D - 1).then_some(Self { vectors })
+    pub fn new(vectors: [SVector<f32, D>; D]) -> Option<Self> {
+        let mut orthonormalized = vectors;
+        (SVector::orthonormalize(&mut orthonormalized[1..]) == D - 1).then(|| Self {
+            vectors,
+            orthonormalized,
+        })
     }
     /// The plane's starting point
     pub fn v_0(&self) -> &SVector<f32, D> {
@@ -162,9 +169,15 @@ impl<const D: usize> Plane<D> {
     pub fn basis(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
+    fn orthonormalized_basis(&self) -> &[SVector<f32, D>] {
+        &self.orthonormalized[1..]
+    }
     /// Project a vector using the orthonormal basis projection formula.
     pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
-        self.basis().iter().map(|e| v.dot(e) * e).sum()
+        self.orthonormalized_basis()
+            .iter()
+            .map(|e| v.dot(e) * e)
+            .sum()
     }
 
     /// Project a point onto the plane
@@ -262,9 +275,8 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror)
                 .map(|mirror| Box::new(mirror) as Box<dyn Mirror<D>>),
-            "sphere" => {
-                sphere::SphereMirror::<D>::from_json(mirror).map(|mirror| Box::new(mirror) as _)
-            }
+            "sphere" => sphere::EuclideanSphereMirror::<D>::from_json(mirror)
+                .map(|mirror| Box::new(mirror) as _),
             _ => Err("Invalid mirror type".into()),
         }
     }
