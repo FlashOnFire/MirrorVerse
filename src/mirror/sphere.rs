@@ -29,12 +29,10 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
                     } else {
                         normal
                     };
-                    list.push(
-                        Tangent::Normal {
-                            origin: point,
-                            normal,
-                        },
-                    );
+                    list.push(Tangent::Normal {
+                        origin: point,
+                        normal,
+                    });
                 }
             }
         }
@@ -68,10 +66,7 @@ impl<const D: usize> Mirror<D> for SphereMirror<D> {
             .and_then(Value::as_f64)
             .ok_or("Failed to parse radius")? as f32;
 
-        Ok(Self {
-            center,
-            radius,
-        })
+        Ok(Self { center, radius })
     }
 }
 

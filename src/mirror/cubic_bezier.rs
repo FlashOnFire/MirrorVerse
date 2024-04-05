@@ -125,18 +125,9 @@ mod tests {
                 [1., 1., 0.].into(),
             ],
         };
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
     }
 
     #[test]
@@ -150,18 +141,9 @@ mod tests {
             ],
         };
         // calculate position
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
         // calculate tangent
 
         assert_eq!(
@@ -189,18 +171,9 @@ mod tests {
             ],
         };
         // calculate position
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
         // calculate tangent
 
         assert_eq!(
@@ -252,17 +225,8 @@ mod tests {
             CubicBezierMirror::from_json(&json).expect("json deserialisation failed");
 
         assert_eq!(bezier_mirror.control_points.len(), 3);
-        assert_eq!(
-            bezier_mirror.control_points[0],
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.control_points[1],
-            [1., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.control_points[2],
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.control_points[0], [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.control_points[1], [1., 0., 0.].into());
+        assert_eq!(bezier_mirror.control_points[2], [1., 1., 0.].into());
     }
 }

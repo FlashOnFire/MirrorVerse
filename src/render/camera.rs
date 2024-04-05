@@ -36,8 +36,11 @@ impl CameraUniform {
 
         let a = camera.calc_matrix();
 
+        #[rustfmt::skip]
         let cam = nalgebra::Matrix4::new(
-            a.x.x, a.y.x, a.z.x, a.w.x, a.x.y, a.y.y, a.z.y, a.w.y, a.x.z, a.y.z, a.z.z, a.w.z,
+            a.x.x, a.y.x, a.z.x, a.w.x,
+            a.x.y, a.y.y, a.z.y, a.w.y,
+            a.x.z, a.y.z, a.z.z, a.w.z,
             a.x.w, a.y.w, a.z.w, a.w.w,
         );
 
@@ -81,8 +84,11 @@ impl Camera {
         let a =
             nalgebra::Isometry3::look_at_rh(&self.position, &target.into(), &y).to_homogeneous();
 
+        #[rustfmt::skip]
         let ret2 = Matrix4::new(
-            a.m11, a.m21, a.m31, a.m41, a.m12, a.m22, a.m32, a.m42, a.m13, a.m23, a.m33, a.m43,
+            a.m11, a.m21, a.m31, a.m41,
+            a.m12, a.m22, a.m32, a.m42,
+            a.m13, a.m23, a.m33, a.m43,
             a.m14, a.m24, a.m34, a.m44,
         );
         ret
@@ -156,39 +162,21 @@ impl CameraController {
     }
 
     pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) -> bool {
-        let amount = if state == ElementState::Pressed {
-            1.
-        } else {
-            0.
-        };
+        let amount = (state == ElementState::Pressed) as u32 as f32;
+
+        let mut res = true;
 
         match key {
-            VirtualKeyCode::Z | VirtualKeyCode::W => {
-                self.amount_forward = amount;
-                true
-            }
-            VirtualKeyCode::S => {
-                self.amount_backwards = amount;
-                true
-            }
-            VirtualKeyCode::Q | VirtualKeyCode::A => {
-                self.amount_left = amount;
-                true
-            }
-            VirtualKeyCode::D => {
-                self.amount_right = amount;
-                true
-            }
-            VirtualKeyCode::Space => {
-                self.amount_up = amount;
-                true
-            }
-            VirtualKeyCode::LShift => {
-                self.amount_down = amount;
-                true
-            }
-            _ => false,
+            VirtualKeyCode::Z | VirtualKeyCode::W => self.amount_forward = amount,
+            VirtualKeyCode::S => self.amount_backwards = amount,
+            VirtualKeyCode::Q | VirtualKeyCode::A => self.amount_left = amount,
+            VirtualKeyCode::D => self.amount_right = amount,
+            VirtualKeyCode::Space => self.amount_up = amount,
+            VirtualKeyCode::LShift => self.amount_down = amount,
+            _ => res = false,
         }
+
+        res
     }
 
     pub fn process_mouse(&mut self, mouse_dx: f64, mouse_dy: f64) {
@@ -214,25 +202,23 @@ impl CameraController {
         let scrollward =
             nalgebra::Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
 
-        camera.position +=
-            scrollward * (self.amount_forward - self.amount_backwards) * self.speed * dt;
-        camera.position += right * (self.amount_right - self.amount_left) * self.speed * dt;
+        let spd = self.speed * dt;
+        let sens = self.sensitivity * dt;
 
-        camera.position += scrollward * self.scroll * self.speed * self.sensitivity * dt;
+        camera.position += scrollward * (self.amount_forward - self.amount_backwards) * spd;
+        camera.position += right * (self.amount_right - self.amount_left) * spd;
+
+        camera.position += scrollward * self.scroll * self.speed * sens;
+
+        camera.position.y += (self.amount_up - self.amount_down) * spd;
+
+        camera.yaw += Rad(self.rotate_horizontal) * sens;
+        camera.pitch += Rad(-self.rotate_vertical) * sens;
+
         self.scroll = 0.;
-
-        camera.position.y += (self.amount_up - self.amount_down) * self.speed * dt;
-
-        camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;
-        camera.pitch += Rad(-self.rotate_vertical) * self.sensitivity * dt;
-
         self.rotate_horizontal = 0.;
         self.rotate_vertical = 0.;
 
-        if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = -Rad(SAFE_FRAC_PI_2);
-        } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = Rad(SAFE_FRAC_PI_2);
-        }
+        camera.pitch = Rad(camera.pitch.0.clamp(-SAFE_FRAC_PI_2, SAFE_FRAC_PI_2));
     }
 }

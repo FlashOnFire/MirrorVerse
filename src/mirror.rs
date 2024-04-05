@@ -65,10 +65,7 @@ impl<const D: usize> Ray<D> {
         let direction =
             Unit::try_new(direction, f32::EPSILON).ok_or("Unable to normalize ray direction")?;
 
-        Ok(Self {
-            origin,
-            direction,
-        })
+        Ok(Self { origin, direction })
     }
 }
 
@@ -79,7 +76,6 @@ pub struct RayPath<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> RayPath<D> {
-
     pub fn points(&self) -> &[SVector<f32, D>] {
         self.points.as_slice()
     }

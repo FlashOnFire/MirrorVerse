@@ -122,10 +122,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
         let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
 
-        Ok(Self {
-            plane,
-            bounds,
-        })
+        Ok(Self { plane, bounds })
     }
 }
 
@@ -280,7 +277,6 @@ mod tests {
         let mut ray = Ray {
             origin: [0., 0.5].into(),
             direction: Unit::new_normalize([1., 0.].into()),
-            
         };
 
         let mut pts = m1.intersecting_points(&ray);

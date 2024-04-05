@@ -133,23 +133,11 @@ mod tests {
     #[test]
     fn test_calculate_linear_point_2d() {
         let bezier_mirror = BezierMirror {
-            control_points: vec![
-                [0., 0., 0.].into(),
-                [1., 1., 0.].into(),
-            ],
+            control_points: vec![[0., 0., 0.].into(), [1., 1., 0.].into()],
         };
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
     }
 
     #[test]
@@ -161,18 +149,9 @@ mod tests {
                 [1., 0., 0.].into(),
             ],
         };
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 0., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 0., 0.].into());
     }
 
     #[test]
@@ -185,20 +164,11 @@ mod tests {
                 [1., 1., 0.].into(),
             ],
         };
-        assert_eq!(
-            bezier_mirror.calculate_point(0.),
-            [0., 0., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.), [0., 0., 0.].into());
 
-        assert_eq!(
-            bezier_mirror.calculate_point(0.5),
-            [0.5, 0.5, 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5, 0.].into());
 
-        assert_eq!(
-            bezier_mirror.calculate_point(1.),
-            [1., 1., 0.].into()
-        );
+        assert_eq!(bezier_mirror.calculate_point(1.), [1., 1., 0.].into());
     }
 
     #[test]
