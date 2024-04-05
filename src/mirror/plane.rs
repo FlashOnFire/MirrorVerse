@@ -113,7 +113,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
         let mut bounds = [0.; D];
         for (i, o) in bounds[1..].iter_mut().zip(bounds_json.iter()) {
-            *i = (o.as_f64().ok_or("Failed to parse bound")? as f32).abs();
+            *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
         }
 
         let darkness_coef = json

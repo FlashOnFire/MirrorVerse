@@ -113,9 +113,6 @@ fn main() {
     for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
         for _ in 0..REFLECTION_LIMIT {
 
-            println!("o: {:?}", ray.origin);
-            println!("d: {:?}", ray.direction);
-
             ray_path.points.push(ray.origin);
 
             mirror.append_intersecting_points(ray, &mut intersections);
@@ -140,7 +137,6 @@ fn main() {
             }
 
             if let Some((distance, (_, tangent))) = reflection_data {
-                println!("{}", distance);
                 ray.advance(distance);
                 ray.reflect_direction(tangent);
             } else {
@@ -260,6 +256,7 @@ fn render(
             write: true,
             ..Default::default()
         },
+        line_width: Some(4.),
         ..Default::default()
     };
 
