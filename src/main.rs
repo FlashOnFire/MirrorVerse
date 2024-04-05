@@ -117,6 +117,8 @@ fn main() {
 
             mirror.append_intersecting_points(ray, &mut intersections);
 
+            println!("{:?}", intersections);
+
             let mut reflection_data = None;
             for point in intersections.iter() {
                 let dist = point
@@ -124,7 +126,7 @@ fn main() {
                     .try_intersection_distance(ray)
                     .expect("the ray must intersect with the plane");
 
-                if dist > f32::EPSILON {
+                if dist > f32::EPSILON * 16.0 {
                     if let Some((t, pt)) = reflection_data.as_mut() {
                         if dist < *t {
                             *t = dist;
@@ -256,7 +258,7 @@ fn render(
             write: true,
             ..Default::default()
         },
-        line_width: Some(4.),
+        line_width: Some(3.),
         ..Default::default()
     };
 
