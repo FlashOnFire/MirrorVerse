@@ -30,8 +30,6 @@ fn main() {
 
     let ray_paths = simulation.get_ray_paths(300);
 
-    println!("{:?}", ray_paths);
-
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))

@@ -404,7 +404,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                     ray.reflect_direction(tangent);
                 } else {
                     ray_path.set_final_direction(ray.direction);
-                    println!("{n}");
                     break;
                 }
 
