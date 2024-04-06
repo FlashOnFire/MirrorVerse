@@ -51,12 +51,6 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
                 if t > 0. {
                     let point = ray.at(t);
                     let normal = Unit::new_normalize(point - self.center);
-                    //orient the normal to the ray
-                    let normal = if normal.dot(&ray.direction) > 0. {
-                        -normal
-                    } else {
-                        normal
-                    };
                     list.push(Tangent::Normal {
                         origin: point,
                         normal,
