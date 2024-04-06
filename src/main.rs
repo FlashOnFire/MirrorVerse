@@ -37,7 +37,7 @@ fn main() {
     let cb = glutin::ContextBuilder::new();
     let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
-    let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(90.), cg::Deg(0.));
+    let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(-90.), cg::Deg(0.));
 
     let mut projection = Projection::new(1280, 720, cg::Deg(70.), 0.1, 100.);
     let mut camera_controller = CameraController::new(5., 0.5);
@@ -168,7 +168,7 @@ fn render(
             .collect();
 
         if let Some(dir) = ray_path.final_direction() {
-            ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.).into());
+            ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 2000.).into());
         }
 
         let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
@@ -178,7 +178,11 @@ fn render(
                 &vertex_buffer,
                 &INDICES_LINESTRIP,
                 &program3d,
-                &gl::uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]},
+                &gl::uniform! {
+                    perspective: perspective,
+                    view: view,
+                    color_vec: [0.7f32, 0.3f32, 0.1f32]
+                },
                 &params,
             )
             .unwrap();
@@ -192,7 +196,11 @@ fn render(
             &vertex_buffer,
             INDICES_TRIANGLE_STRIP,
             &program3d,
-            &gl::uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]},
+            &gl::uniform! {
+                perspective: perspective,
+                view: view,
+                color_vec: [0.3f32, 0.3f32, 0.9f32]
+            },
             &params,
         ).expect("ooooooo c'est la panique");
     }

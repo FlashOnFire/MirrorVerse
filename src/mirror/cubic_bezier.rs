@@ -6,7 +6,12 @@ pub struct CubicBezierMirror {
     control_points: Vec<Point<f32, 2>>,
 }
 
-impl JsonSerialisable for CubicBezierMirror {
+impl Mirror<2> for CubicBezierMirror {
+
+    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
+        todo!()
+    }
+
     fn get_json_type(&self) -> &'static str {
         "cubic_bezier"
     }
@@ -42,6 +47,10 @@ impl JsonSerialisable for CubicBezierMirror {
         }
 
         Ok(Self { control_points })
+    }
+
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
     }
 }
 

@@ -39,7 +39,23 @@ impl<const D: usize> PlaneMirror<D> {
     }
 }
 
-impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
+impl<const D: usize> Mirror<D> for PlaneMirror<D> {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        if self
+            .plane
+            .intersection_coordinates(ray)
+            .filter(|v| {
+                v.iter()
+                    .skip(1)
+                    .zip(self.vector_bounds())
+                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+            })
+            .is_some()
+        {
+            list.push(Tangent::Plane(self.plane));
+        }
+    }
+
     fn get_json_type(&self) -> &'static str {
         "plane"
     }
@@ -101,23 +117,9 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
 
         Ok(Self { plane, bounds })
     }
-}
 
-impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        if self
-            .plane
-            .intersection_coordinates(ray)
-            .filter(|v| {
-                v.iter()
-                    .skip(1)
-                    .zip(self.vector_bounds())
-                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-            })
-            .is_some()
-        {
-            list.push(Tangent::Plane(self.plane));
-        }
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
     }
 }
 

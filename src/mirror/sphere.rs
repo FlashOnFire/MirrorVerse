@@ -6,7 +6,31 @@ pub struct EuclideanSphereMirror<const D: usize = DEFAULT_DIM> {
     radius: f32,
 }
 
-impl<const D: usize> JsonSerialisable for EuclideanSphereMirror<D> {
+impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        let oc = ray.origin - self.center;
+        let a = ray.direction.norm_squared();
+        let b = oc.dot(&ray.direction);
+        let c = oc.norm_squared() - self.radius * self.radius;
+        let delta = b * b - a * c;
+
+        if delta > 0. {
+            let sqrt_delta = delta.sqrt();
+            let neg_b = -b;
+            let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
+            for &t in t.iter() {
+                if t > 0. {
+                    let point = ray.at(t);
+                    let normal = Unit::new_normalize(point - self.center);
+                    list.push(Tangent::Normal {
+                        origin: point,
+                        normal,
+                    });
+                }
+            }
+        }
+    }
+
     fn get_json_type(&self) -> &'static str {
         "sphere"
     }
@@ -33,31 +57,9 @@ impl<const D: usize> JsonSerialisable for EuclideanSphereMirror<D> {
 
         Ok(Self { center, radius })
     }
-}
 
-impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        let oc = ray.origin - self.center;
-        let a = ray.direction.norm_squared();
-        let b = oc.dot(&ray.direction);
-        let c = oc.norm_squared() - self.radius * self.radius;
-        let delta = b * b - a * c;
-
-        if delta > 0. {
-            let sqrt_delta = delta.sqrt();
-            let neg_b = -b;
-            let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
-            for &t in t.iter() {
-                if t > 0. {
-                    let point = ray.at(t);
-                    let normal = Unit::new_normalize(point - self.center);
-                    list.push(Tangent::Normal {
-                        origin: point,
-                        normal,
-                    });
-                }
-            }
-        }
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
     }
 }
 

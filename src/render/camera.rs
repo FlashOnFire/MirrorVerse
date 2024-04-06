@@ -40,9 +40,6 @@ impl Camera {
             Vector3::new(target.x, target.y, target.z),
             Vector3::new(y.x, y.y, y.z),
         );
-
-        let a =
-            nalgebra::Isometry3::look_at_rh(&self.position, &target.into(), &y).to_homogeneous();
     
         ret
     }
@@ -153,7 +150,7 @@ impl CameraController {
         let spd = self.speed * dt;
         let sens = self.sensitivity * dt;
 
-        camera.position += scrollward * (self.amount_forward - self.amount_backwards) * spd;
+        camera.position += forward * (self.amount_forward - self.amount_backwards) * spd;
         camera.position += right * (self.amount_right - self.amount_left) * spd;
 
         camera.position += scrollward * self.scroll * self.speed * sens;

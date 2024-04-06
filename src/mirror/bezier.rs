@@ -7,7 +7,11 @@ pub struct BezierMirror {
     control_points: Vec<Point<f32, 2>>,
 }
 
-impl JsonSerialisable for BezierMirror {
+impl Mirror<2> for BezierMirror {
+    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
+        todo!()
+    }
+
     fn get_json_type(&self) -> &'static str {
         "bezier"
     }
@@ -43,6 +47,10 @@ impl JsonSerialisable for BezierMirror {
         }
 
         Ok(Self { control_points })
+    }
+
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
     }
 }
 
@@ -100,8 +108,6 @@ fn binomial_coefficient(n: usize, k: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Write;
-
     use super::*;
 
     #[test]
@@ -158,21 +164,6 @@ mod tests {
         assert_eq!(bezier_mirror.calculate_point(0.5), [0.5, 0.5].into());
 
         assert_eq!(bezier_mirror.calculate_point(1.), [1., 1.].into());
-    }
-
-    #[test]
-    fn generate_point_in_csv() {
-        //simple function to visualize the bezier curve to check that I dont do shit
-        let bezier_mirror = BezierMirror {
-            control_points: vec![[0., 0.].into(), [0.5, 1.].into(), [0., 1.].into()],
-        };
-
-        let mut file = std::fs::File::create("points.csv").unwrap();
-        for i in 0..100 {
-            let t = i as f32 / 100.;
-            let point = bezier_mirror.calculate_point(t);
-            writeln!(file, "{},{}", point[0], point[1]).unwrap();
-        }
     }
 
     #[test]
