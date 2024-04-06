@@ -1,12 +1,8 @@
 extern crate alloc;
 
 use std::{fs::File, time};
-
 use cgmath as cg;
-use glium::{
-    self as gl,
-    glutin::{self, event, event_loop},
-};
+use glium::{self as gl, glutin::{self, event, event_loop}};
 use nalgebra::Point3;
 
 use render::camera::{Camera, CameraController, Projection};
@@ -39,7 +35,7 @@ fn main() {
 
     let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(-90.), cg::Deg(0.));
 
-    let mut projection = Projection::new(1280, 720, cg::Deg(70.), 0.1, 100.);
+    let mut projection = Projection::new(1280, 720, cg::Deg(0.), 0.1, 1000.);
     let mut camera_controller = CameraController::new(5., 3.0, 2.0);
 
     let mut program3d = gl::Program::from_source(
@@ -48,7 +44,7 @@ fn main() {
         render::FRAGMENT_SHADER_SRC,
         None,
     )
-    .unwrap();
+        .unwrap();
 
     let mut last_render_time = time::Instant::now();
 
@@ -134,7 +130,7 @@ fn render(
     let mut target = display.draw();
 
     use gl::Surface;
-    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.);
+    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 0.0);
 
     let (width, height) = target.get_dimensions();
     let aspect_ratio = width as f32 / height as f32;
@@ -145,7 +141,7 @@ fn render(
 
     let params = gl::DrawParameters {
         depth: gl::Depth {
-            test: gl::draw_parameters::DepthTest::IfLess,
+            test: gl::draw_parameters::DepthTest::IfMore,
             write: true,
             ..Default::default()
         },
@@ -159,33 +155,31 @@ fn render(
     const INDICES_TRIANGLE_STRIP: NoIndices = NoIndices(PrimitiveType::TriangleStrip);
 
     for ray_path in ray_paths {
+        let mut ray_path_vertices_vectors: Vec<_> = ray_path.points().to_vec();
         
-        let mut ray_path_vertices: Vec<_> = ray_path
-            .points()
-            .iter()
+        // Add another point far away to render the last line
+        if let Some(dir) = ray_path.final_direction() {
+            ray_path_vertices_vectors.push(ray_path.points().last().unwrap() + dir.as_ref() * 2000.);
+        }
+
+        let ray_path_vertices: Vec<_> = ray_path_vertices_vectors.iter()
             .copied()
             .map(render::Vertex::from)
             .collect();
 
-        if let Some(dir) = ray_path.final_direction() {
-            ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 2000.).into());
-        }
-
         let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
 
-        target
-            .draw(
-                &vertex_buffer,
-                &INDICES_LINESTRIP,
-                &program3d,
-                &gl::uniform! {
+        target.draw(
+            &vertex_buffer,
+            &INDICES_LINESTRIP,
+            &program3d,
+            &gl::uniform! {
                     perspective: perspective,
                     view: view,
                     color_vec: [0.7f32, 0.3f32, 0.1f32]
                 },
-                &params,
-            )
-            .unwrap();
+            &params,
+        ).unwrap();
     }
 
     for mirror in mirrors {
