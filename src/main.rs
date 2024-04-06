@@ -16,8 +16,7 @@ fn main() {
 
     // Load the mirror list from the json file
     let file_path = std::env::args()
-        .skip(1)
-        .next()
+        .nth(1)
         .expect("Please provide a file path as a command-line argument.");
 
     let simulation = mirror::Simulation::<Vec<mirror::plane::PlaneMirror>>::from_json(
@@ -170,8 +169,8 @@ fn render(
 
         target.draw(
             &vertex_buffer,
-            &INDICES_LINESTRIP,
-            &program3d,
+            INDICES_LINESTRIP,
+            program3d,
             &gl::uniform! {
                     perspective: perspective,
                     view: view,
@@ -188,14 +187,14 @@ fn render(
         target.draw(
             &vertex_buffer,
             INDICES_TRIANGLE_STRIP,
-            &program3d,
+            program3d,
             &gl::uniform! {
                 perspective: perspective,
                 view: view,
             color_vec: [0.3f32, 0.3f32, 0.9f32, 0.7f32]
             },
             &params,
-        ).expect("ooooooo c'est la panique");
+        ).unwrap();
     }
 
     target.finish().unwrap();

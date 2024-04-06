@@ -26,7 +26,7 @@ impl<const D: usize> PlaneMirror<D> {
         // WARNING: black magic
 
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
-        (0..1 << D - 1).map(|i| {
+        (0..1 << (D - 1)).map(|i| {
             self.vector_bounds()
                 .iter()
                 .enumerate()
