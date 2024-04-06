@@ -43,14 +43,7 @@ impl Camera {
 
         let a =
             nalgebra::Isometry3::look_at_rh(&self.position, &target.into(), &y).to_homogeneous();
-
-        #[rustfmt::skip]
-        let ret2 = Matrix4::new(
-            a.m11, a.m21, a.m31, a.m41,
-            a.m12, a.m22, a.m32, a.m42,
-            a.m13, a.m23, a.m33, a.m43,
-            a.m14, a.m24, a.m34, a.m44,
-        );
+    
         ret
     }
 }

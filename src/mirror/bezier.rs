@@ -36,7 +36,7 @@ impl JsonSerialisable for BezierMirror {
                 point_json
                     .as_array()
                     .map(Vec::as_slice)
-                    .and_then(json_array_to_float_array)
+                    .and_then(util::json_array_to_float_array)
                     .map(Point::from)
                     .ok_or(f!("Failed to parse {i}th control point"))?,
             );

@@ -57,40 +57,14 @@ impl<const D: usize> Ray<D> {
             .and_then(serde_json::Value::as_array)
             .ok_or("Missing ray direction")?;
 
-        let origin = json_array_to_vector(origin).ok_or("Invalid ray origin")?;
+        let origin = util::json_array_to_vector(origin).ok_or("Invalid ray origin")?;
 
-        let direction = json_array_to_vector(direction).ok_or("Invalid ray direction")?;
+        let direction = util::json_array_to_vector(direction).ok_or("Invalid ray direction")?;
 
         let direction =
             Unit::try_new(direction, f32::EPSILON).ok_or("Unable to normalize ray direction")?;
 
         Ok(Self { origin, direction })
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct RayPath<const D: usize = DEFAULT_DIM> {
-    points: Vec<SVector<f32, D>>,
-    final_direction: Option<Unit<SVector<f32, D>>>,
-}
-
-impl<const D: usize> RayPath<D> {
-    pub fn points(&self) -> &[SVector<f32, D>] {
-        self.points.as_slice()
-    }
-
-    pub fn final_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
-        self.final_direction.as_ref()
-    }
-
-    pub fn push_point(&mut self, pt: SVector<f32, D>) {
-        self.points.push(pt);
-    }
-
-    pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
-        let first_time = self.final_direction.is_none();
-        self.final_direction = Some(dir);
-        first_time
     }
 }
 
@@ -286,7 +260,14 @@ impl<const D: usize> JsonSerialisable for Box<dyn Mirror<D>> {
     }
 }
 
-impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
+impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
+    }
+}
+
+impl<const D: usize, T: ?Sized + Mirror<D>> Mirror<D> for Box<T> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.as_ref().append_intersecting_points(ray, list);
     }
@@ -306,48 +287,167 @@ impl<T: JsonSerialisable> JsonSerialisable for Vec<T> {
             ... list of json values whose structure depends on `T`
         ]
          */
-
-        json.as_array()
-            .and_then(|json| try_collect(json.iter().map(T::from_json).map(Result::ok)))
-            .ok_or_else(|| "Invalid mirror list".into())
+        
+        util::try_collect(
+            json
+                .as_array()
+                .ok_or("json must be an array")?
+                .iter()
+                .map(T::from_json)
+                .map(Result::ok)
+        )
+        .ok_or_else(|| "Failed to deserialize a mirror".into())
     }
 }
 
-impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
+impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter()
-            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
+        self.as_slice().append_intersecting_points(ray, list);
     }
 }
 
-/// This is essentially [`Iterator::try_collect`]
-/// for `Vec<T>` but without having to use nightly
-pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
-    let mut vec = vec![];
-    for item in i {
-        vec.push(item?);
-    }
-
-    Some(vec)
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct RayPath<const D: usize = DEFAULT_DIM> {
+    points: Vec<SVector<f32, D>>,
+    final_direction: Option<Unit<SVector<f32, D>>>,
 }
 
-pub fn json_array_to_float_array<const D: usize>(
-    json_array: &[serde_json::Value],
-) -> Option<[f32; D]> {
-    let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
-
-    let mut center_coords_array = [0.; D];
-    for (coord, value) in center_coords_array.iter_mut().zip(array) {
-        *coord = value.as_f64()? as f32;
+impl<const D: usize> RayPath<D> {
+    pub fn points(&self) -> &[SVector<f32, D>] {
+        self.points.as_slice()
     }
-    Some(center_coords_array)
+
+    pub fn final_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
+        self.final_direction.as_ref()
+    }
+
+    pub fn push_point(&mut self, pt: SVector<f32, D>) {
+        self.points.push(pt);
+    }
+
+    pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
+        let first_time = self.final_direction.is_none();
+        self.final_direction = Some(dir);
+        first_time
+    }
 }
 
-/// This is essentially `try_into` then `try_map` but the latter is nightly-only
-pub fn json_array_to_vector<const D: usize>(
-    json_array: &[serde_json::Value],
-) -> Option<SVector<f32, D>> {
-    json_array_to_float_array(json_array).map(SVector::from)
+pub struct Simulation<T, const D: usize = DEFAULT_DIM> {
+    pub rays: Vec<Ray<D>>,
+    pub mirror: T,
+}
+
+impl<T: JsonSerialisable, const D: usize> Simulation<T, D> {
+
+    pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        let mirror = T::from_json(
+            json
+                .get("mirrors")
+                .ok_or("mirrors field expected")?
+        )?;
+
+        let rays = util::try_collect(
+            json
+            .get("rays")
+            .ok_or("rays field not found")?
+            .as_array()
+            .ok_or("`rays` field must be an array")?
+            .iter()
+            .map(Ray::from_json)
+            .map(Result::ok)
+        ).ok_or("failed to deserialize a ray")?;
+
+        Ok(Self { mirror, rays })
+    }
+
+    pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
+    }
+}
+
+impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
+    pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
+
+        let mut intersections = vec![];
+        let mut ray_paths = vec![RayPath::default() ; self.rays.len()];
+
+        let mut rays = self.rays.clone();
+
+        // TODO: clean this up
+
+        for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
+            for n in 0..reflection_limit {
+                ray_path.push_point(ray.origin);
+
+                self.mirror.append_intersecting_points(ray, &mut intersections);
+
+                let mut reflection_data = None;
+                for tangent in intersections.iter() {
+                    let dist = tangent
+                        .try_intersection_distance(ray)
+                        .expect("the ray must intersect with the plane");
+
+                    if dist > f32::EPSILON * 16. {
+                        if let Some((t, pt)) = reflection_data.as_mut() {
+                            if dist < *t {
+                                *t = dist;
+                                *pt = tangent;
+                            }
+                        } else {
+                            reflection_data = Some((dist, tangent));
+                        }
+                    }
+                }
+
+                if let Some((distance, tangent)) = reflection_data {
+                    ray.advance(distance);
+                    ray.reflect_direction(tangent);
+                } else {
+                    ray_path.set_final_direction(ray.direction);
+                    println!("{n}");
+                    break;
+                }
+
+                intersections.clear()
+            }
+        }
+
+        ray_paths
+    }
+}
+
+mod util {
+    use super::*;
+
+    pub fn json_array_to_float_array<const D: usize>(
+        json_array: &[serde_json::Value],
+    ) -> Option<[f32; D]> {
+        let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
+    
+        let mut center_coords_array = [0.; D];
+        for (coord, value) in center_coords_array.iter_mut().zip(array) {
+            *coord = value.as_f64()? as f32;
+        }
+        Some(center_coords_array)
+    }
+    
+    /// This is essentially `try_into` then `try_map` but the latter is nightly-only
+    pub fn json_array_to_vector<const D: usize>(
+        json_array: &[serde_json::Value],
+    ) -> Option<SVector<f32, D>> {
+        json_array_to_float_array(json_array).map(SVector::from)
+    }
+
+    /// This is essentially [`Iterator::try_collect`]
+    /// for `Vec<T>` but without having to use nightly
+    pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
+        let mut vec = vec![];
+        for item in i {
+            vec.push(item?);
+        }
+
+        Some(vec)
+    }
 }
 
 #[cfg(test)]

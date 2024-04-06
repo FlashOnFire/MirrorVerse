@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use std::time;
+use std::{fs::File, time};
 
 use cgmath as cg;
 use glium::{
@@ -17,6 +17,19 @@ mod render;
 pub const DEFAULT_DIM: usize = 3;
 
 fn main() {
+
+    // Load the mirror list from the json file
+    let file_path = std::env::args()
+        .skip(1)
+        .next()
+        .expect("Please provide a file path as a command-line argument.");
+
+    let simulation = mirror::Simulation::<Vec<mirror::plane::PlaneMirror>>::from_json(
+        &serde_json::from_reader(File::open(file_path).unwrap()).unwrap()
+    ).unwrap();
+
+    let ray_paths = simulation.get_ray_paths(300);
+
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))
@@ -40,65 +53,6 @@ fn main() {
     let mut last_render_time = time::Instant::now();
 
     let mut mouse_pressed = false;
-
-    // Load the mirror list from the json file
-    let file_path = std::env::args()
-        .skip(1)
-        .next()
-        .expect("Please provide a file path as a command-line argument.");
-
-    let json = std::fs::read_to_string(file_path).unwrap();
-    let value: serde_json::Value = serde_json::from_str(&json).unwrap();
-
-    use mirror::{plane::PlaneMirror, JsonSerialisable, Mirror};
-
-    let mirror =
-        Vec::<PlaneMirror>::from_json(value.get("mirrors").expect("mirrors field expected"))
-            .expect("expected data in mirrors field to be well-formed");
-
-    let mut rays = vec![mirror::Ray::from_json(value.get("ray").unwrap()).unwrap()];
-    const REFLECTION_LIMIT: usize = 300;
-
-    let mut intersections = vec![];
-    let mut ray_paths = vec![mirror::RayPath::default()];
-
-    // TODO: clean this up
-
-    for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
-        for _ in 0..REFLECTION_LIMIT {
-            ray_path.push_point(ray.origin);
-
-            mirror.append_intersecting_points(ray, &mut intersections);
-
-            let mut reflection_data = None;
-            for tangent in intersections.iter() {
-                let dist = tangent
-                    .try_intersection_distance(ray)
-                    .expect("the ray must intersect with the plane");
-
-                if dist > f32::EPSILON * 16. {
-                    if let Some((t, pt)) = reflection_data.as_mut() {
-                        if dist < *t {
-                            *t = dist;
-                            *pt = tangent;
-                        }
-                    } else {
-                        reflection_data = Some((dist, tangent));
-                    }
-                }
-            }
-
-            if let Some((distance, tangent)) = reflection_data {
-                ray.advance(distance);
-                ray.reflect_direction(tangent);
-            } else {
-                ray_path.set_final_direction(ray.direction);
-                break;
-            }
-
-            intersections.clear()
-        }
-    }
 
     events_loop.run(move |ev, _, control_flow| match ev {
         event::Event::WindowEvent { event, .. } => match event {
@@ -148,8 +102,8 @@ fn main() {
                 &mut program3d,
                 &camera,
                 &projection,
-                &ray_paths[0],
-                &mirror,
+                ray_paths.as_slice(),
+                &simulation.mirror,
             );
         }
         event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
@@ -174,7 +128,7 @@ fn render(
     program3d: &mut gl::Program,
     camera: &Camera,
     projection: &Projection,
-    ray_path: &mirror::RayPath,
+    ray_paths: &[mirror::RayPath],
     mirrors: &Vec<mirror::plane::PlaneMirror>,
 ) {
     let mut target = display.draw();
@@ -185,7 +139,7 @@ fn render(
     let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
-    let mat = cg::perspective(cg::Deg(45.), (16.) / (9.), 1000., 0.1);
+    let mat = cg::perspective(cg::Deg(45.), 16. / 9., 1000., 0.1);
     let perspective: [[f32; 4]; 4] = mat.into();
     let view: [[f32; 4]; 4] = camera.calc_matrix().into();
 
@@ -199,30 +153,33 @@ fn render(
         ..Default::default()
     };
 
-    let mut ray_path_vertices: Vec<_> = ray_path
-        .points()
-        .iter()
-        .copied()
-        .map(render::Vertex::from)
-        .collect();
-
-    if let Some(dir) = ray_path.final_direction() {
-        ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.).into());
-    }
-
-    let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
     let indices_linestrip = gl::index::NoIndices(gl::index::PrimitiveType::LineStrip);
     let indices_trianglestrip = gl::index::NoIndices(gl::index::PrimitiveType::TriangleStrip);
 
-    target
-        .draw(
-            &vertex_buffer,
-            &indices_linestrip,
-            &program3d,
-            &gl::uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]},
-            &params,
-        )
-        .unwrap();
+    for ray_path in ray_paths {
+        let mut ray_path_vertices: Vec<_> = ray_path
+            .points()
+            .iter()
+            .copied()
+            .map(render::Vertex::from)
+            .collect();
+
+        let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
+
+        if let Some(dir) = ray_path.final_direction() {
+            ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.).into());
+        }
+
+        target
+            .draw(
+                &vertex_buffer,
+                &indices_linestrip,
+                &program3d,
+                &gl::uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]},
+                &params,
+            )
+            .unwrap();
+    }
 
     for mirror in mirrors {
         let vertices: Vec<_> = mirror.vertices().map(render::Vertex::from).collect();

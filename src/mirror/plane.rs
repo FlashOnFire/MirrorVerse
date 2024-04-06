@@ -69,7 +69,7 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
             .get("center")
             .and_then(serde_json::Value::as_array)
             .map(Vec::as_slice)
-            .and_then(json_array_to_vector)
+            .and_then(util::json_array_to_vector)
             .ok_or("Failed to parse center")?;
 
         let basis_json = json
@@ -82,7 +82,7 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
             *vector = value
                 .as_array()
                 .map(Vec::as_slice)
-                .and_then(json_array_to_vector)
+                .and_then(util::json_array_to_vector)
                 .ok_or("Failed to parse basis vector")?;
         }
 
