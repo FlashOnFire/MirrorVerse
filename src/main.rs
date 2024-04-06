@@ -139,7 +139,7 @@ fn render(
     let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
-    let mat = cg::perspective(cg::Deg(45.), 16. / 9., 1000., 0.1);
+    let mat = cg::perspective(cg::Deg(45.), 1. / aspect_ratio, 1000., 0.1);
     let perspective: [[f32; 4]; 4] = mat.into();
     let view: [[f32; 4]; 4] = camera.calc_matrix().into();
 
