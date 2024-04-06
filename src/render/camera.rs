@@ -1,6 +1,6 @@
 use core::{f32::consts::FRAC_PI_2, time::Duration};
 
-use cgmath::{Matrix4, Rad, Vector3};
+use cgmath::{InnerSpace, Matrix4, Point3, Rad, Vector3};
 use glium::glutin::{
     dpi::PhysicalPosition,
     event::{ElementState, MouseScrollDelta, VirtualKeyCode},
@@ -9,13 +9,13 @@ use glium::glutin::{
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 pub struct Camera {
-    pub position: nalgebra::Point3<f32>,
+    pub position: Point3<f32>,
     yaw: Rad<f32>,
     pitch: Rad<f32>,
 }
 
 impl Camera {
-    pub fn new<V: Into<nalgebra::Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
+    pub fn new<V: Into<cgmath::Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
         position: V,
         yaw: Y,
         pitch: P,
@@ -27,21 +27,19 @@ impl Camera {
         }
     }
 
-    pub fn calc_matrix(&self) -> Matrix4<f32> {
+    pub fn calc_matrix(&self) -> [[f32; 4]; 4] {
         let (sin_pitch, cos_pitch) = self.pitch.0.sin_cos();
         let (sin_yaw, cos_yaw) = self.yaw.0.sin_cos();
 
-        let y = nalgebra::Vector3::y();
+        let up = cgmath::Vector3::unit_y();
         let target =
-            nalgebra::Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize();
+            cgmath::Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
 
-        let ret = Matrix4::look_to_rh(
+        Matrix4::look_to_rh(
             cgmath::Point3::new(self.position.x, self.position.y, self.position.z),
-            Vector3::new(target.x, target.y, target.z),
-            Vector3::new(y.x, y.y, y.z),
-        );
-
-        ret
+            target,
+            up,
+        ).into()
     }
 }
 
@@ -71,6 +69,10 @@ impl Projection {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.aspect = width as f32 / height as f32;
+    }
+    
+    pub fn get_matrix(&self) -> [[f32; 4]; 4] {
+        cgmath::perspective(cgmath::Deg(45.), self.aspect, self.z_near, self.z_far).into()
     }
 }
 
@@ -104,7 +106,7 @@ impl CameraController {
             scroll: 0.,
             speed,
             movement_sensitivity,
-            mouse_sensitivity
+            mouse_sensitivity,
         }
     }
 
@@ -142,12 +144,11 @@ impl CameraController {
         let dt = dt.as_secs_f32();
 
         let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = nalgebra::Vector3::new(yaw_cos, 0., yaw_sin).normalize();
-        let right = nalgebra::Vector3::new(-yaw_sin, 0., yaw_cos).normalize();
+        let forward = Vector3::new(yaw_cos, 0., yaw_sin).normalize();
+        let right = Vector3::new(-yaw_sin, 0., yaw_cos).normalize();
 
         let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
-        let scrollward =
-            nalgebra::Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
+        let scrollward = Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
 
         let spd = self.speed * dt;
         let move_sens = self.movement_sensitivity * dt;

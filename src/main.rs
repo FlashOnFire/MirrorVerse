@@ -2,8 +2,7 @@ extern crate alloc;
 
 use std::{fs::File, time};
 use cgmath as cg;
-use glium::{self as gl, Blend, glutin::{self, event, event_loop}};
-use nalgebra::Point3;
+use glium::{self as gl, Surface, Blend, glutin::{self, event, event_loop}};
 
 use render::camera::{Camera, CameraController, Projection};
 
@@ -12,8 +11,25 @@ mod render;
 
 pub const DEFAULT_DIM: usize = 3;
 
-fn main() {
+pub const DEFAULT_WIDTH: u32 = 1280;
+pub const DEFAULT_HEIGHT: u32 = 720;
+pub const NEAR_PLANE: f32 = 0.1;
+pub const FAR_PLANE: f32 = 1000.;
 
+pub const SPEED: f32 = 5.;
+pub const MOVEMENT_SENSITIVITY: f32 = 3.0;
+pub const MOUSE_SENSITIVITY: f32 = 2.0;
+
+pub const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 0.);
+pub const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
+pub const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
+
+pub const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(70.);
+
+pub const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
+pub const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.7];
+
+fn main() {
     // Load the mirror list from the json file
     let file_path = std::env::args()
         .nth(1)
@@ -27,15 +43,15 @@ fn main() {
 
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
-        .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))
+        .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
         .with_title("MirrorVerse");
     let cb = glutin::ContextBuilder::new();
     let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
-    let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(-90.), cg::Deg(0.));
+    let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
 
-    let mut projection = Projection::new(1280, 720, cg::Deg(0.), 0.1, 1000.);
-    let mut camera_controller = CameraController::new(5., 3.0, 2.0);
+    let mut projection = Projection::new(DEFAULT_WIDTH, DEFAULT_HEIGHT, PROJECTION_FOV, NEAR_PLANE, FAR_PLANE);
+    let mut camera_controller = CameraController::new(5., MOVEMENT_SENSITIVITY, MOUSE_SENSITIVITY);
 
     let mut program3d = gl::Program::from_source(
         &display,
@@ -96,6 +112,7 @@ fn main() {
                 &display,
                 &mut program3d,
                 &camera,
+                &projection,
                 ray_paths.as_slice(),
                 &simulation.mirror,
             );
@@ -121,20 +138,16 @@ fn render(
     display: &gl::backend::glutin::Display,
     program3d: &mut gl::Program,
     camera: &Camera,
+    projection: &Projection,
     ray_paths: &[mirror::RayPath],
     mirrors: &Vec<mirror::plane::PlaneMirror>,
 ) {
     let mut target = display.draw();
 
-    use gl::Surface;
     target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.0);
 
-    let (width, height) = target.get_dimensions();
-    let aspect_ratio = width as f32 / height as f32;
-
-    let mat = cg::perspective(cg::Deg(45.), aspect_ratio, 0.1, 1000.0);
-    let perspective: [[f32; 4]; 4] = mat.into();
-    let view: [[f32; 4]; 4] = camera.calc_matrix().into();
+    let perspective = projection.get_matrix();
+    let view = camera.calc_matrix();
 
     let params = gl::DrawParameters {
         depth: gl::Depth {
@@ -174,7 +187,7 @@ fn render(
             &gl::uniform! {
                     perspective: perspective,
                     view: view,
-                    color_vec: [0.7f32, 0.3f32, 0.1f32, 1.0f32]
+                    color_vec: RAY_COLOR,
                 },
             &params,
         ).unwrap();
@@ -191,7 +204,7 @@ fn render(
             &gl::uniform! {
                 perspective: perspective,
                 view: view,
-            color_vec: [0.3f32, 0.3f32, 0.9f32, 0.7f32]
+            color_vec: MIRROR_COLOR,
             },
             &params,
         ).unwrap();
