@@ -30,6 +30,8 @@ fn main() {
 
     let ray_paths = simulation.get_ray_paths(300);
 
+    println!("{:?}", ray_paths);
+
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))
@@ -115,7 +117,7 @@ fn main() {
                 camera_controller.process_mouse(delta.0, delta.1)
             }
         }
-        _ => {}
+        _ => ()
     });
 }
 
@@ -153,10 +155,13 @@ fn render(
         ..Default::default()
     };
 
-    let indices_linestrip = gl::index::NoIndices(gl::index::PrimitiveType::LineStrip);
-    let indices_trianglestrip = gl::index::NoIndices(gl::index::PrimitiveType::TriangleStrip);
+    use gl::index::{NoIndices, PrimitiveType};
+
+    const INDICES_LINESTRIP: NoIndices = NoIndices(PrimitiveType::LineStrip);
+    const INDICES_TRIANGLE_STRIP: NoIndices = NoIndices(PrimitiveType::TriangleStrip);
 
     for ray_path in ray_paths {
+        
         let mut ray_path_vertices: Vec<_> = ray_path
             .points()
             .iter()
@@ -164,16 +169,16 @@ fn render(
             .map(render::Vertex::from)
             .collect();
 
-        let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
-
         if let Some(dir) = ray_path.final_direction() {
             ray_path_vertices.push((ray_path.points().last().unwrap() + dir.as_ref() * 1000.).into());
         }
 
+        let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
+
         target
             .draw(
                 &vertex_buffer,
-                &indices_linestrip,
+                &INDICES_LINESTRIP,
                 &program3d,
                 &gl::uniform! {perspective: perspective, view: view, color_vec: [0.7f32, 0.3f32, 0.1f32]},
                 &params,
@@ -187,7 +192,7 @@ fn render(
         let vertex_buffer = gl::VertexBuffer::new(display, &vertices).unwrap();
         target.draw(
             &vertex_buffer,
-            indices_trianglestrip,
+            INDICES_TRIANGLE_STRIP,
             &program3d,
             &gl::uniform! {perspective: perspective, view: view, color_vec: [0.3f32, 0.3f32, 0.9f32]},
             &params,
