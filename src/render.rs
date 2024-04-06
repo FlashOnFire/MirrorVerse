@@ -15,12 +15,12 @@ impl From<nalgebra::SVector<f32, 3>> for Vertex {
 pub const FRAGMENT_SHADER_SRC: &str = r#"
         #version 140
 
-        uniform vec3 color_vec;
+        uniform vec4 color_vec;
 
         out vec4 color;
 
         void main() {
-            color = vec4(color_vec.xyz, 1.0);
+            color = color_vec;
         }
     "#;
 

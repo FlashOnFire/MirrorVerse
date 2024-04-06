@@ -2,7 +2,7 @@ extern crate alloc;
 
 use std::{fs::File, time};
 use cgmath as cg;
-use glium::{self as gl, glutin::{self, event, event_loop}};
+use glium::{self as gl, Blend, BlendingFunction, glutin::{self, event, event_loop}};
 use nalgebra::Point3;
 
 use render::camera::{Camera, CameraController, Projection};
@@ -146,6 +146,7 @@ fn render(
             ..Default::default()
         },
         line_width: Some(3.),
+        blend: Blend::alpha_blending(),
         ..Default::default()
     };
 
@@ -156,7 +157,7 @@ fn render(
 
     for ray_path in ray_paths {
         let mut ray_path_vertices_vectors: Vec<_> = ray_path.points().to_vec();
-        
+
         // Add another point far away to render the last line
         if let Some(dir) = ray_path.final_direction() {
             ray_path_vertices_vectors.push(ray_path.points().last().unwrap() + dir.as_ref() * 2000.);
@@ -176,7 +177,7 @@ fn render(
             &gl::uniform! {
                     perspective: perspective,
                     view: view,
-                    color_vec: [0.7f32, 0.3f32, 0.1f32]
+                    color_vec: [0.7f32, 0.3f32, 0.1f32, 1.0f32]
                 },
             &params,
         ).unwrap();
@@ -193,7 +194,7 @@ fn render(
             &gl::uniform! {
                 perspective: perspective,
                 view: view,
-                color_vec: [0.3f32, 0.3f32, 0.9f32]
+            color_vec: [0.3f32, 0.3f32, 0.9f32, 0.7f32]
             },
             &params,
         ).expect("ooooooo c'est la panique");
