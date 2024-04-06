@@ -12,17 +12,6 @@ impl From<nalgebra::SVector<f32, 3>> for Vertex {
     }
 }
 
-pub const VERTEX_SHADER_SRC: &str = r#"
-        #version 140
-
-        in vec2 position;
-        uniform mat4 perspective;
-
-        void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-    "#;
-
 pub const FRAGMENT_SHADER_SRC: &str = r#"
         #version 140
 

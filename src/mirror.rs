@@ -1,8 +1,7 @@
-use core::{iter, ops::Sub};
+use core::iter;
 use std::error::Error;
 
 use nalgebra::{Point, SMatrix, SVector, Unit};
-use serde_json::Value;
 
 use crate::DEFAULT_DIM;
 
@@ -38,7 +37,7 @@ impl<const D: usize> Ray<D> {
     }
 
     /// Create a new ray with a given origin and direction
-    pub fn from_json(json: &Value) -> Result<Self, Box<dyn Error>> {
+    pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         /*
         example json:
                  {
@@ -50,12 +49,12 @@ impl<const D: usize> Ray<D> {
 
         let origin = json
             .get("origin")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .ok_or("Missing ray origin")?;
 
         let direction = json
             .get("direction")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .ok_or("Missing ray direction")?;
 
         let origin = json_array_to_vector(origin).ok_or("Invalid ray origin")?;
@@ -217,41 +216,43 @@ impl<const D: usize> Plane<D> {
 
 pub trait JsonSerialisable {
     /// Returns a string slice, unique to the type, coherent with it's json representation
-    fn get_type(&self) -> &'static str;
+    fn get_json_type(&self) -> &'static str;
     /// Deserialises the mirror's data from the provided json string, returns `None` in case of error
-    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
+
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        Ok(serde_json::json!({}))
+    }
 }
 
-pub trait Mirror<const D: usize = DEFAULT_DIM> {
-    /// Returns a set of brightness gains and planes, in no particular order.
+pub trait Mirror<const D: usize> {
+    /// Appends to the list a number of tangent planes, in no particular order.
     ///
     /// The laser is expected to "bounce" off the closest plane.
     ///
     /// Here, "bounce" refers to the process of:
     ///     - Moving forward until it intersects the plane
-    ///     - Adjusting it's brightness according to the provided gain value
-    ///     - Then, orthognoally reflecting it's direction vector with
+    ///     - Then, orthogonally reflecting it's direction vector with
     ///       respect to the subspace defining the plane's "orientation"
     ///
-    /// Returns an empty list if the vector doesn't intersect with the mirror.
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>>;
+    /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
     /// An optimised version of `Self::reflect` that potentially saves
     /// an allocation by writing into another `Vec`. Override this if needed.
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        list.append(&mut self.intersecting_points(ray))
-    }
+    /// TODO: pass in a wrapper around a &mut Vec<_> that
+    /// only allows pushing/appending/extending etc..
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
 }
 
 impl<const D: usize> JsonSerialisable for Box<dyn Mirror<D>> {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "dynamic"
     }
 
-    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized,
     {
@@ -267,31 +268,36 @@ impl<const D: usize> JsonSerialisable for Box<dyn Mirror<D>> {
             .get("type")
             .ok_or("Missing mirror type")?
             .as_str()
-            .ok_or("Invalid mirror type")?;
+            .ok_or("type must be a string")?;
+
         let mirror = json.get("mirror").ok_or("Missing mirror data")?;
 
+        fn into_type_erased<const D: usize, T: Mirror<D> + 'static>(
+            mirror: T,
+        ) -> Box<dyn Mirror<D>> {
+            Box::new(mirror) as _
+        }
+
         match mirror_type {
-            "plane" => plane::PlaneMirror::<D>::from_json(mirror)
-                .map(|mirror| Box::new(mirror) as Box<dyn Mirror<D>>),
-            "sphere" => sphere::EuclideanSphereMirror::<D>::from_json(mirror)
-                .map(|mirror| Box::new(mirror) as _),
+            "plane" => plane::PlaneMirror::<D>::from_json(mirror).map(into_type_erased),
+            "sphere" => sphere::EuclideanSphereMirror::<D>::from_json(mirror).map(into_type_erased),
             _ => Err("Invalid mirror type".into()),
         }
     }
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        self.as_ref().intersecting_points(ray)
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.as_ref().append_intersecting_points(ray, list);
     }
 }
 
 impl<T: JsonSerialisable> JsonSerialisable for Vec<T> {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "composite"
     }
 
-    fn from_json(json: &Value) -> Result<Self, Box<dyn Error>>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized,
     {
@@ -308,12 +314,6 @@ impl<T: JsonSerialisable> JsonSerialisable for Vec<T> {
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        let mut list = vec![];
-        self.append_intersecting_points(ray, &mut list);
-        list
-    }
-
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.iter()
             .for_each(|mirror| mirror.append_intersecting_points(ray, list));
@@ -331,8 +331,10 @@ pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
     Some(vec)
 }
 
-pub fn json_array_to_float_array<const D: usize>(json_array: &[Value]) -> Option<[f32; D]> {
-    let array: &[Value; D] = json_array.try_into().ok()?;
+pub fn json_array_to_float_array<const D: usize>(
+    json_array: &[serde_json::Value],
+) -> Option<[f32; D]> {
+    let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
 
     let mut center_coords_array = [0.; D];
     for (coord, value) in center_coords_array.iter_mut().zip(array) {
@@ -342,7 +344,9 @@ pub fn json_array_to_float_array<const D: usize>(json_array: &[Value]) -> Option
 }
 
 /// This is essentially `try_into` then `try_map` but the latter is nightly-only
-pub fn json_array_to_vector<const D: usize>(json_array: &[Value]) -> Option<SVector<f32, D>> {
+pub fn json_array_to_vector<const D: usize>(
+    json_array: &[serde_json::Value],
+) -> Option<SVector<f32, D>> {
     json_array_to_float_array(json_array).map(SVector::from)
 }
 

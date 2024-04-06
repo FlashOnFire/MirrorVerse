@@ -8,7 +8,7 @@ pub struct BezierMirror {
 }
 
 impl JsonSerialisable for BezierMirror {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "bezier"
     }
 
@@ -27,7 +27,7 @@ impl JsonSerialisable for BezierMirror {
 
         for (i, point_json) in json
             .get("control_points")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .ok_or("Failed to parse control_points")?
             .iter()
             .enumerate()
@@ -43,12 +43,6 @@ impl JsonSerialisable for BezierMirror {
         }
 
         Ok(Self { control_points })
-    }
-}
-
-impl Mirror for BezierMirror {
-    fn intersecting_points(&self, ray: &Ray) -> Vec<Tangent> {
-        vec![]
     }
 }
 

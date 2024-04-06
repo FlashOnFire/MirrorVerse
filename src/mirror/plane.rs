@@ -40,7 +40,7 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "plane"
     }
 
@@ -67,14 +67,14 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
 
         *v_0 = json
             .get("center")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .map(Vec::as_slice)
             .and_then(json_array_to_vector)
             .ok_or("Failed to parse center")?;
 
         let basis_json = json
             .get("basis")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .filter(|l| l.len() == D - 1)
             .ok_or("Failed to parse basis")?;
 
@@ -88,7 +88,7 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
 
         let bounds_json = json
             .get("bounds")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .filter(|l| l.len() == D - 1)
             .ok_or("Failed to parse bounds")?;
 
@@ -97,12 +97,6 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
             *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
         }
 
-        let darkness_coef = json
-            .get("darkness")
-            .and_then(Value::as_f64)
-            .map(|f| f as f32)
-            .unwrap_or(1.);
-
         let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
 
         Ok(Self { plane, bounds })
@@ -110,20 +104,19 @@ impl<const D: usize> JsonSerialisable for PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        let mut list = vec![];
-        self.append_intersecting_points(ray, &mut list);
-        list
-    }
-
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        if let Some(coords) = self.plane.intersection_coordinates(ray).filter(|v| {
-            v.iter()
-                .skip(1)
-                .zip(self.vector_bounds())
-                .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-        }) {
-            list.push((Tangent::Plane(self.plane)));
+        if self
+            .plane
+            .intersection_coordinates(ray)
+            .filter(|v| {
+                v.iter()
+                    .skip(1)
+                    .zip(self.vector_bounds())
+                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
+            })
+            .is_some()
+        {
+            list.push(Tangent::Plane(self.plane));
         }
     }
 }
@@ -152,7 +145,10 @@ mod tests {
             direction: Unit::new_normalize([1., 0.].into()),
         };
 
-        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
+        let mut intersections = vec![];
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        let &[tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -192,7 +188,11 @@ mod tests {
             direction: Unit::new_normalize([-1., 0.].into()),
         };
 
-        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
+        let mut intersections = vec![];
+
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        let &[tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -232,7 +232,10 @@ mod tests {
             direction: Unit::new_normalize([1., -1.].into()),
         };
 
-        let &[tangent] = mirror.intersecting_points(&ray).as_slice() else {
+        let mut intersections = vec![];
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        let &[tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -281,7 +284,8 @@ mod tests {
             direction: Unit::new_normalize([1., 0.].into()),
         };
 
-        let mut pts = m1.intersecting_points(&ray);
+        let mut pts = vec![];
+        m1.append_intersecting_points(&ray, &mut pts);
         m2.append_intersecting_points(&ray, &mut pts);
 
         let &[t1, t2] = pts.as_slice() else {

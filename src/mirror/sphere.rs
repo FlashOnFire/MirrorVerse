@@ -7,7 +7,7 @@ pub struct EuclideanSphereMirror<const D: usize = DEFAULT_DIM> {
 }
 
 impl<const D: usize> JsonSerialisable for EuclideanSphereMirror<D> {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "sphere"
     }
 
@@ -21,14 +21,14 @@ impl<const D: usize> JsonSerialisable for EuclideanSphereMirror<D> {
 
         let center = json
             .get("center")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .map(Vec::as_slice)
             .and_then(json_array_to_vector)
             .ok_or("Failed to parse center")?;
 
         let radius = json
             .get("radius")
-            .and_then(Value::as_f64)
+            .and_then(serde_json::Value::as_f64)
             .ok_or("Failed to parse radius")? as f32;
 
         Ok(Self { center, radius })
@@ -36,8 +36,7 @@ impl<const D: usize> JsonSerialisable for EuclideanSphereMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
-    fn intersecting_points(&self, ray: &Ray<D>) -> Vec<Tangent<D>> {
-        let mut list = vec![];
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         let oc = ray.origin - self.center;
         let a = ray.direction.norm_squared();
         let b = oc.dot(&ray.direction);
@@ -65,7 +64,6 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
                 }
             }
         }
-        list
     }
 }
 

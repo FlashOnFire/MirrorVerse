@@ -6,47 +6,7 @@ use glium::glutin::{
     event::{ElementState, MouseScrollDelta, VirtualKeyCode},
 };
 
-#[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: nalgebra::Matrix4<f32> = nalgebra::Matrix4::new(
-    1., 0., 0., 0.,
-    0., 1., 0., 0.,
-    0., 0., 0.5, 0.,
-    0., 0., 0.5, 1.,
-);
-
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CameraUniform {
-    view_pos: [f32; 4],
-    view_proj: [[f32; 4]; 4],
-}
-
-impl CameraUniform {
-    pub(crate) fn new() -> Self {
-        Self {
-            view_pos: [0.; 4],
-            view_proj: nalgebra::Matrix4::identity().into(),
-        }
-    }
-
-    pub(crate) fn update_view_proj(&mut self, camera: &Camera, projection: &Projection) {
-        self.view_pos = camera.position.to_homogeneous().into();
-
-        let a = camera.calc_matrix();
-
-        #[rustfmt::skip]
-        let cam = nalgebra::Matrix4::new(
-            a.x.x, a.y.x, a.z.x, a.w.x,
-            a.x.y, a.y.y, a.z.y, a.w.y,
-            a.x.z, a.y.z, a.z.z, a.w.z,
-            a.x.w, a.y.w, a.z.w, a.w.w,
-        );
-
-        self.view_proj = (projection.calc_matrix() * cam).into()
-    }
-}
 
 pub struct Camera {
     pub position: nalgebra::Point3<f32>,
@@ -121,11 +81,6 @@ impl Projection {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.aspect = width as f32 / height as f32;
-    }
-
-    pub fn calc_matrix(&self) -> nalgebra::Matrix4<f32> {
-        let b = nalgebra::Perspective3::new(self.fov_y.0, self.aspect, self.z_near, self.z_far);
-        OPENGL_TO_WGPU_MATRIX * b.as_matrix()
     }
 }
 

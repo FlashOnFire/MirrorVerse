@@ -48,7 +48,7 @@ impl ParaboloidMirror<2> {
 }
 
 impl<const D: usize> JsonSerialisable for ParaboloidMirror<D> {
-    fn get_type(&self) -> &'static str {
+    fn get_json_type(&self) -> &'static str {
         "parabolaoid"
     }
 
@@ -66,12 +66,6 @@ impl<const D: usize> JsonSerialisable for ParaboloidMirror<D> {
 }
 
 impl Mirror<2> for ParaboloidMirror<2> {
-    fn intersecting_points(&self, ray: &Ray<2>) -> Vec<Tangent<2>> {
-        let mut list = vec![];
-        self.append_intersecting_points(ray, &mut list);
-        list
-    }
-
     fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
@@ -106,7 +100,7 @@ impl Mirror<2> for ParaboloidMirror<2> {
         //calculate the t1 by adding the distance beetween the ray and the focus or substract if if we are on the right side
 
         let ray_to_focus = focus - line_point;
-        let mut t1: f32;
+        let t1: f32;
         if ray_to_focus.dot(&line_direction) > 0. {
             t1 = solution + ray_to_focus.norm();
         } else {

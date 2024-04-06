@@ -1,8 +1,5 @@
-#![allow(warnings)]
-
 extern crate alloc;
 
-use core::cmp;
 use std::time;
 
 use cgmath as cg;
@@ -10,7 +7,7 @@ use glium::{
     self as gl,
     glutin::{self, event, event_loop},
 };
-use nalgebra::{Point3, Reflection, SVector};
+use nalgebra::Point3;
 
 use render::camera::{Camera, CameraController, Projection};
 
@@ -20,7 +17,7 @@ mod render;
 pub const DEFAULT_DIM: usize = 3;
 
 fn main() {
-    let mut events_loop = glutin::event_loop::EventLoop::new();
+    let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(1280., 720.))
         .with_title("MirrorVerse");
@@ -44,7 +41,7 @@ fn main() {
 
     let mut mouse_pressed = false;
 
-    /// Load the mirror list from the json file
+    // Load the mirror list from the json file
     let file_path = std::env::args()
         .skip(1)
         .next()
@@ -55,7 +52,7 @@ fn main() {
 
     use mirror::{plane::PlaneMirror, JsonSerialisable, Mirror};
 
-    let mut mirror =
+    let mirror =
         Vec::<PlaneMirror>::from_json(value.get("mirrors").expect("mirrors field expected"))
             .expect("expected data in mirrors field to be well-formed");
 
