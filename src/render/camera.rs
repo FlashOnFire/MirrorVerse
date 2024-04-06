@@ -40,7 +40,7 @@ impl Camera {
             Vector3::new(target.x, target.y, target.z),
             Vector3::new(y.x, y.y, y.z),
         );
-    
+
         ret
     }
 }
@@ -86,11 +86,12 @@ pub struct CameraController {
     rotate_vertical: f32,
     scroll: f32,
     speed: f32,
-    sensitivity: f32,
+    movement_sensitivity: f32,
+    mouse_sensitivity: f32,
 }
 
 impl CameraController {
-    pub fn new(speed: f32, sensitivity: f32) -> Self {
+    pub fn new(speed: f32, movement_sensitivity: f32, mouse_sensitivity: f32) -> Self {
         Self {
             amount_left: 0.,
             amount_right: 0.,
@@ -102,7 +103,8 @@ impl CameraController {
             rotate_vertical: 0.,
             scroll: 0.,
             speed,
-            sensitivity,
+            movement_sensitivity,
+            mouse_sensitivity
         }
     }
 
@@ -148,17 +150,18 @@ impl CameraController {
             nalgebra::Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
 
         let spd = self.speed * dt;
-        let sens = self.sensitivity * dt;
+        let move_sens = self.movement_sensitivity * dt;
+        let mouse_sens = self.mouse_sensitivity * dt;
 
         camera.position += forward * (self.amount_forward - self.amount_backwards) * spd;
         camera.position += right * (self.amount_right - self.amount_left) * spd;
 
-        camera.position += scrollward * self.scroll * self.speed * sens;
+        camera.position += scrollward * self.scroll * self.speed * move_sens;
 
         camera.position.y += (self.amount_up - self.amount_down) * spd;
 
-        camera.yaw += Rad(self.rotate_horizontal) * sens;
-        camera.pitch += Rad(-self.rotate_vertical) * sens;
+        camera.yaw += Rad(self.rotate_horizontal) * mouse_sens;
+        camera.pitch += Rad(-self.rotate_vertical) * mouse_sens;
 
         self.scroll = 0.;
         self.rotate_horizontal = 0.;

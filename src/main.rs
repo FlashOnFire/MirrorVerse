@@ -40,7 +40,7 @@ fn main() {
     let mut camera = Camera::new(Point3::new(0., 0., 0.), cg::Deg(-90.), cg::Deg(0.));
 
     let mut projection = Projection::new(1280, 720, cg::Deg(70.), 0.1, 100.);
-    let mut camera_controller = CameraController::new(5., 0.5);
+    let mut camera_controller = CameraController::new(5., 3.0, 2.0);
 
     let mut program3d = gl::Program::from_source(
         &display,
