@@ -2,7 +2,7 @@ extern crate alloc;
 
 use std::{fs::File, time};
 use cgmath as cg;
-use glium::{self as gl, Blend, BlendingFunction, glutin::{self, event, event_loop}};
+use glium::{self as gl, Blend, glutin::{self, event, event_loop}};
 use nalgebra::Point3;
 
 use render::camera::{Camera, CameraController, Projection};
@@ -97,7 +97,6 @@ fn main() {
                 &display,
                 &mut program3d,
                 &camera,
-                &projection,
                 ray_paths.as_slice(),
                 &simulation.mirror,
             );
@@ -123,25 +122,24 @@ fn render(
     display: &gl::backend::glutin::Display,
     program3d: &mut gl::Program,
     camera: &Camera,
-    projection: &Projection,
     ray_paths: &[mirror::RayPath],
     mirrors: &Vec<mirror::plane::PlaneMirror>,
 ) {
     let mut target = display.draw();
 
     use gl::Surface;
-    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 0.0);
+    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.0);
 
     let (width, height) = target.get_dimensions();
     let aspect_ratio = width as f32 / height as f32;
 
-    let mat = cg::perspective(cg::Deg(45.), aspect_ratio, 1000., 0.1);
+    let mat = cg::perspective(cg::Deg(45.), aspect_ratio, 0.1, 1000.0);
     let perspective: [[f32; 4]; 4] = mat.into();
     let view: [[f32; 4]; 4] = camera.calc_matrix().into();
 
     let params = gl::DrawParameters {
         depth: gl::Depth {
-            test: gl::draw_parameters::DepthTest::IfMore,
+            test: gl::draw_parameters::DepthTest::IfLess,
             write: true,
             ..Default::default()
         },
