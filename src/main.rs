@@ -49,7 +49,7 @@ fn main() {
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
         .with_title("MirrorVerse");
-    let cb = glutin::ContextBuilder::new();
+    let cb = glutin::ContextBuilder::new().with_vsync(true);
     let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
     let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
