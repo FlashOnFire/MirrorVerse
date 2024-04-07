@@ -1,10 +1,12 @@
 extern crate alloc;
+extern crate core;
 
 use std::{fs::File, time};
 use cgmath as cg;
-use glium::{self as gl, Surface, Blend, glutin::{self, event, event_loop}};
+use glium::{self as gl, glutin::{self, event, event_loop}};
 
 use render::camera::{Camera, CameraController, Projection};
+use crate::render::DrawableSimulation;
 
 mod mirror;
 mod render;
@@ -38,8 +40,7 @@ fn main() {
     let simulation = mirror::Simulation::<Vec<mirror::plane::PlaneMirror>>::from_json(
         &serde_json::from_reader(File::open(file_path).unwrap()).unwrap()
     ).unwrap();
-
-    let ray_paths = simulation.get_ray_paths(300);
+    
 
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
@@ -58,11 +59,13 @@ fn main() {
         render::VERTEX_SHADER_SRC_3D,
         render::FRAGMENT_SHADER_SRC,
         None,
-    )
-        .unwrap();
+    ).unwrap();
+    
+    
+    let drawable_simulation = DrawableSimulation::new(simulation, 300, &display);
+    
 
     let mut last_render_time = time::Instant::now();
-
     let mut mouse_pressed = false;
 
     events_loop.run(move |ev, _, control_flow| match ev {
@@ -108,13 +111,11 @@ fn main() {
             *control_flow = event_loop::ControlFlow::WaitUntil(new_inst);
 
             update(dt, &mut camera, &mut camera_controller);
-            render(
+            drawable_simulation.render(
                 &display,
                 &mut program3d,
                 &camera,
                 &projection,
-                ray_paths.as_slice(),
-                &simulation.mirror,
             );
         }
         event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
@@ -132,85 +133,4 @@ fn main() {
 
 fn update(dt: time::Duration, camera: &mut Camera, camera_controller: &mut CameraController) {
     camera_controller.update_camera(camera, dt);
-}
-
-fn render(
-    display: &gl::backend::glutin::Display,
-    program3d: &mut gl::Program,
-    camera: &Camera,
-    projection: &Projection,
-    ray_paths: &[mirror::RayPath],
-    mirrors: &Vec<mirror::plane::PlaneMirror>,
-) {
-    let mut target = display.draw();
-
-    target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.0);
-
-    let perspective = projection.get_matrix();
-    let view = camera.calc_matrix();
-
-    let params = gl::DrawParameters {
-        depth: gl::Depth {
-            test: gl::draw_parameters::DepthTest::IfLess,
-            write: true,
-            ..Default::default()
-        },
-        line_width: Some(3.),
-        blend: Blend::alpha_blending(),
-        ..Default::default()
-    };
-
-    use gl::index::{NoIndices, PrimitiveType};
-
-    const INDICES_LINESTRIP: NoIndices = NoIndices(PrimitiveType::LineStrip);
-    const INDICES_TRIANGLE_STRIP: NoIndices = NoIndices(PrimitiveType::TriangleStrip);
-
-    for ray_path in ray_paths {
-        let mut ray_path_vertices_vectors: Vec<_> = ray_path.points().to_vec();
-
-        // Add another point far away to render the last line
-        if let Some(dir) = ray_path.final_direction() {
-            ray_path_vertices_vectors.push(ray_path.points().last().unwrap() + dir.as_ref() * 2000.);
-        }
-
-        let ray_path_vertices: Vec<_> = ray_path_vertices_vectors.iter()
-            .copied()
-            .map(render::Vertex::from)
-            .collect();
-
-        let vertex_buffer = gl::VertexBuffer::new(display, &ray_path_vertices).unwrap();
-
-        target.draw(
-            &vertex_buffer,
-            INDICES_LINESTRIP,
-            program3d,
-            &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: RAY_COLOR,
-                },
-            &params,
-        ).unwrap();
-    }
-
-    for mirror in mirrors {
-        let vertices: Vec<_> = mirror.vertices().map(render::Vertex::from).collect();
-
-        let vertex_buffer = gl::VertexBuffer::new(display, &vertices).unwrap();
-        target.draw(
-            &vertex_buffer,
-            INDICES_TRIANGLE_STRIP,
-            program3d,
-            &gl::uniform! {
-                perspective: perspective,
-                view: view,
-            color_vec: MIRROR_COLOR,
-            },
-            &params,
-        ).unwrap();
-    }
-
-    target.finish().unwrap();
-
-    display.gl_window().window().request_redraw();
 }
