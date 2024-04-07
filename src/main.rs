@@ -2,6 +2,8 @@ extern crate alloc;
 extern crate core;
 
 use cgmath as cg;
+use glium::glutin::dpi::PhysicalPosition;
+use glium::glutin::window::CursorGrabMode;
 use glium::{
     self as gl,
     glutin::{self, event, event_loop},
@@ -96,9 +98,32 @@ fn main() {
             }
             event::WindowEvent::MouseInput { button, state, .. } => {
                 if button == event::MouseButton::Left {
-                    mouse_pressed = match state {
-                        event::ElementState::Pressed => true,
-                        event::ElementState::Released => false,
+                    match state {
+                        event::ElementState::Pressed => {
+                            mouse_pressed = true;
+                            display
+                                .gl_window()
+                                .window()
+                                .set_cursor_grab(CursorGrabMode::Locked)
+                                .or_else(|_| {
+                                    display
+                                        .gl_window()
+                                        .window()
+                                        .set_cursor_grab(CursorGrabMode::Confined)
+                                })
+                                .unwrap();
+
+                            display.gl_window().window().set_cursor_visible(false);
+                        }
+                        event::ElementState::Released => {
+                            mouse_pressed = false;
+                            display
+                                .gl_window()
+                                .window()
+                                .set_cursor_grab(CursorGrabMode::None)
+                                .unwrap();
+                            display.gl_window().window().set_cursor_visible(true);
+                        }
                     }
                 }
             }
@@ -128,6 +153,16 @@ fn main() {
             ..
         } => {
             if mouse_pressed {
+                let inner_window_size = display.gl_window().window().inner_size();
+
+                display
+                    .gl_window()
+                    .window()
+                    .set_cursor_position(PhysicalPosition {
+                        x: inner_window_size.width / 2,
+                        y: inner_window_size.height / 2,
+                    })
+                    .unwrap();
                 camera_controller.process_mouse(delta.0, delta.1)
             }
         }
