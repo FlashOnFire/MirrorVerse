@@ -58,7 +58,6 @@ impl DrawableSimulation {
         reflection_limit: usize,
         display: &gl::backend::glutin::Display,
     ) -> Self {
-        
         let mut vertex_scratch = vec![];
 
         Self {
@@ -66,7 +65,6 @@ impl DrawableSimulation {
                 .get_ray_paths(reflection_limit)
                 .into_iter()
                 .map(|ray_path| {
-
                     vertex_scratch.extend(
                         ray_path
                             .points()
@@ -115,8 +113,8 @@ impl DrawableSimulation {
 
         let params = gl::DrawParameters {
             depth: gl::Depth {
-                test: gl::draw_parameters::DepthTest::IfLess,
-                write: true,
+                test: gl::draw_parameters::DepthTest::Overwrite,
+                write: false,
                 ..Default::default()
             },
             line_width: Some(3.),
