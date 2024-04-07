@@ -1,10 +1,10 @@
-use glium::{Blend, Surface, VertexBuffer};
-use glium::index::{NoIndices, PrimitiveType};
-use crate::{mirror, MIRROR_COLOR, RAY_COLOR, render};
 use crate::render::camera::{Camera, Projection};
+use crate::{mirror, MIRROR_COLOR, RAY_COLOR};
+use glium::index::{NoIndices, PrimitiveType};
+use glium::{Blend, Surface, VertexBuffer};
 
-use glium as gl;
 use crate::mirror::plane::PlaneMirror;
+use glium as gl;
 
 pub mod camera;
 
@@ -53,39 +53,51 @@ pub struct DrawableSimulation {
 }
 
 impl DrawableSimulation {
-    pub fn new(sim: mirror::Simulation<Vec<PlaneMirror>, 3>, reflection_limit: usize, display: &gl::backend::glutin::Display) -> Self {
-        let mut rays_vertex_buffers: Vec<VertexBuffer<Vertex>> = vec![];
-
-        for ray_path in sim.get_ray_paths(reflection_limit) {
-            let mut ray_path_vertices_vectors: Vec<_> = ray_path.points().to_vec();
-
-            // Add another point far away to render the last line
-            if let Some(dir) = ray_path.final_direction() {
-                ray_path_vertices_vectors.push(ray_path.points().last().unwrap() + dir.as_ref() * 2000.);
-            }
-
-            let ray_path_vertices: Vec<_> = ray_path_vertices_vectors.iter()
-                .copied()
-                .map(render::Vertex::from)
-                .collect();
-
-
-            rays_vertex_buffers.push(gl::VertexBuffer::new(display, &ray_path_vertices).unwrap());
-        }
-
-        let mut mirrors_vertex_buffers: Vec<VertexBuffer<Vertex>> = vec![];
-
-        for mirror in sim.mirror {
-            let vertices: Vec<_> = mirror.vertices().map(render::Vertex::from).collect();
-            mirrors_vertex_buffers.push(gl::VertexBuffer::new(display, &vertices).unwrap());
-        }
+    pub fn new(
+        sim: mirror::Simulation<Vec<PlaneMirror>, 3>,
+        reflection_limit: usize,
+        display: &gl::backend::glutin::Display,
+    ) -> Self {
+        
+        let mut vertex_scratch = vec![];
 
         Self {
-            rays: rays_vertex_buffers,
-            mirrors: mirrors_vertex_buffers,
+            rays: sim
+                .get_ray_paths(reflection_limit)
+                .into_iter()
+                .map(|ray_path| {
+
+                    vertex_scratch.extend(
+                        ray_path
+                            .points()
+                            .iter()
+                            .copied()
+                            .chain(ray_path.final_direction().map(|dir| {
+                                ray_path.points().last().unwrap() + dir.as_ref() * 2000.
+                            }))
+                            .map(Vertex::from),
+                    );
+
+                    let vertex_buf = gl::VertexBuffer::new(display, &vertex_scratch).unwrap();
+
+                    vertex_scratch.clear();
+
+                    vertex_buf
+                })
+                .collect(),
+            mirrors: sim
+                .mirror
+                .iter()
+                .map(|mirror| {
+                    vertex_scratch.extend(mirror.vertices().map(Vertex::from));
+                    let vertex_buf =
+                        gl::VertexBuffer::new(display, vertex_scratch.as_slice()).unwrap();
+                    vertex_scratch.clear();
+                    vertex_buf
+                })
+                .collect(),
         }
     }
-
 
     pub fn render(
         &self,
@@ -113,31 +125,35 @@ impl DrawableSimulation {
         };
 
         for buffer in self.rays.as_slice() {
-            target.draw(
-                buffer,
-                INDICES_LINESTRIP,
-                program3d,
-                &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: RAY_COLOR,
-                },
-                &params,
-            ).unwrap();
+            target
+                .draw(
+                    buffer,
+                    INDICES_LINESTRIP,
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: RAY_COLOR,
+                    },
+                    &params,
+                )
+                .unwrap();
         }
 
         for buffer in self.mirrors.as_slice() {
-            target.draw(
-                buffer,
-                INDICES_TRIANGLE_STRIP,
-                program3d,
-                &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: MIRROR_COLOR,
-                },
-                &params,
-            ).unwrap();
+            target
+                .draw(
+                    buffer,
+                    INDICES_TRIANGLE_STRIP,
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: MIRROR_COLOR,
+                    },
+                    &params,
+                )
+                .unwrap();
         }
 
         target.finish().unwrap();

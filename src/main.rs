@@ -1,12 +1,15 @@
 extern crate alloc;
 extern crate core;
 
-use std::{fs::File, time};
 use cgmath as cg;
-use glium::{self as gl, glutin::{self, event, event_loop}};
+use glium::{
+    self as gl,
+    glutin::{self, event, event_loop},
+};
+use std::{fs::File, time};
 
-use render::camera::{Camera, CameraController, Projection};
 use crate::render::DrawableSimulation;
+use render::camera::{Camera, CameraController, Projection};
 
 mod mirror;
 mod render;
@@ -42,7 +45,6 @@ fn main() {
     )
     .unwrap();
 
-
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
@@ -52,7 +54,13 @@ fn main() {
 
     let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
 
-    let mut projection = Projection::new(DEFAULT_WIDTH, DEFAULT_HEIGHT, PROJECTION_FOV, NEAR_PLANE, FAR_PLANE);
+    let mut projection = Projection::new(
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+        PROJECTION_FOV,
+        NEAR_PLANE,
+        FAR_PLANE,
+    );
     let mut camera_controller = CameraController::new(5., MOVEMENT_SENSITIVITY, MOUSE_SENSITIVITY);
 
     let mut program3d = gl::Program::from_source(
@@ -60,11 +68,10 @@ fn main() {
         render::VERTEX_SHADER_SRC_3D,
         render::FRAGMENT_SHADER_SRC,
         None,
-    ).unwrap();
-
+    )
+    .unwrap();
 
     let drawable_simulation = DrawableSimulation::new(simulation, 300, &display);
-
 
     let mut last_render_time = time::Instant::now();
     let mut mouse_pressed = false;
@@ -113,12 +120,7 @@ fn main() {
             *control_flow = event_loop::ControlFlow::WaitUntil(new_inst);
 
             update(dt, &mut camera, &mut camera_controller);
-            drawable_simulation.render(
-                &display,
-                &mut program3d,
-                &camera,
-                &projection,
-            );
+            drawable_simulation.render(&display, &mut program3d, &camera, &projection);
         }
         event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
         event::Event::DeviceEvent {

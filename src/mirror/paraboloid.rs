@@ -17,7 +17,7 @@ impl<const D: usize> ParaboloidMirror<D> {
         let dist_to_directrix =
             (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
         let dist_to_focus = (self.focus - *point).norm();
-        let distance_ok = dist_to_directrix.powi(2) - 2. * dist_to_focus < f32::EPSILON;
+        let distance_ok = (dist_to_directrix.powi(2) - 2. * dist_to_focus).abs() < f32::EPSILON;
         //check if the point is on the right side of the limit plane
         let point_projection_on_limit_plane = self.limit_plane.orthogonal_projection(*point);
         let focus_projection_on_limit_plane = self.limit_plane.orthogonal_projection(self.focus);
@@ -82,12 +82,11 @@ impl Mirror<2> for ParaboloidMirror<2> {
         //calculate the t1 by adding the distance beetween the ray and the focus or substract if if we are on the right side
 
         let ray_to_focus = focus - line_point;
-        let t1: f32;
-        if ray_to_focus.dot(&line_direction) > 0. {
-            t1 = solution + ray_to_focus.norm();
+        let t1 = if ray_to_focus.dot(&line_direction) > 0. {
+            solution + ray_to_focus.norm()
         } else {
-            t1 = solution - ray_to_focus.norm();
-        }
+            solution - ray_to_focus.norm()
+        };
 
         let solution = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
         intersection_points[1] = line_point + solution * line_direction.into_inner();

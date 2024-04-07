@@ -32,14 +32,14 @@ impl Camera {
         let (sin_yaw, cos_yaw) = self.yaw.0.sin_cos();
 
         let up = cgmath::Vector3::unit_y();
-        let target =
-            cgmath::Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
+        let target = cgmath::Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
 
         Matrix4::look_to_rh(
             cgmath::Point3::new(self.position.x, self.position.y, self.position.z),
             target,
             up,
-        ).into()
+        )
+        .into()
     }
 }
 
@@ -70,7 +70,7 @@ impl Projection {
     pub fn resize(&mut self, width: u32, height: u32) {
         self.aspect = width as f32 / height as f32;
     }
-    
+
     pub fn get_matrix(&self) -> [[f32; 4]; 4] {
         cgmath::perspective(self.fov_y, self.aspect, self.z_near, self.z_far).into()
     }
@@ -148,7 +148,8 @@ impl CameraController {
         let right = Vector3::new(-yaw_sin, 0., yaw_cos).normalize();
 
         let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
-        let scrollward = Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
+        let scrollward =
+            Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
 
         let spd = self.speed * dt;
         let move_sens = self.movement_sensitivity * dt;

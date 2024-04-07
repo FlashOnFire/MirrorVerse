@@ -127,7 +127,7 @@ impl<const D: usize> Plane<D> {
     /// returns None if the provided family isn't free
     pub fn new(vectors: [SVector<f32, D>; D]) -> Option<Self> {
         let mut orthonormalized = vectors;
-        (SVector::orthonormalize(&mut orthonormalized[1..]) == D - 1).then(|| Self {
+        (SVector::orthonormalize(&mut orthonormalized[1..]) == D - 1).then_some(Self {
             vectors,
             orthonormalized,
         })
