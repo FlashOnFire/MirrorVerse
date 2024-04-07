@@ -19,7 +19,7 @@ pub const DEFAULT_DIM: usize = 3;
 pub const DEFAULT_WIDTH: u32 = 1280;
 pub const DEFAULT_HEIGHT: u32 = 720;
 pub const NEAR_PLANE: f32 = 0.1;
-pub const FAR_PLANE: f32 = 1000.;
+pub const FAR_PLANE: f32 = 2000.;
 
 pub const SPEED: f32 = 5.;
 pub const MOVEMENT_SENSITIVITY: f32 = 3.0;
