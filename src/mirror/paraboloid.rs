@@ -48,7 +48,6 @@ impl ParaboloidMirror<2> {
 }
 
 impl Mirror<2> for ParaboloidMirror<2> {
-
     fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola

@@ -38,8 +38,9 @@ fn main() {
         .expect("Please provide a file path as a command-line argument.");
 
     let simulation = mirror::Simulation::<Vec<mirror::plane::PlaneMirror>>::from_json(
-        &serde_json::from_reader(File::open(file_path).unwrap()).unwrap()
-    ).unwrap();
+        &serde_json::from_reader(File::open(file_path).unwrap()).unwrap(),
+    )
+    .unwrap();
 
 
     let events_loop = glutin::event_loop::EventLoop::new();
@@ -103,9 +104,10 @@ fn main() {
 
             let elapsed_time = dt.as_millis() as u64;
 
-            let wait_millis = match 1000 / 244 >= elapsed_time {
-                true => 1000 / 244 - elapsed_time,
-                false => 0,
+            let wait_millis = if 1000 / 244 >= elapsed_time {
+                1000 / 244 - elapsed_time
+            } else {
+                0
             };
             let new_inst = now + time::Duration::from_millis(wait_millis);
             *control_flow = event_loop::ControlFlow::WaitUntil(new_inst);
@@ -127,7 +129,7 @@ fn main() {
                 camera_controller.process_mouse(delta.0, delta.1)
             }
         }
-        _ => ()
+        _ => (),
     });
 }
 

@@ -219,11 +219,10 @@ pub trait Mirror<const D: usize> {
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.as_ref().append_intersecting_points(ray, list);
     }
-    
+
     fn get_json_type(&self) -> &'static str {
         "dynamic"
     }
@@ -260,7 +259,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             _ => Err("Invalid mirror type".into()),
         }
     }
-    
+
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         Ok(serde_json::json!({
             "type": self.as_ref().get_json_type(),
@@ -270,7 +269,9 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.as_slice().iter().for_each(|mirror| mirror.append_intersecting_points(ray, list));
+        self.as_slice()
+            .iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }
 
     fn get_json_type(&self) -> &'static str {
@@ -286,14 +287,13 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             ... list of json values whose structure depends on `T`
         ]
          */
-        
+
         util::try_collect(
-            json
-                .as_array()
+            json.as_array()
                 .ok_or("json must be an array")?
                 .iter()
                 .map(T::from_json)
-                .map(Result::ok)
+                .map(Result::ok),
         )
         .ok_or_else(|| "Failed to deserialize a mirror".into())
     }
@@ -336,9 +336,8 @@ pub struct Simulation<T, const D: usize = DEFAULT_DIM> {
 
 impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
-
         let mut intersections = vec![];
-        let mut ray_paths = vec![RayPath::default() ; self.rays.len()];
+        let mut ray_paths = vec![RayPath::default(); self.rays.len()];
 
         let mut rays = self.rays.clone();
 
@@ -348,7 +347,8 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
             for _n in 0..reflection_limit {
                 ray_path.push_point(ray.origin);
 
-                self.mirror.append_intersecting_points(ray, &mut intersections);
+                self.mirror
+                    .append_intersecting_points(ray, &mut intersections);
 
                 let mut reflection_data = None;
                 for tangent in intersections.iter() {
@@ -389,22 +389,18 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     }
 
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        let mirror = T::from_json(
-            json
-                .get("mirrors")
-                .ok_or("mirrors field expected")?
-        )?;
+        let mirror = T::from_json(json.get("mirrors").ok_or("mirrors field expected")?)?;
 
         let rays = util::try_collect(
-            json
-            .get("rays")
-            .ok_or("rays field not found")?
-            .as_array()
-            .ok_or("`rays` field must be an array")?
-            .iter()
-            .map(Ray::from_json)
-            .map(Result::ok)
-        ).ok_or("failed to deserialize a ray")?;
+            json.get("rays")
+                .ok_or("rays field not found")?
+                .as_array()
+                .ok_or("`rays` field must be an array")?
+                .iter()
+                .map(Ray::from_json)
+                .map(Result::ok),
+        )
+        .ok_or("failed to deserialize a ray")?;
 
         Ok(Self { mirror, rays })
     }
@@ -421,14 +417,14 @@ mod util {
         json_array: &[serde_json::Value],
     ) -> Option<[f32; D]> {
         let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
-    
+
         let mut center_coords_array = [0.; D];
         for (coord, value) in center_coords_array.iter_mut().zip(array) {
             *coord = value.as_f64()? as f32;
         }
         Some(center_coords_array)
     }
-    
+
     /// This is essentially `try_into` then `try_map` but the latter is nightly-only
     pub fn json_array_to_vector<const D: usize>(
         json_array: &[serde_json::Value],

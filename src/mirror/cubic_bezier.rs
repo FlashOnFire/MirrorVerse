@@ -7,7 +7,6 @@ pub struct CubicBezierMirror {
 }
 
 impl Mirror<2> for CubicBezierMirror {
-
     fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
         todo!()
     }
