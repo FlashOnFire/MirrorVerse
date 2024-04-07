@@ -72,7 +72,7 @@ impl Projection {
     }
     
     pub fn get_matrix(&self) -> [[f32; 4]; 4] {
-        cgmath::perspective(cgmath::Deg(45.), self.aspect, self.z_near, self.z_far).into()
+        cgmath::perspective(self.fov_y, self.aspect, self.z_near, self.z_far).into()
     }
 }
 

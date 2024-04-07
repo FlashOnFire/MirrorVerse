@@ -20,13 +20,13 @@ pub const FAR_PLANE: f32 = 1000.;
 
 pub const SPEED: f32 = 5.;
 pub const MOVEMENT_SENSITIVITY: f32 = 3.0;
-pub const MOUSE_SENSITIVITY: f32 = 2.0;
+pub const MOUSE_SENSITIVITY: f32 = 4.0;
 
 pub const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 0.);
 pub const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
 pub const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
 
-pub const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(70.);
+pub const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
 
 pub const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
 pub const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.7];
@@ -40,7 +40,7 @@ fn main() {
     let simulation = mirror::Simulation::<Vec<mirror::plane::PlaneMirror>>::from_json(
         &serde_json::from_reader(File::open(file_path).unwrap()).unwrap()
     ).unwrap();
-    
+
 
     let events_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
@@ -60,10 +60,10 @@ fn main() {
         render::FRAGMENT_SHADER_SRC,
         None,
     ).unwrap();
-    
-    
+
+
     let drawable_simulation = DrawableSimulation::new(simulation, 300, &display);
-    
+
 
     let mut last_render_time = time::Instant::now();
     let mut mouse_pressed = false;
