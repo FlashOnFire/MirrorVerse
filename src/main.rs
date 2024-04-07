@@ -18,6 +18,8 @@ mod render;
 
 pub const DEFAULT_DIM: usize = 3;
 
+pub const TARGET_FPS: u64 = 288;
+
 pub const DEFAULT_WIDTH: u32 = 1280;
 pub const DEFAULT_HEIGHT: u32 = 720;
 pub const NEAR_PLANE: f32 = 0.1;
@@ -51,7 +53,7 @@ fn main() {
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
         .with_title("MirrorVerse");
-    let cb = glutin::ContextBuilder::new().with_vsync(true);
+    let cb = glutin::ContextBuilder::new();
     let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
     let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
@@ -76,6 +78,7 @@ fn main() {
     let drawable_simulation = DrawableSimulation::new(simulation, 300, &display);
 
     let mut last_render_time = time::Instant::now();
+    let mut last_update_time = time::Instant::now();
     let mut mouse_pressed = false;
 
     events_loop.run(move |ev, _, control_flow| match ev {
@@ -131,21 +134,21 @@ fn main() {
         },
         event::Event::RedrawRequested(_) => {
             let now = time::Instant::now();
-            let dt = now - last_render_time;
-            last_render_time = now;
+            let dt = now - last_update_time;
 
             let elapsed_time = dt.as_millis() as u64;
+            if (elapsed_time >= 1) {
+                last_update_time = now;
+                update(dt, &mut camera, &mut camera_controller);
+            }
 
-            let wait_millis = if 1000 / 244 >= elapsed_time {
-                1000 / 244 - elapsed_time
-            } else {
-                0
-            };
-            let new_inst = now + time::Duration::from_millis(wait_millis);
-            *control_flow = event_loop::ControlFlow::WaitUntil(new_inst);
+            let render_dt = now - last_render_time;
+            let render_elapsed_time = render_dt.as_millis() as u64;
 
-            update(dt, &mut camera, &mut camera_controller);
-            drawable_simulation.render(&display, &mut program3d, &camera, &projection);
+            if (1000 / TARGET_FPS < render_elapsed_time) {
+                last_render_time = now;
+                drawable_simulation.render(&display, &mut program3d, &camera, &projection);
+            }
         }
         event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
         event::Event::DeviceEvent {
