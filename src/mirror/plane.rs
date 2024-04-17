@@ -23,21 +23,26 @@ impl<const D: usize> PlaneMirror<D> {
     }
 
     pub fn vertices(&self) -> impl Iterator<Item = SVector<f32, D>> + '_ {
-        // WARNING: black magic
 
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
-        (0..1 << (D - 1)).map(|i| {
-            self.vector_bounds()
+
+        let basis = self.plane.basis();
+        let v_0 = *self.plane.v_0();
+        let bounds = self.vector_bounds();
+
+        (0..1 << (D - 1)).map(move |i| {
+            bounds
                 .iter()
+                .zip(basis.iter())
                 .enumerate()
-                // returns `mu` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, mu)| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT))
-                .zip(self.plane.basis())
-                .map(|(mu_signed, v)| mu_signed * v)
-                .fold(*self.plane.v_0(), Add::add)
+                // returns `mu * v` with the sign flipped if the `j`th bit in `i` is 1
+                .map(|(j, (mu, v))| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT) * v)
+                .fold(v_0, Add::add)
         })
     }
 }
+
+use gl::index;
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
@@ -56,8 +61,12 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         }
     }
 
-    fn get_json_type(&self) -> &'static str {
-        "plane"
+    fn get_json_type() -> String {
+        "plane".into()
+    }
+
+    fn get_json_type_dyn(&self) -> String {
+        "plane".into()
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
@@ -121,6 +130,21 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         todo!()
     }
+
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
+    where
+        render::Vertex<D>: gl::Vertex,
+    {
+        let vertices: Vec<_> = self.vertices().map(render::Vertex::from).collect();
+
+        vec![(
+            index::NoIndices(index::PrimitiveType::TriangleStrip),
+            gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
+        )]
+    }
 }
 
 #[cfg(test)]
@@ -150,7 +174,7 @@ mod tests {
         let mut intersections = vec![];
         mirror.append_intersecting_points(&ray, &mut intersections);
 
-        let &[tangent] = intersections.as_slice() else {
+        let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -163,7 +187,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(&tangent);
+        ray.reflect_direction(tangent);
 
         assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
         assert!(
@@ -194,7 +218,7 @@ mod tests {
 
         mirror.append_intersecting_points(&ray, &mut intersections);
 
-        let &[tangent] = intersections.as_slice() else {
+        let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -237,7 +261,7 @@ mod tests {
         let mut intersections = vec![];
         mirror.append_intersecting_points(&ray, &mut intersections);
 
-        let &[tangent] = intersections.as_slice() else {
+        let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
         };
 
@@ -290,7 +314,7 @@ mod tests {
         m1.append_intersecting_points(&ray, &mut pts);
         m2.append_intersecting_points(&ray, &mut pts);
 
-        let &[t1, t2] = pts.as_slice() else {
+        let [t1, t2] = pts.as_slice() else {
             panic!("there must be an intersection");
         };
 

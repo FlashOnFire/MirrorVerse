@@ -1,9 +1,8 @@
 use core::iter;
-use std::error::Error;
 
-use nalgebra::{Point, SMatrix, SVector, Unit};
+use nalgebra::{Point, SMatrix};
 
-use crate::DEFAULT_DIM;
+use super::*;
 
 use format as f;
 
@@ -209,13 +208,24 @@ pub trait Mirror<const D: usize> {
     /// only allows pushing/appending/extending etc..
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
     /// Returns a string slice, unique to the type, coherent with it's json representation
-    fn get_json_type(&self) -> &'static str;
+    fn get_json_type() -> String
+    where
+        Self: Sized;
+    /// except for trait objects, this should behave the same way as `Mirror::get_json_type`
+    fn get_json_type_dyn(&self) -> String;
     /// Deserialises data from the provided json string, returns `None` in case of error
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
     /// Returns a json representation of the data
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
+    /// Returns a list of vertices and index primitves used to render the mirror
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
+    where
+        render::Vertex<D>: gl::Vertex;
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
@@ -223,8 +233,15 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         self.as_ref().append_intersecting_points(ray, list);
     }
 
-    fn get_json_type(&self) -> &'static str {
-        "dynamic"
+    fn get_json_type() -> String
+    where
+        Self: Sized,
+    {
+        "dynamic".into()
+    }
+
+    fn get_json_type_dyn(&self) -> String {
+        self.as_ref().get_json_type_dyn()
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
@@ -237,7 +254,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
             "type": "....",
             "mirror": <json value whose structure depends on "type">,
         }
-         */
+        */
 
         let mirror_type = json
             .get("type")
@@ -256,14 +273,45 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         match mirror_type {
             "plane" => plane::PlaneMirror::<D>::from_json(mirror).map(into_type_erased),
             "sphere" => sphere::EuclideanSphereMirror::<D>::from_json(mirror).map(into_type_erased),
-            _ => Err("Invalid mirror type".into()),
+            "dynamic" => Box::<dyn Mirror<D>>::from_json(mirror).map(into_type_erased),
+            other => {
+                // flatten nested lists
+                if let Some(inner) = {
+                    let inner = other.trim_start_matches("[]");
+                    (other != inner).then_some(inner)
+                } {
+                    match inner {
+                        "plane" => {
+                            Vec::<plane::PlaneMirror<D>>::from_json(mirror).map(into_type_erased)
+                        }
+                        "sphere" => Vec::<sphere::EuclideanSphereMirror<D>>::from_json(mirror)
+                            .map(into_type_erased),
+                        "dynamic" => {
+                            Vec::<Box<dyn Mirror<D>>>::from_json(mirror).map(into_type_erased)
+                        }
+                        _ => Err(f!("invalid mirror type {inner}").into()),
+                    }
+                } else {
+                    Err(f!("invalid mirror type {other}").into())
+                }
+            }
         }
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         Ok(serde_json::json!({
-            "type": self.as_ref().get_json_type(),
+            "type": self.as_ref().get_json_type_dyn(),
         }))
+    }
+
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
+    where
+        render::Vertex<D>: gl::Vertex,
+    {
+        self.as_ref().render_data(display)
     }
 }
 
@@ -274,8 +322,12 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             .for_each(|mirror| mirror.append_intersecting_points(ray, list));
     }
 
-    fn get_json_type(&self) -> &'static str {
-        "composite"
+    fn get_json_type() -> String {
+        format!("[]{}", T::get_json_type())
+    }
+
+    fn get_json_type_dyn(&self) -> String {
+        format!("[]{}", T::get_json_type())
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
@@ -284,133 +336,57 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     {
         /* example json
         [
-            ... list of json values whose structure depends on `T`
+            ... (potentially nested) list of json values whose structure depends on `T`
         ]
-         */
+        */
 
-        util::try_collect(
-            json.as_array()
-                .ok_or("json must be an array")?
-                .iter()
-                .map(T::from_json)
-                .map(Result::ok),
-        )
-        .ok_or_else(|| "Failed to deserialize a mirror".into())
+        fn append_to_array<const D: usize, T: Mirror<D>>(
+            json: &serde_json::Value,
+            list: &mut Vec<T>,
+        ) -> Result<(), Box<dyn Error>> {
+            if let Some(array) = json.as_array() {
+                for inner_json in array {
+                    append_to_array(inner_json, list)?
+                }
+
+                Ok(())
+            } else {
+                match T::from_json(json) {
+                    Ok(mirror) => {
+                        list.push(mirror);
+                        Ok(())
+                    }
+                    Err(err) => {
+                        Err(f!("failed to deserialize mirror, error returned: {err}").into())
+                    }
+                }
+            }
+        }
+
+        let mut list = vec![];
+        append_to_array(json, &mut list)?;
+        Ok(list)
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         Ok(serde_json::json!({}))
     }
-}
 
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct RayPath<const D: usize = DEFAULT_DIM> {
-    points: Vec<SVector<f32, D>>,
-    final_direction: Option<Unit<SVector<f32, D>>>,
-}
-
-impl<const D: usize> RayPath<D> {
-    pub fn points(&self) -> &[SVector<f32, D>] {
-        self.points.as_slice()
-    }
-
-    pub fn final_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
-        self.final_direction.as_ref()
-    }
-
-    pub fn push_point(&mut self, pt: SVector<f32, D>) {
-        self.points.push(pt);
-    }
-
-    pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
-        let first_time = self.final_direction.is_none();
-        self.final_direction = Some(dir);
-        first_time
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
+    where
+        render::Vertex<D>: gl::Vertex,
+    {
+        self.iter()
+            .map(|mirror| mirror.render_data(display))
+            .flatten()
+            .collect()
     }
 }
 
-pub struct Simulation<T, const D: usize = DEFAULT_DIM> {
-    pub rays: Vec<Ray<D>>,
-    pub mirror: T,
-}
-
-impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
-    pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
-        let mut intersections = vec![];
-        let mut ray_paths = vec![RayPath::default(); self.rays.len()];
-
-        let mut rays = self.rays.clone();
-
-        // TODO: clean this up
-
-        for (ray, ray_path) in rays.iter_mut().zip(ray_paths.iter_mut()) {
-            for _n in 0..reflection_limit {
-                ray_path.push_point(ray.origin);
-
-                self.mirror
-                    .append_intersecting_points(ray, &mut intersections);
-
-                let mut reflection_data = None;
-                for tangent in intersections.iter() {
-                    let dist = tangent
-                        .try_intersection_distance(ray)
-                        .expect("the ray must intersect with the plane");
-
-                    if dist > f32::EPSILON * 16. {
-                        if let Some((t, pt)) = reflection_data.as_mut() {
-                            if dist < *t {
-                                *t = dist;
-                                *pt = tangent;
-                            }
-                        } else {
-                            reflection_data = Some((dist, tangent));
-                        }
-                    }
-                }
-
-                if let Some((distance, tangent)) = reflection_data {
-                    ray.advance(distance);
-                    ray.reflect_direction(tangent);
-                } else {
-                    ray_path.set_final_direction(ray.direction);
-                    break;
-                }
-
-                intersections.clear()
-            }
-
-            // if we were capped by the reflection limit, our last position wasn't saved
-            if ray_path.final_direction().is_none() {
-                ray_path.push_point(ray.origin)
-            }
-        }
-
-        ray_paths
-    }
-
-    pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        let mirror = T::from_json(json.get("mirrors").ok_or("mirrors field expected")?)?;
-
-        let rays = util::try_collect(
-            json.get("rays")
-                .ok_or("rays field not found")?
-                .as_array()
-                .ok_or("`rays` field must be an array")?
-                .iter()
-                .map(Ray::from_json)
-                .map(Result::ok),
-        )
-        .ok_or("failed to deserialize a ray")?;
-
-        Ok(Self { mirror, rays })
-    }
-
-    pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        todo!()
-    }
-}
-
-mod util {
+pub mod util {
     use super::*;
 
     pub fn json_array_to_float_array<const D: usize>(

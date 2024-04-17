@@ -1,99 +1,65 @@
-use crate::render::camera::{Camera, Projection};
-use crate::{mirror, MIRROR_COLOR, RAY_COLOR};
-use glium::index::{NoIndices, PrimitiveType};
-use glium::{Blend, Surface, VertexBuffer};
-
-use crate::mirror::plane::PlaneMirror;
-use glium as gl;
+use super::*;
+use gl::{
+    index::{NoIndices, PrimitiveType},
+    Blend, Surface, VertexBuffer,
+};
 
 pub mod camera;
 
-const INDICES_LINESTRIP: NoIndices = NoIndices(PrimitiveType::LineStrip);
-const INDICES_TRIANGLE_STRIP: NoIndices = NoIndices(PrimitiveType::TriangleStrip);
-
 #[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    position: [f32; 3],
+pub struct Vertex<const N: usize> {
+    position: [f32; N],
 }
-glium::implement_vertex!(Vertex, position);
 
-impl From<nalgebra::SVector<f32, 3>> for Vertex {
-    fn from(v: nalgebra::SVector<f32, 3>) -> Self {
+type Vertex3D = Vertex<3>;
+glium::implement_vertex!(Vertex3D, position);
+
+type Vertex2D = Vertex<2>;
+glium::implement_vertex!(Vertex2D, position);
+
+impl<const N: usize> From<nalgebra::SVector<f32, N>> for Vertex<N> {
+    fn from(v: nalgebra::SVector<f32, N>) -> Self {
         Self { position: v.into() }
     }
 }
 
 pub const FRAGMENT_SHADER_SRC: &str = r#"
-        #version 140
+    #version 140
 
-        uniform vec4 color_vec;
+    uniform vec4 color_vec;
 
-        out vec4 color;
+    out vec4 color;
 
-        void main() {
-            color = color_vec;
-        }
-    "#;
+    void main() {
+        color = color_vec;
+    }
+"#;
 
 pub const VERTEX_SHADER_SRC_3D: &str = r#"
-        #version 140
+    #version 140
 
-        in vec3 position;
-        uniform mat4 perspective;
-        uniform mat4 view;
+    in vec3 position;
+    uniform mat4 perspective;
+    uniform mat4 view;
 
-        void main() {
-            gl_Position = perspective * view * vec4(position, 1.0);
-        }
-    "#;
+    void main() {
+        gl_Position = perspective * view * vec4(position, 1.0);
+    }
+"#;
 
-pub struct DrawableSimulation {
-    rays: Vec<VertexBuffer<Vertex>>,
-    mirrors: Vec<VertexBuffer<Vertex>>,
+pub struct DrawableSimulation<T: Copy> {
+    ray_path_vertices: Vec<VertexBuffer<T>>,
+    mirrors: Vec<(NoIndices, VertexBuffer<T>)>,
 }
 
-impl DrawableSimulation {
+impl<T: gl::Vertex> DrawableSimulation<T> {
     pub fn new(
-        sim: mirror::Simulation<Vec<PlaneMirror>, 3>,
-        reflection_limit: usize,
-        display: &gl::backend::glutin::Display,
+        ray_path_vertices: Vec<VertexBuffer<T>>,
+        mirrors: Vec<(NoIndices, VertexBuffer<T>)>,
     ) -> Self {
-        let mut vertex_scratch = vec![];
-
         Self {
-            rays: sim
-                .get_ray_paths(reflection_limit)
-                .into_iter()
-                .map(|ray_path| {
-                    vertex_scratch.extend(
-                        ray_path
-                            .points()
-                            .iter()
-                            .copied()
-                            .chain(ray_path.final_direction().map(|dir| {
-                                ray_path.points().last().unwrap() + dir.as_ref() * 2000.
-                            }))
-                            .map(Vertex::from),
-                    );
-
-                    let vertex_buf = gl::VertexBuffer::new(display, &vertex_scratch).unwrap();
-
-                    vertex_scratch.clear();
-
-                    vertex_buf
-                })
-                .collect(),
-            mirrors: sim
-                .mirror
-                .iter()
-                .map(|mirror| {
-                    vertex_scratch.extend(mirror.vertices().map(Vertex::from));
-                    let vertex_buf =
-                        gl::VertexBuffer::new(display, vertex_scratch.as_slice()).unwrap();
-                    vertex_scratch.clear();
-                    vertex_buf
-                })
-                .collect(),
+            ray_path_vertices,
+            mirrors,
         }
     }
 
@@ -122,11 +88,11 @@ impl DrawableSimulation {
             ..Default::default()
         };
 
-        for buffer in self.rays.as_slice() {
+        for buffer in self.ray_path_vertices.as_slice() {
             target
                 .draw(
                     buffer,
-                    INDICES_LINESTRIP,
+                    NoIndices(PrimitiveType::LineStrip),
                     program3d,
                     &gl::uniform! {
                         perspective: perspective,
@@ -138,11 +104,11 @@ impl DrawableSimulation {
                 .unwrap();
         }
 
-        for buffer in self.mirrors.as_slice() {
+        for (indices, buffer) in &self.mirrors {
             target
                 .draw(
                     buffer,
-                    INDICES_TRIANGLE_STRIP,
+                    indices,
                     program3d,
                     &gl::uniform! {
                         perspective: perspective,

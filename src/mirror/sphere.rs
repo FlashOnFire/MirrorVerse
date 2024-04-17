@@ -20,10 +20,10 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
             for &t in t.iter() {
                 if t > 0. {
-                    let point = ray.at(t);
-                    let normal = Unit::new_normalize(point - self.center);
+                    let origin = ray.at(t);
+                    let normal = Unit::new_normalize(origin - self.center);
                     list.push(Tangent::Normal {
-                        origin: point,
+                        origin,
                         normal,
                     });
                 }
@@ -31,8 +31,12 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         }
     }
 
-    fn get_json_type(&self) -> &'static str {
-        "sphere"
+    fn get_json_type() -> String {
+        "sphere".into()
+    }
+
+    fn get_json_type_dyn(&self) -> String {
+        "sphere".into()
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
@@ -59,6 +63,16 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
+    }
+
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
+    where
+        render::Vertex<D>: gl::Vertex,
+    {
         todo!()
     }
 }

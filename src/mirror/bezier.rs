@@ -12,8 +12,12 @@ impl Mirror<2> for BezierMirror {
         todo!()
     }
 
-    fn get_json_type(&self) -> &'static str {
-        "bezier"
+    fn get_json_type() -> String {
+        "bezier".into()
+    }
+
+    fn get_json_type_dyn(&self) -> String {
+        "bezier".into()
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
@@ -50,6 +54,13 @@ impl Mirror<2> for BezierMirror {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        todo!()
+    }
+
+    fn render_data(
+        &self,
+        display: &gl::Display,
+    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<2>>)> {
         todo!()
     }
 }
