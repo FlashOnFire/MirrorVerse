@@ -23,7 +23,6 @@ impl<const D: usize> PlaneMirror<D> {
     }
 
     pub fn vertices(&self) -> impl Iterator<Item = SVector<f32, D>> + '_ {
-
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
 
         let basis = self.plane.basis();
@@ -65,7 +64,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         "plane".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         "plane".into()
     }
 

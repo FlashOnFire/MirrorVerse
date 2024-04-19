@@ -83,7 +83,8 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
                 write: false,
                 ..Default::default()
             },
-            line_width: Some(3.),
+            line_width: Some(1.),
+            smooth: Some(gl::Smooth::Nicest),
             blend: Blend::alpha_blending(),
             ..Default::default()
         };

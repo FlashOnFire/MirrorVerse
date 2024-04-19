@@ -22,10 +22,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
                 if t > 0. {
                     let origin = ray.at(t);
                     let normal = Unit::new_normalize(origin - self.center);
-                    list.push(Tangent::Normal {
-                        origin,
-                        normal,
-                    });
+                    list.push(Tangent::Normal { origin, normal });
                 }
             }
         }
@@ -35,7 +32,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         "sphere".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         "sphere".into()
     }
 

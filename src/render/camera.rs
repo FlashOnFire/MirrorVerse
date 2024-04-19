@@ -1,6 +1,6 @@
 use core::{f32::consts::FRAC_PI_2, time::Duration};
 
-use cgmath::{InnerSpace, Matrix4, Point3, Rad, Vector3};
+use cgmath::{Angle, InnerSpace, Matrix4, Point3, Rad, Vector3};
 use glium::glutin::{
     dpi::PhysicalPosition,
     event::{ElementState, MouseScrollDelta, VirtualKeyCode},
@@ -115,6 +115,9 @@ impl CameraController {
 
         let mut res = true;
 
+        const SPEED_DECREASE_RATIO: f32 = 0.75; 
+        const SENSITIVITY_DECREASE_RATIO: f32 = 0.8;
+
         match key {
             VirtualKeyCode::Z | VirtualKeyCode::W => self.amount_forward = amount,
             VirtualKeyCode::S => self.amount_backwards = amount,
@@ -122,18 +125,22 @@ impl CameraController {
             VirtualKeyCode::D => self.amount_right = amount,
             VirtualKeyCode::Space => self.amount_up = amount,
             VirtualKeyCode::LShift => self.amount_down = amount,
+            VirtualKeyCode::Up => self.speed /= SPEED_DECREASE_RATIO,
+            VirtualKeyCode::Down => self.speed *= SPEED_DECREASE_RATIO,
+            VirtualKeyCode::Right => self.mouse_sensitivity /= SENSITIVITY_DECREASE_RATIO,
+            VirtualKeyCode::Left => self.mouse_sensitivity *= SENSITIVITY_DECREASE_RATIO,
             _ => res = false,
         }
 
         res
     }
 
-    pub fn process_mouse(&mut self, mouse_dx: f64, mouse_dy: f64) {
+    pub fn set_mouse_delta(&mut self, mouse_dx: f64, mouse_dy: f64) {
         self.rotate_horizontal = mouse_dx as f32;
         self.rotate_vertical = mouse_dy as f32;
     }
 
-    pub fn process_scroll(&mut self, delta: &MouseScrollDelta) {
+    pub fn set_scoll(&mut self, delta: &MouseScrollDelta) {
         self.scroll = -match delta {
             MouseScrollDelta::LineDelta(_, scroll) => scroll * 100.,
             MouseScrollDelta::PixelDelta(PhysicalPosition { y: scroll, .. }) => *scroll as f32,
@@ -143,32 +150,30 @@ impl CameraController {
     pub fn update_camera(&mut self, camera: &mut Camera, dt: Duration) {
         let dt = dt.as_secs_f32();
 
-        let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = Vector3::new(yaw_cos, 0., yaw_sin).normalize();
-        let right = Vector3::new(-yaw_sin, 0., yaw_cos).normalize();
+        let (yaw_sin, yaw_cos) = camera.yaw.sin_cos();
+        let (pitch_sin, pitch_cos) = camera.pitch.sin_cos();
 
-        let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
-        let scrollward =
-            Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
+        // sin^2 + cos^2 = 1, these vectors are already normalized
+        let forward = Vector3::new(yaw_cos, 0., yaw_sin);
+        let right = Vector3::new(-yaw_sin, 0., yaw_cos);
+        let scrollward = Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin);
 
         let spd = self.speed * dt;
-        let move_sens = self.movement_sensitivity * dt;
         let mouse_sens = self.mouse_sensitivity * dt;
 
         camera.position += forward * (self.amount_forward - self.amount_backwards) * spd;
         camera.position += right * (self.amount_right - self.amount_left) * spd;
 
-        camera.position += scrollward * self.scroll * self.speed * move_sens;
+        camera.position += scrollward * self.scroll * spd;
 
         camera.position.y += (self.amount_up - self.amount_down) * spd;
 
         camera.yaw += Rad(self.rotate_horizontal) * mouse_sens;
-        camera.pitch += Rad(-self.rotate_vertical) * mouse_sens;
+        camera.pitch -= Rad(self.rotate_vertical) * mouse_sens;
+        camera.pitch = Rad(camera.pitch.0.clamp(-SAFE_FRAC_PI_2, SAFE_FRAC_PI_2));
 
         self.scroll = 0.;
         self.rotate_horizontal = 0.;
         self.rotate_vertical = 0.;
-
-        camera.pitch = Rad(camera.pitch.0.clamp(-SAFE_FRAC_PI_2, SAFE_FRAC_PI_2));
     }
 }

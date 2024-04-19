@@ -11,4 +11,4 @@ serde = "1.0.195"
 serde_json = "1.0.111"
 cgmath = "0.18.0"
 glium = "0.32"
-glium_shapes = { git = "https://github.com/FlashOnFire/glium_shapes.git", branch = "glium-0.32.2" }
+# glium_shapes = { git = "https://github.com/FlashOnFire/glium_shapes.git", branch = "glium-0.32.2" }

@@ -36,8 +36,8 @@ const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
 const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
 const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
 
-const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
-const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.7];
+const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 6.0];
+const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct RayPath<const D: usize> {
@@ -78,7 +78,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
         // TODO: clean this up
 
         for (ray, ray_path) in self.rays.iter().zip(ray_paths.iter_mut()) {
-
             let mut ray = *ray;
 
             for _n in 0..reflection_limit {
@@ -179,14 +178,13 @@ where
     }
 
     fn run(&self, reflection_limit: usize) {
-
         let events_loop = glutin::event_loop::EventLoop::new();
 
         let wb = glutin::window::WindowBuilder::new()
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
 
-        let cb = glutin::ContextBuilder::new();
+        let cb = glutin::ContextBuilder::new().with_vsync(true);
 
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
@@ -214,17 +212,13 @@ where
         .unwrap();
 
         let mut last_render_time = time::Instant::now();
-        let mut last_update_time = last_render_time;
         let mut mouse_pressed = false;
 
         events_loop.run(move |ev, _, control_flow| match ev {
-
             event::Event::WindowEvent { event, .. } => match event {
-
                 event::WindowEvent::CloseRequested => *control_flow = event_loop::ControlFlow::Exit,
 
                 event::WindowEvent::Resized(physical_size) => {
-
                     if physical_size.width > 0 && physical_size.height > 0 {
                         projection.resize(physical_size.width, physical_size.height);
                     }
@@ -232,7 +226,7 @@ where
                     display.gl_window().resize(physical_size)
                 }
                 event::WindowEvent::MouseWheel { delta, .. } => {
-                    camera_controller.process_scroll(&delta);
+                    camera_controller.set_scoll(&delta);
                 }
 
                 event::WindowEvent::KeyboardInput { input, .. } => {
@@ -277,21 +271,11 @@ where
             },
             event::Event::RedrawRequested(_) => {
                 let now = time::Instant::now();
-                let dt = now - last_update_time;
+                let dt = now - last_render_time;
+                last_render_time = now;
 
-                let elapsed_time = dt.as_millis() as u64;
-                if elapsed_time >= 1 {
-                    last_update_time = now;
-                    camera_controller.update_camera(&mut camera, dt);
-                }
-
-                let render_dt = now - last_render_time;
-                let render_elapsed_time = render_dt.as_millis() as u64;
-
-                if 1000 / TARGET_FPS < render_elapsed_time {
-                    last_render_time = now;
-                    drawable_simulation.render(&display, &mut program3d, &camera, &projection);
-                }
+                camera_controller.update_camera(&mut camera, dt);
+                drawable_simulation.render(&display, &mut program3d, &camera, &projection);
             }
             event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
             event::Event::DeviceEvent {
@@ -309,7 +293,7 @@ where
                             y: inner_window_size.height / 2,
                         })
                         .unwrap();
-                    camera_controller.process_mouse(delta.0, delta.1)
+                    camera_controller.set_mouse_delta(delta.0, delta.1)
                 }
             }
             _ => (),
@@ -328,5 +312,5 @@ fn main() {
     )
     .unwrap();
 
-    simulation.run(300);
+    simulation.run(500);
 }

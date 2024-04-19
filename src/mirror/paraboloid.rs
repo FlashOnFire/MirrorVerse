@@ -114,7 +114,7 @@ impl Mirror<2> for ParaboloidMirror<2> {
         "paraboloid".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         "paraboloid".into()
     }
 

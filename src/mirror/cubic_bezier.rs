@@ -15,7 +15,7 @@ impl Mirror<2> for CubicBezierMirror {
         "cubic_bezier".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         "cubic_bezier".into()
     }
 

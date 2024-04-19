@@ -16,7 +16,7 @@ impl Mirror<2> for BezierMirror {
         "bezier".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         "bezier".into()
     }
 

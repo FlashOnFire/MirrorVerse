@@ -212,7 +212,7 @@ pub trait Mirror<const D: usize> {
     where
         Self: Sized;
     /// except for trait objects, this should behave the same way as `Mirror::get_json_type`
-    fn get_json_type_dyn(&self) -> String;
+    fn get_json_type_inner(&self) -> String;
     /// Deserialises data from the provided json string, returns `None` in case of error
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
@@ -240,8 +240,8 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         "dynamic".into()
     }
 
-    fn get_json_type_dyn(&self) -> String {
-        self.as_ref().get_json_type_dyn()
+    fn get_json_type_inner(&self) -> String {
+        self.as_ref().get_json_type_inner()
     }
 
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
@@ -300,7 +300,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         Ok(serde_json::json!({
-            "type": self.as_ref().get_json_type_dyn(),
+            "type": self.as_ref().get_json_type_inner(),
         }))
     }
 
@@ -326,7 +326,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         format!("[]{}", T::get_json_type())
     }
 
-    fn get_json_type_dyn(&self) -> String {
+    fn get_json_type_inner(&self) -> String {
         format!("[]{}", T::get_json_type())
     }
 
