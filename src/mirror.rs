@@ -174,9 +174,9 @@ impl<const D: usize> Plane<D> {
         /* bien vuu le boss
         Fill the matrix "a" with the direction of the ray and the basis of the plane
         exemple
-        | ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...
-        | ray_direction.y | plane_basis_1.y | plane_basis_2.y | ...
-        | ray_direction.z | plane_basis_1.z | plane_basis_2.z | ...
+        | -ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...
+        | -ray_direction.y | plane_basis_1.y | plane_basis_2.y | ...
+        | -ray_direction.z | plane_basis_1.z | plane_basis_2.z | ...
         */
 
         a.column_iter_mut()
@@ -220,15 +220,13 @@ pub trait Mirror<const D: usize> {
     /// Returns a json representation of the data
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
     /// Returns a list of vertices and index primitves used to render the mirror
-    fn render_data(
-        &self,
-        display: &gl::Display,
-    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
-    where
-        render::Vertex<D>: gl::Vertex;
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
 }
 
-impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
+impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>>
+where
+    render::Vertex<D>: gl::Vertex,
+{
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.as_ref().append_intersecting_points(ray, list);
     }
@@ -304,13 +302,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         }))
     }
 
-    fn render_data(
-        &self,
-        display: &gl::Display,
-    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
-    where
-        render::Vertex<D>: gl::Vertex,
-    {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         self.as_ref().render_data(display)
     }
 }
@@ -372,16 +364,9 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         Ok(serde_json::json!({}))
     }
 
-    fn render_data(
-        &self,
-        display: &gl::Display,
-    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
-    where
-        render::Vertex<D>: gl::Vertex,
-    {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         self.iter()
-            .map(|mirror| mirror.render_data(display))
-            .flatten()
+            .flat_map(|mirror| mirror.render_data(display))
             .collect()
     }
 }

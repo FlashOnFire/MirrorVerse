@@ -1,6 +1,6 @@
 use core::{f32::consts::FRAC_PI_2, time::Duration};
 
-use cgmath::{Angle, InnerSpace, Matrix4, Point3, Rad, Vector3};
+use cgmath::{Angle, Matrix4, Point3, Rad, Vector3};
 use glium::glutin::{
     dpi::PhysicalPosition,
     event::{ElementState, MouseScrollDelta, VirtualKeyCode},
@@ -88,12 +88,11 @@ pub struct CameraController {
     rotate_vertical: f32,
     scroll: f32,
     speed: f32,
-    movement_sensitivity: f32,
     mouse_sensitivity: f32,
 }
 
 impl CameraController {
-    pub fn new(speed: f32, movement_sensitivity: f32, mouse_sensitivity: f32) -> Self {
+    pub fn new(speed: f32, mouse_sensitivity: f32) -> Self {
         Self {
             amount_left: 0.,
             amount_right: 0.,
@@ -105,7 +104,6 @@ impl CameraController {
             rotate_vertical: 0.,
             scroll: 0.,
             speed,
-            movement_sensitivity,
             mouse_sensitivity,
         }
     }
@@ -115,7 +113,7 @@ impl CameraController {
 
         let mut res = true;
 
-        const SPEED_DECREASE_RATIO: f32 = 0.75; 
+        const SPEED_DECREASE_RATIO: f32 = 0.75;
         const SENSITIVITY_DECREASE_RATIO: f32 = 0.8;
 
         match key {

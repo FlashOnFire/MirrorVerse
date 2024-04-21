@@ -63,13 +63,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         todo!()
     }
 
-    fn render_data(
-        &self,
-        display: &gl::Display,
-    ) -> Vec<(gl::index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
-    where
-        render::Vertex<D>: gl::Vertex,
-    {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         todo!()
     }
 }

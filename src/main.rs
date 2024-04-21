@@ -19,8 +19,6 @@ use mirror::{util, Mirror, Ray};
 
 const DEFAULT_DIM: usize = 3;
 
-const TARGET_FPS: u64 = 288;
-
 const DEFAULT_WIDTH: u32 = 1280;
 const DEFAULT_HEIGHT: u32 = 720;
 
@@ -28,7 +26,6 @@ const NEAR_PLANE: f32 = 0.1;
 const FAR_PLANE: f32 = 2000.;
 
 const SPEED: f32 = 5.;
-const MOVEMENT_SENSITIVITY: f32 = 3.0;
 const MOUSE_SENSITIVITY: f32 = 4.0;
 
 const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 0.);
@@ -74,8 +71,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
         let mut intersections = vec![];
         let mut ray_paths = vec![RayPath::default(); self.rays.len()];
-
-        // TODO: clean this up
 
         for (ray, ray_path) in self.rays.iter().zip(ray_paths.iter_mut()) {
             let mut ray = *ray;
@@ -144,7 +139,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D>
 where
     render::Vertex<D>: gl::Vertex,
 {
-    fn into_drawable(
+    fn to_drawable(
         &self,
         reflection_limit: usize,
         display: &gl::Display,
@@ -188,7 +183,7 @@ where
 
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
-        let drawable_simulation = self.into_drawable(reflection_limit, &display);
+        let drawable_simulation = self.to_drawable(reflection_limit, &display);
 
         let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
 
@@ -200,8 +195,7 @@ where
             FAR_PLANE,
         );
 
-        let mut camera_controller =
-            CameraController::new(SPEED, MOVEMENT_SENSITIVITY, MOUSE_SENSITIVITY);
+        let mut camera_controller = CameraController::new(SPEED, MOUSE_SENSITIVITY);
 
         let mut program3d = gl::Program::from_source(
             &display,

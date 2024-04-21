@@ -6,7 +6,7 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     /// The plane this mirror belongs to.
-    pub plane: Plane<D>,
+    plane: Plane<D>,
     /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the
     /// basis vectors of the associated hyperplane.
     ///
@@ -14,7 +14,23 @@ pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
     /// the hyperplane, `v` is in this plane mirror iff for all `i`, `|mu_i| <= |mu_i_max|`
     ///
     /// Note: the first value of this array is irrelevant
-    pub bounds: [f32; D],
+    bounds: [f32; D],
+}
+
+struct PlaneRenderData<const D: usize> {
+    vertices: gl::VertexBuffer<render::Vertex<D>>,
+}
+
+impl<const D: usize> render::RenderData for PlaneRenderData<D> {
+    fn vertices(&self) -> gl::vertex::VerticesSource {
+        (&self.vertices).into()
+    }
+
+    fn indices(&self) -> gl::index::IndicesSource {
+        gl::index::IndicesSource::NoIndices {
+            primitives: index::PrimitiveType::TriangleStrip,
+        }
+    }
 }
 
 impl<const D: usize> PlaneMirror<D> {
@@ -32,10 +48,10 @@ impl<const D: usize> PlaneMirror<D> {
         (0..1 << (D - 1)).map(move |i| {
             bounds
                 .iter()
-                .zip(basis.iter())
+                .zip(basis)
                 .enumerate()
                 // returns `mu * v` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, (mu, v))| f32::from_bits(mu.to_bits() ^ i >> j << SHIFT) * v)
+                .map(|(j, (mu, v))| f32::from_bits(i >> j << SHIFT ^ mu.to_bits()) * v)
                 .fold(v_0, Add::add)
         })
     }
@@ -43,7 +59,10 @@ impl<const D: usize> PlaneMirror<D> {
 
 use gl::index;
 
-impl<const D: usize> Mirror<D> for PlaneMirror<D> {
+impl<const D: usize> Mirror<D> for PlaneMirror<D>
+where
+    render::Vertex<D>: gl::Vertex,
+{
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         if self
             .plane
@@ -130,19 +149,12 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         todo!()
     }
 
-    fn render_data(
-        &self,
-        display: &gl::Display,
-    ) -> Vec<(index::NoIndices, gl::VertexBuffer<render::Vertex<D>>)>
-    where
-        render::Vertex<D>: gl::Vertex,
-    {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         let vertices: Vec<_> = self.vertices().map(render::Vertex::from).collect();
 
-        vec![(
-            index::NoIndices(index::PrimitiveType::TriangleStrip),
-            gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
-        )]
+        vec![Box::new(PlaneRenderData {
+            vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
+        })]
     }
 }
 

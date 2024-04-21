@@ -49,14 +49,11 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
 
 pub struct DrawableSimulation<T: Copy> {
     ray_path_vertices: Vec<VertexBuffer<T>>,
-    mirrors: Vec<(NoIndices, VertexBuffer<T>)>,
+    mirrors: Vec<Box<dyn render::RenderData>>,
 }
 
 impl<T: gl::Vertex> DrawableSimulation<T> {
-    pub fn new(
-        ray_path_vertices: Vec<VertexBuffer<T>>,
-        mirrors: Vec<(NoIndices, VertexBuffer<T>)>,
-    ) -> Self {
+    pub fn new(ray_path_vertices: Vec<VertexBuffer<T>>, mirrors: Vec<Box<dyn RenderData>>) -> Self {
         Self {
             ray_path_vertices,
             mirrors,
@@ -105,11 +102,11 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
                 .unwrap();
         }
 
-        for (indices, buffer) in &self.mirrors {
+        for render_data in &self.mirrors {
             target
                 .draw(
-                    buffer,
-                    indices,
+                    render_data.vertices(),
+                    render_data.indices(),
                     program3d,
                     &gl::uniform! {
                         perspective: perspective,
@@ -124,5 +121,24 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
         target.finish().unwrap();
 
         display.gl_window().window().request_redraw();
+    }
+}
+
+pub trait RenderData {
+    fn vertices(&self) -> gl::vertex::VerticesSource;
+    fn indices(&self) -> gl::index::IndicesSource;
+}
+
+impl<T> RenderData for T
+where
+    for<'a> &'a T: Into<gl::vertex::VerticesSource<'a>>,
+    for<'a> &'a T: Into<gl::index::IndicesSource<'a>>,
+{
+    fn vertices(&self) -> gl::vertex::VerticesSource {
+        self.into()
+    }
+
+    fn indices(&self) -> gl::index::IndicesSource {
+        self.into()
     }
 }
