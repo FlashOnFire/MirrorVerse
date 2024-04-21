@@ -754,6 +754,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mirror_verse_json"
+version = "0.1.0"
+dependencies = [
+ "mirror_verse",
+]
+
+[[package]]
 name = "nalgebra"
 version = "0.32.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

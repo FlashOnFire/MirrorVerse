@@ -1,0 +1,8 @@
+[package]
+name = "mirror_verse_json"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+mirror_verse = { path = "../mirror_verse" }

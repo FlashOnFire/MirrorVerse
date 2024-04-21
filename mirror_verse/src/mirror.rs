@@ -14,7 +14,7 @@ pub mod sphere;
 
 /// A light ray
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Ray<const D: usize = DEFAULT_DIM> {
+pub struct Ray<const D: usize> {
     /// Current position of the ray
     pub origin: SVector<f32, D>,
     /// Current direction of the ray
@@ -68,7 +68,7 @@ impl<const D: usize> Ray<D> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Tangent<const D: usize = DEFAULT_DIM> {
+pub enum Tangent<const D: usize> {
     Plane(Plane<D>),
     Normal {
         origin: SVector<f32, D>,
@@ -109,7 +109,7 @@ impl<const D: usize> Tangent<D> {
 
 /// An affine hyperplane
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Plane<const D: usize = DEFAULT_DIM> {
+pub struct Plane<const D: usize> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
     /// The remaining N-1 vectors are an orthonormal family spanning it's associated subspace.
     ///

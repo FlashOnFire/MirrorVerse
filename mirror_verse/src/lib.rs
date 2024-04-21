@@ -1,5 +1,7 @@
 extern crate alloc;
-mod mirror;
+pub mod mirror;
+// re-export serde_json for convenience
+pub use serde_json;
 mod render;
 
 use cgmath as cg;
@@ -8,7 +10,7 @@ use glium::{
     glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode},
 };
 use nalgebra::{SVector, Unit};
-use std::{error::Error, fs::File, time};
+use std::{error::Error, time};
 
 use render::{
     camera::{Camera, CameraController, Projection},
@@ -16,8 +18,6 @@ use render::{
 };
 
 use mirror::{util, Mirror, Ray};
-
-const DEFAULT_DIM: usize = 3;
 
 const DEFAULT_WIDTH: u32 = 1280;
 const DEFAULT_HEIGHT: u32 = 720;
@@ -172,7 +172,7 @@ where
         )
     }
 
-    fn run(&self, reflection_limit: usize) {
+    pub fn run_opengl(&self, reflection_limit: usize) {
         let events_loop = glutin::event_loop::EventLoop::new();
 
         let wb = glutin::window::WindowBuilder::new()
@@ -293,18 +293,4 @@ where
             _ => (),
         });
     }
-}
-
-fn main() {
-    // Load the mirror list from the json file
-    let file_path = std::env::args()
-        .nth(1)
-        .expect("Please provide a file path as a command-line argument.");
-
-    let simulation = Simulation::<Box<dyn Mirror<DEFAULT_DIM>>, DEFAULT_DIM>::from_json(
-        &serde_json::from_reader(File::open(file_path).unwrap()).unwrap(),
-    )
-    .unwrap();
-
-    simulation.run(500);
 }

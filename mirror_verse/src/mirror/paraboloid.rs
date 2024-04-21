@@ -3,7 +3,7 @@ use nalgebra::{Point2, Vector2};
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct ParaboloidMirror<const D: usize = DEFAULT_DIM> {
+pub(crate) struct ParaboloidMirror<const D: usize> {
     /// The plane this mirror belongs to.
     directrix_plane: Plane<D>,
     /// The focus the parabola is centered on

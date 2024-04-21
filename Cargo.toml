@@ -1,14 +1,8 @@
-[package]
-name = "mirror_verse"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+members = [
+    "mirror_verse", 
+    "mirror_verse_json"
+]
 
-[dependencies]
-nalgebra = "0.32.3"
-serde = "1.0.195"
-serde_json = "1.0.111"
-cgmath = "0.18.0"
-glium = "0.32"
-# glium_shapes = { git = "https://github.com/FlashOnFire/glium_shapes.git", branch = "glium-0.32.2" }
+resolver = "2"

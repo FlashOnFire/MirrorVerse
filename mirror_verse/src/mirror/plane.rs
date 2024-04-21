@@ -4,7 +4,7 @@ use super::*;
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct PlaneMirror<const D: usize = DEFAULT_DIM> {
+pub(crate) struct PlaneMirror<const D: usize> {
     /// The plane this mirror belongs to.
     plane: Plane<D>,
     /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the

@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy)]
-pub struct EuclideanSphereMirror<const D: usize = DEFAULT_DIM> {
+pub struct EuclideanSphereMirror<const D: usize> {
     center: SVector<f32, D>,
     radius: f32,
 }
