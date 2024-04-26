@@ -32,7 +32,6 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             let neg_b = -b;
 
             for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
-                println!("{t}");
                 let origin = ray.at(t);
                 let normal = Unit::new_normalize(origin - v0);
                 list.push(Tangent::Normal { origin, normal });
