@@ -87,7 +87,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                         let dist = tangent
                             .try_intersection_distance(&ray)
                             .expect("the ray must intersect with the plane");
-                        (dist > f32::EPSILON * 16.0).then_some((dist, tangent))
+                        (dist > f32::EPSILON * 32.0).then_some((dist, tangent))
                     })
                     .min_by(|(d1, _), (d2, _)| {
                         d1.partial_cmp(d2)
@@ -109,7 +109,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 ray_path.push_point(ray.origin)
             }
         }
-
         ray_paths
     }
 
@@ -144,28 +143,19 @@ where
         reflection_limit: usize,
         display: &gl::Display,
     ) -> DrawableSimulation<render::Vertex<D>> {
-        let mut vertex_scratch = vec![];
-
         DrawableSimulation::new(
             self.get_ray_paths(reflection_limit)
                 .into_iter()
                 .map(|ray_path| {
-                    vertex_scratch.extend(
-                        ray_path
-                            .points()
-                            .iter()
-                            .copied()
-                            .chain(ray_path.final_direction().map(|dir| {
-                                ray_path.points().last().unwrap() + dir.as_ref() * 2000.
-                            }))
-                            .map(render::Vertex::from),
-                    );
-
-                    let vertex_buf = gl::VertexBuffer::new(display, &vertex_scratch).unwrap();
-
-                    vertex_scratch.clear();
-
-                    vertex_buf
+                    gl::VertexBuffer::new(display, &Vec::from_iter(ray_path
+                        .points()
+                        .iter()
+                        .copied()
+                        .chain(ray_path.final_direction().map(|dir| {
+                            ray_path.points().last().unwrap() + dir.as_ref() * 2000.
+                        }))
+                        .map(render::Vertex::from)
+                    )).unwrap()
                 })
                 .collect(),
             self.mirror.render_data(display),

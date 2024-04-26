@@ -200,8 +200,9 @@ pub trait Mirror<const D: usize> {
     ///       respect to the subspace defining the plane's "orientation"
     ///
     /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
-    /// An optimised version of `Self::reflect` that potentially saves
-    /// an allocation by writing into another `Vec`. Override this if needed.
+    /// 
+    /// It is ok for this method to push intersection points that occur "behind" the ray's
+    /// origin, (`ray.at(t)` where `t < 0.0`) the engine will discard these accordingly
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
     /// TODO: pass in a wrapper around a &mut Vec<_> that

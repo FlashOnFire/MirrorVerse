@@ -1,5 +1,5 @@
 use super::*;
-use glium_shapes::sphere::{Sphere, SphereBuilder};
+use glium_shapes::sphere::SphereBuilder;
 
 #[derive(Clone, Copy)]
 pub struct EuclideanSphereMirror<const D: usize> {
@@ -7,38 +7,35 @@ pub struct EuclideanSphereMirror<const D: usize> {
     radius: f32,
 }
 
-struct Sphere3DRenderData {
-    sphere: Sphere,
-}
-
-impl render::RenderData for Sphere3DRenderData {
-    fn vertices(&self) -> gl::vertex::VerticesSource {
-        (&self.sphere).into()
-    }
-
-    fn indices(&self) -> gl::index::IndicesSource {
-        (&self.sphere).into()
-    }
-}
-
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        let oc = ray.origin - self.center;
-        let a = ray.direction.norm_squared();
-        let b = oc.dot(&ray.direction);
-        let c = oc.norm_squared() - self.radius * self.radius;
+
+        // TODO: more calculations can be offset to the inside of the if block
+        // mental note: Cauchy-Schwarz
+
+        let d = &ray.direction;
+        let a = d.norm_squared();
+
+        let v0 = &self.center;
+        let v = ray.origin - v0;
+
+        let b = v.dot(d);
+
+        let r = &self.radius;
+        let s = v.norm_squared();
+        let c = s - r * r;
+
         let delta = b * b - a * c;
 
-        if delta > 0. {
-            let sqrt_delta = delta.sqrt();
+        if delta > f32::EPSILON {
+            let root_delta = delta.sqrt();
             let neg_b = -b;
-            let t = [neg_b - sqrt_delta / a, neg_b + sqrt_delta / a];
-            for &t in t.iter() {
-                if t > 0. {
-                    let origin = ray.at(t);
-                    let normal = Unit::new_normalize(origin - self.center);
-                    list.push(Tangent::Normal { origin, normal });
-                }
+
+            for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
+                println!("{t}");
+                let origin = ray.at(t);
+                let normal = Unit::new_normalize(origin - v0);
+                list.push(Tangent::Normal { origin, normal });
             }
         }
     }
@@ -95,7 +92,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             .build(display)
             .unwrap();
 
-        vec![Box::new(Sphere3DRenderData { sphere })]
+        vec![Box::new(sphere)]
     }
 }
 
