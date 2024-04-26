@@ -81,14 +81,17 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         // TODO: Maybe support circular shapes in 2 dimensions ?
         assert_eq!(D, 3);
-        let coords = self.center.as_slice().get(0..2).unwrap();
+        let coords = self.center.as_slice().get(0..3).unwrap();
 
         // The default sphere from the SphereBuilder is a unit-sphere (radius of 1) with its center of mass located at the origin.
         // So we just have to scale it with the sphere radius on each axis and translate it.
         let sphere = SphereBuilder::new()
             .scale(self.radius, self.radius, self.radius)
             .translate(coords[0], coords[1], coords[2])
-            .with_divisions((self.radius * 2.0) as usize, (self.radius * 2.0) as usize)
+            .with_divisions(
+                (self.radius * 200.0) as usize,
+                (self.radius * 200.0) as usize,
+            )
             .build(display)
             .unwrap();
 
