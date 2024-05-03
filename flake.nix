@@ -42,6 +42,28 @@
                 extensions = ["rust-analyzer" "rust-src" "rustfmt"];
               })
               fontconfig
+
+              flutter
+              clang
+              dbus
+              util-linux
+              cmake
+              ninja
+              pkg-config
+              gtk3
+              glib
+              pcre2
+              pcre
+              libselinux
+              libsepol
+              libthai
+              libdatrie
+              xorg.libXdmcp
+              libxkbcommon
+              xorg.libXtst
+              libepoxy
+              libgcrypt
+              libgpg-error
             ];
 
             LD_LIBRARY_PATH = lib.makeLibraryPath [
