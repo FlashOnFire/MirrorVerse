@@ -10,7 +10,7 @@ void deleteFile(File file) {
 }
 
 void runGeneration(File file) {
-  Process.runSync('cargo', ['run', '--release', file.path]);
+  Process.run('cargo', ['run', '--release', file.path]);
 }
 
 void generateMirrorSet(
