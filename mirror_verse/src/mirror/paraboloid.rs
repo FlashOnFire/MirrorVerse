@@ -137,6 +137,12 @@ impl Mirror<2> for ParaboloidMirror<2> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         todo!()
     }
+    fn random() -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
 }
 
 fn newton_raphson<F>(guess: f32, f: F) -> Option<f32>

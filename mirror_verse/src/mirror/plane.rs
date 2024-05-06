@@ -4,7 +4,7 @@ use super::*;
 
 /// A parallelotope-shaped reflective (hyper)plane
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct PlaneMirror<const D: usize> {
+pub struct PlaneMirror<const D: usize> {
     /// The plane this mirror belongs to.
     plane: Plane<D>,
     /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the
@@ -58,6 +58,7 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 use gl::index;
+use serde_json::json;
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D>
 where
@@ -146,7 +147,21 @@ where
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        todo!()
+        let center: Vec<f32> = self.plane.v_0().iter().cloned().collect();
+        let basis: Vec<Vec<f32>> = self
+            .plane
+            .basis()
+            .iter()
+            .map(|v| v.iter().cloned().collect())
+            .collect();
+        let bounds: Vec<f32> = self.bounds[1..].to_vec();
+        let json = json!({
+            "center": center,
+            "basis": basis,
+            "bounds": bounds,
+            "darkness": 0.5,
+        });
+        Ok(json)
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
@@ -155,6 +170,22 @@ where
         vec![Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
         })]
+    }
+    fn random() -> Self
+    where
+        Self: Sized,
+    {
+        let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
+        for vector in basis.iter_mut() {
+            for i in 0..D {
+                vector[i] = rand::random();
+            }
+        }
+        //TODO this is crashing offen probably because of the orthonormalization afte in the Plane::new
+        // let basis: [SVector<f32, D>; D] = [SVector::from_fn(|_, _| rand::random::<f32>()); D];
+        let bounds: [f32; D] = [rand::random::<f32>(); D];
+        let plane = Plane::new(basis).unwrap();
+        PlaneMirror { plane, bounds }
     }
 }
 

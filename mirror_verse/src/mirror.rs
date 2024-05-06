@@ -65,6 +65,20 @@ impl<const D: usize> Ray<D> {
 
         Ok(Self { origin, direction })
     }
+
+    pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        Ok(serde_json::json!({
+            "origin": self.origin.as_slice(),
+            "direction": self.direction.into_inner().as_slice(),
+        }))
+    }
+
+    pub fn random() -> Self {
+        let origin = SVector::<f32, D>::from_fn(|_, _| rand::random::<f32>());
+        let direction =
+            Unit::new_normalize(SVector::<f32, D>::from_fn(|_, _| rand::random::<f32>()));
+        Self { origin, direction }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -200,7 +214,7 @@ pub trait Mirror<const D: usize> {
     ///       respect to the subspace defining the plane's "orientation"
     ///
     /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
-    /// 
+    ///
     /// It is ok for this method to push intersection points that occur "behind" the ray's
     /// origin, (`ray.at(t)` where `t < 0.0`) the engine will discard these accordingly
     ///
@@ -222,6 +236,10 @@ pub trait Mirror<const D: usize> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
     /// Returns a list of vertices and index primitves used to render the mirror
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
+    /// Returns a random new instance of the mirror
+    fn random() -> Self
+    where
+        Self: Sized;
 }
 
 impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>>
@@ -300,11 +318,24 @@ where
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         Ok(serde_json::json!({
             "type": self.as_ref().get_json_type_inner(),
+            "mirror": self.as_ref().to_json()?,
         }))
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         self.as_ref().render_data(display)
+    }
+    fn random() -> Self
+    where
+        Self: Sized,
+    {
+        let mirror_types = ["plane", "sphere"];
+
+        match mirror_types[rand::random::<usize>() % mirror_types.len()] {
+            "plane" => Box::new(plane::PlaneMirror::<D>::random()),
+            "sphere" => Box::new(sphere::EuclideanSphereMirror::<D>::random()),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -369,6 +400,13 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         self.iter()
             .flat_map(|mirror| mirror.render_data(display))
             .collect()
+    }
+
+    fn random() -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
     }
 }
 

@@ -1,5 +1,7 @@
 use super::*;
 use glium_shapes::sphere::SphereBuilder;
+use rand::random;
+use serde_json::json;
 
 #[derive(Clone, Copy)]
 pub struct EuclideanSphereMirror<const D: usize> {
@@ -9,7 +11,6 @@ pub struct EuclideanSphereMirror<const D: usize> {
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-
         // TODO: more calculations can be offset to the inside of the if block
         // mental note: Cauchy-Schwarz
 
@@ -71,7 +72,12 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        todo!()
+        let center: Vec<f32> = self.center.iter().copied().collect();
+        let json = json!({
+            "center": center,
+            "radius": self.radius,
+        });
+        Ok(json)
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
@@ -92,6 +98,14 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             .unwrap();
 
         vec![Box::new(sphere)]
+    }
+    fn random() -> Self
+    where
+        Self: Sized,
+    {
+        let center = SVector::<f32, D>::from_fn(|_, _| random::<f32>());
+        let radius = random::<f32>();
+        Self { center, radius }
     }
 }
 
