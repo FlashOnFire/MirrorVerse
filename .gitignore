@@ -3,3 +3,4 @@
 /mirror_verse_json/target
 .direnv
 points.csv
+mirror_verse_ui/assets/mirror_verse_json

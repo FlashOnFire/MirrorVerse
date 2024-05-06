@@ -21,3 +21,15 @@ You can retrieve it in `target/release` or run it using the following command:
 ```shell
 cargo run "<path/to/simulation.json>"
 ```
+
+### ui
+
+You should first build the rust project into the flutter assets
+```shell
+cargo build --release && cp target/release/mirror_verse_json mirror_verse_ui/assets
+```
+Then just run
+```shell
+cd mirror_verse_ui
+flutter run --release
+```
