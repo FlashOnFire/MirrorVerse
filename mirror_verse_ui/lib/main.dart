@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import 'functions.dart';
 import 'new_generation.dart';
@@ -126,6 +125,14 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          if (selectedFile == null || selectedFile!.path.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Veuillez sélectionner un fichier'),
+              ),
+            );
+            return;
+          }
           runGeneration(selectedFile!);
         },
         tooltip: 'Run',
