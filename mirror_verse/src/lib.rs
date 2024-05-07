@@ -253,6 +253,14 @@ where
 
         let mut camera_controller = CameraController::new(SPEED, MOUSE_SENSITIVITY);
 
+        let mut program3d_noperspective = gl::Program::from_source(
+            &display,
+            render::VERTEX_SHADER_SRC_3D_NOPERSPECTIVE,
+            render::FRAGMENT_SHADER_SRC,
+            None,
+        )
+        .unwrap();
+
         let mut program3d = gl::Program::from_source(
             &display,
             render::VERTEX_SHADER_SRC_3D,
@@ -325,7 +333,13 @@ where
                 last_render_time = now;
 
                 camera_controller.update_camera(&mut camera, dt);
-                drawable_simulation.render(&display, &mut program3d, &camera, &projection);
+                drawable_simulation.render(
+                    &display,
+                    &mut program3d_noperspective,
+                    &mut program3d,
+                    &camera,
+                    &projection,
+                );
             }
             event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
             event::Event::DeviceEvent {

@@ -48,6 +48,16 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
     }
 "#;
 
+pub const VERTEX_SHADER_SRC_3D_NOPERSPECTIVE: &str = r#"
+    #version 140
+
+    in vec3 position;
+
+    void main() {
+        gl_Position = vec4(position, 1.0);
+    }
+"#;
+
 pub struct DrawableSimulation<T: Copy> {
     origins: Vec<Sphere>,
     ray_path_vertices: Vec<VertexBuffer<T>>,
@@ -70,20 +80,40 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
     pub fn render(
         &self,
         display: &gl::backend::glutin::Display,
+        program3d_noperspective: &mut gl::Program,
         program3d: &mut gl::Program,
         camera: &Camera,
         projection: &Projection,
     ) {
         let mut target = display.draw();
 
-        target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.0);
+        target.clear_color_and_depth((1., 1., 1., 1.), 1.);
 
-        let perspective = projection.get_matrix();
-        let view = camera.calc_matrix();
+        let clear_buffer = gl::VertexBuffer::new(
+            display,
+            &[
+                Vertex {
+                    position: [-1.0, 1.0, 0.0],
+                },
+                Vertex {
+                    position: [1.0, 1.0, 0.0],
+                },
+                Vertex {
+                    position: [1.0, -1.0, 0.0],
+                },
+                Vertex {
+                    position: [-1.0, -1.0, 0.0],
+                },
+                Vertex {
+                    position: [-1.0, 1.0, 0.0],
+                },
+            ],
+        )
+        .unwrap();
 
         let params = gl::DrawParameters {
             depth: gl::Depth {
-                test: gl::draw_parameters::DepthTest::Overwrite,
+                test: gl::draw_parameters::DepthTest::IfLess,
                 write: false,
                 ..Default::default()
             },
@@ -91,6 +121,26 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
             blend: Blend::alpha_blending(),
             ..Default::default()
         };
+
+        target
+            .draw(
+                &clear_buffer,
+                NoIndices(PrimitiveType::TriangleStrip),
+                program3d_noperspective,
+                &gl::uniform! {*
+                    color_vec: ORIGIN_COLOR,
+                },
+                &gl::DrawParameters {
+                    blend: Blend::default(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+
+        let size = display.gl_window().window().inner_size();
+
+        let perspective = projection.get_matrix();
+        let view = camera.calc_matrix();
 
         for sphere in &self.origins {
             target
