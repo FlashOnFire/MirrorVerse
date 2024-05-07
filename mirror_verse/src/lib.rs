@@ -60,6 +60,31 @@ impl<const D: usize> RayPath<D> {
         self.final_direction = Some(dir);
         first_time
     }
+
+    pub fn is_last_a_duplicates(&self) -> bool {
+        if self.points.len() < 3 {
+            return false;
+        }
+        let last_departure = self.points[self.points.len() - 1];
+        let last_arrival = self.points[self.points.len() - 2];
+        for i in 0..self.points.len() - 2 {
+            let departure = self.points[i + 1];
+            let arrival = self.points[i];
+            let mut is_same = true;
+            for j in 0..D {
+                if (departure[j] - last_departure[j]).abs() > 1e-5
+                    || (arrival[j] - last_arrival[j]).abs() > 1e-5
+                {
+                    is_same = false;
+                    break;
+                }
+            }
+            if is_same {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 pub struct Simulation<T, const D: usize> {
@@ -77,6 +102,11 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
 
             for _n in 0..reflection_limit {
                 ray_path.push_point(ray.origin);
+                if ray_path.is_last_a_duplicates() {
+                    println!("Duplicate found, exiting loop");
+                    ray_path.points.pop();
+                    break;
+                }
 
                 self.mirror
                     .append_intersecting_points(&ray, &mut intersections);
@@ -148,13 +178,13 @@ where
                 .into_iter()
                 .map(|ray_path| {
                     gl::VertexBuffer::new(display, &Vec::from_iter(ray_path
-                        .points()
-                        .iter()
-                        .copied()
-                        .chain(ray_path.final_direction().map(|dir| {
-                            ray_path.points().last().unwrap() + dir.as_ref() * 2000.
-                        }))
-                        .map(render::Vertex::from)
+                                .points()
+                                .iter()
+                                .copied()
+                                .chain(ray_path.final_direction().map(|dir| {
+                                    ray_path.points().last().unwrap() + dir.as_ref() * 2000.
+                                }))
+                                .map(render::Vertex::from)
                     )).unwrap()
                 })
                 .collect(),
