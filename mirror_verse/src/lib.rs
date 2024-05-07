@@ -34,7 +34,7 @@ const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
 const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
 const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
 
-const ORIGIN_COLOR: [f32; 4] = [0.49, 0.94, 0.49, 1.0];
+const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 0.6];
 const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
 
