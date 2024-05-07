@@ -11,11 +11,9 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=mirror_verse",
-                    "--package=mirror_verse"
                 ],
                 "filter": {
-                    "name": "mirror_verse",
+                    "name": "mirror_verse_json",
                     "kind": "bin"
                 }
             },
@@ -24,24 +22,5 @@
             ],
             "cwd": "${workspaceFolder}"
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'mirror_verse'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=mirror_verse",
-                    "--package=mirror_verse"
-                ],
-                "filter": {
-                    "name": "mirror_verse",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        }
     ]
 }
