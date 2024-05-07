@@ -13,23 +13,41 @@ void deleteFile(File file) {
 }
 
 void runGeneration(File file, {List<String>? params}) async {
-  //check if theres mirror_verse in the flutter assets
+  // Check if there's mirror_verse in the flutter assets
   try {
     final binary = await rootBundle.load("assets/mirror_verse_json");
-    //write the file to tmp to be able to run it
+    // Write the file to tmp to be able to run it
     final dir = await getTemporaryDirectory();
     File("${dir.path}/mirror_verse_json")
         .writeAsBytesSync(binary.buffer.asUint8List());
-    //make the file executable
-    Process.runSync('chmod', ['+x', "${dir.path}/mirror_verse_json"]);
-    //run the file
+    // Make the file executable
+    if (Platform.isWindows) {
+      Process.runSync('attrib', ['+x', "${dir.path}/mirror_verse_json"]);
+    } else if (Platform.isLinux || Platform.isMacOS) {
+      Process.runSync('chmod', ['+x', "${dir.path}/mirror_verse_json"]);
+    } else {
+      throw Exception("Unsupported platform");
+    }
+    // Run the file
+    // if (Platform.isWindows) {
+    //   Process.run("${dir.path}/mirror_verse_json", [
+    //     if (params != null) ...params,
+    //     file.path,
+    //   ]).then((value) => File("${dir.path}/mirror_verse_json").deleteSync());
+    // } else {
     Process.run("${dir.path}/mirror_verse_json", [
       if (params != null) ...params,
       file.path,
     ]).then((value) => File("${dir.path}/mirror_verse_json").deleteSync());
+    // }
   } catch (e) {
-    Process.run('cargo',
-        ['run', '--release', '--', if (params != null) ...params, file.path]);
+    if (Platform.isWindows) {
+      Process.run('cargo',
+          ['run', '--release', '--', if (params != null) ...params, file.path]);
+    } else {
+      Process.run('cargo',
+          ['run', '--release', '--', if (params != null) ...params, file.path]);
+    }
   }
 }
 
