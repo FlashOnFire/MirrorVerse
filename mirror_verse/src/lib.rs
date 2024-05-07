@@ -9,6 +9,7 @@ use glium::{
     self as gl,
     glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode},
 };
+use glium_shapes::sphere::SphereBuilder;
 use nalgebra::{SVector, Unit};
 use std::{error::Error, time};
 
@@ -33,7 +34,8 @@ const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
 const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
 const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
 
-const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 6.0];
+const ORIGIN_COLOR: [f32; 4] = [0.49, 0.94, 0.49, 1.0];
+const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 0.6];
 const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -173,23 +175,57 @@ where
         reflection_limit: usize,
         display: &gl::Display,
     ) -> DrawableSimulation<render::Vertex<D>> {
-        DrawableSimulation::new(
-            self.get_ray_paths(reflection_limit)
-                .into_iter()
-                .map(|ray_path| {
-                    gl::VertexBuffer::new(display, &Vec::from_iter(ray_path
-                                .points()
-                                .iter()
-                                .copied()
-                                .chain(ray_path.final_direction().map(|dir| {
-                                    ray_path.points().last().unwrap() + dir.as_ref() * 2000.
-                                }))
-                                .map(render::Vertex::from)
-                    )).unwrap()
-                })
-                .collect(),
-            self.mirror.render_data(display),
-        )
+        let origins = if self.rays.is_empty() {
+            vec![]
+        } else {
+            Vec::from_iter(
+                self.rays
+                    .iter()
+                    .map(|r| r.origin)
+                    .map(|v| {
+                        if D == 1 {
+                            [*v.get(0).unwrap(), 1.0f32, 1.0f32]
+                        } else if D == 2 {
+                            [*v.get(0).unwrap(), *v.get(1).unwrap(), 1.0f32]
+                        } else {
+                            [*v.get(0).unwrap(), *v.get(1).unwrap(), *v.get(2).unwrap()]
+                        }
+                    })
+                    .map(|v| {
+                        SphereBuilder::new()
+                            .scale(0.05, 0.05, 0.05)
+                            .translate(v[0], v[1], v[2])
+                            .with_divisions(100, 100)
+                            .build(display)
+                            .unwrap()
+                    }),
+            )
+        };
+
+        let ray_paths = self
+            .get_ray_paths(reflection_limit)
+            .into_iter()
+            .map(|ray_path| {
+                gl::VertexBuffer::new(
+                    display,
+                    &Vec::from_iter(
+                        ray_path
+                            .points()
+                            .iter()
+                            .copied()
+                            .chain(ray_path.final_direction().map(|dir| {
+                                ray_path.points().last().unwrap() + dir.as_ref() * 2000.
+                            }))
+                            .map(render::Vertex::from),
+                    ),
+                )
+                .unwrap()
+            })
+            .collect();
+
+        let mirrors = self.mirror.render_data(display);
+
+        DrawableSimulation::new(origins, ray_paths, mirrors)
     }
 
     pub fn run_opengl(&self, reflection_limit: usize) {

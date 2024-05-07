@@ -3,6 +3,7 @@ use gl::{
     index::{NoIndices, PrimitiveType},
     Blend, Surface, VertexBuffer,
 };
+use glium_shapes::sphere::Sphere;
 
 pub mod camera;
 
@@ -48,13 +49,19 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
 "#;
 
 pub struct DrawableSimulation<T: Copy> {
+    origins: Vec<Sphere>,
     ray_path_vertices: Vec<VertexBuffer<T>>,
     mirrors: Vec<Box<dyn render::RenderData>>,
 }
 
 impl<T: gl::Vertex> DrawableSimulation<T> {
-    pub fn new(ray_path_vertices: Vec<VertexBuffer<T>>, mirrors: Vec<Box<dyn RenderData>>) -> Self {
+    pub fn new(
+        origins: Vec<Sphere>,
+        ray_path_vertices: Vec<VertexBuffer<T>>,
+        mirrors: Vec<Box<dyn RenderData>>,
+    ) -> Self {
         Self {
+            origins,
             ray_path_vertices,
             mirrors,
         }
@@ -81,10 +88,25 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
                 ..Default::default()
             },
             line_width: Some(1.),
-            smooth: Some(gl::Smooth::Nicest),
             blend: Blend::alpha_blending(),
             ..Default::default()
         };
+
+        for sphere in &self.origins {
+            target
+                .draw(
+                    sphere,
+                    sphere,
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: ORIGIN_COLOR,
+                    },
+                    &params,
+                )
+                .unwrap();
+        }
 
         for buffer in self.ray_path_vertices.as_slice() {
             target
