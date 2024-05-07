@@ -28,18 +28,10 @@ void runGeneration(File file, {List<String>? params}) async {
     } else {
       throw Exception("Unsupported platform");
     }
-    // Run the file
-    // if (Platform.isWindows) {
-    //   Process.run("${dir.path}/mirror_verse_json", [
-    //     if (params != null) ...params,
-    //     file.path,
-    //   ]).then((value) => File("${dir.path}/mirror_verse_json").deleteSync());
-    // } else {
     Process.run("${dir.path}/mirror_verse_json", [
       if (params != null) ...params,
       file.path,
     ]).then((value) => File("${dir.path}/mirror_verse_json").deleteSync());
-    // }
   } catch (e) {
     if (Platform.isWindows) {
       Process.run('cargo',
