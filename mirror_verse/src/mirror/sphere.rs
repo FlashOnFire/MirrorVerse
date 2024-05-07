@@ -110,4 +110,120 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_basic_sphere() {
+        let mirror = EuclideanSphereMirror::<3>::from_json(&json!({
+            "center": [0., 0., 0.],
+            "radius": 1.,
+        }))
+        .expect("json error");
+
+        let mut ray = Ray {
+            origin: [-2., 0., 0.].into(),
+            direction: Unit::new_normalize([1., 0., 0.].into()),
+        };
+
+        let mut intersections = vec![];
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        assert_eq!(intersections.len(), 2);
+
+        let tangent = &intersections[0];
+        let d = tangent.try_intersection_distance(&ray);
+
+        if let Some(t) = d {
+            assert!((t - 1.).abs() < f32::EPSILON);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(tangent);
+
+        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([-1., 0., 0.]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
+
+    #[test]
+    fn test_no_intersection() {
+        let mirror = EuclideanSphereMirror::<3>::from_json(&json!({
+            "center": [0., 0., 0.],
+            "radius": 1.,
+        }))
+        .expect("json error");
+
+        let mut ray = Ray {
+            origin: [-2., 0., 0.].into(),
+            direction: Unit::new_normalize([0., 1., 0.].into()),
+        };
+
+        let mut intersections = vec![];
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        assert_eq!(intersections.len(), 0);
+    }
+
+    #[test]
+    fn test_angled_ray() {
+        let mirror = EuclideanSphereMirror::<3>::from_json(&json!({
+            "center": [0., 0., 0.],
+            "radius": 1.,
+        }))
+        .expect("json error");
+
+        let mut ray = Ray {
+            origin: [-2., -1., 0.].into(),
+            direction: Unit::new_normalize([1., 1., 0.].into()),
+        };
+
+        let mut intersections = vec![];
+        mirror.append_intersecting_points(&ray, &mut intersections);
+
+        assert_eq!(intersections.len(), 2);
+
+        let tangent = &intersections[0];
+        let d = tangent.try_intersection_distance(&ray);
+
+        if let Some(t) = d {
+            assert!((t - 1.4142137).abs() < f32::EPSILON);
+            ray.advance(t);
+        } else {
+            panic!("there must be distance");
+        }
+
+        ray.reflect_direction(tangent);
+
+        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < f32::EPSILON);
+        assert!(
+            (ray.direction.into_inner() - SVector::from([-0.70710665, 0.70710695, 0.]))
+                .norm()
+                .abs()
+                < f32::EPSILON
+        );
+    }
+
+    #[test]
+    fn test_json() {
+        let mirror = EuclideanSphereMirror::<3>::from_json(&json!({
+            "center": [0., 0., 0.],
+            "radius": 1.,
+        }))
+        .expect("json error");
+
+        let json = mirror.to_json().expect("json error");
+
+        let mirror2 = EuclideanSphereMirror::<3>::from_json(&json).expect("json error");
+
+        assert_eq!(mirror.center, mirror2.center);
+        assert_eq!(mirror.radius, mirror2.radius);
+    }
+}
