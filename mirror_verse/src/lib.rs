@@ -276,7 +276,7 @@ where
                     display.gl_window().resize(physical_size)
                 }
                 event::WindowEvent::MouseWheel { delta, .. } => {
-                    camera_controller.set_scoll(&delta);
+                    camera_controller.set_scroll(&delta);
                 }
 
                 event::WindowEvent::KeyboardInput { input, .. } => {

@@ -138,7 +138,7 @@ impl CameraController {
         self.rotate_vertical = mouse_dy as f32;
     }
 
-    pub fn set_scoll(&mut self, delta: &MouseScrollDelta) {
+    pub fn set_scroll(&mut self, delta: &MouseScrollDelta) {
         self.scroll = -match delta {
             MouseScrollDelta::LineDelta(_, scroll) => scroll * 100.,
             MouseScrollDelta::PixelDelta(PhysicalPosition { y: scroll, .. }) => *scroll as f32,
