@@ -105,30 +105,6 @@ where
         }
         */
 
-        let mut vectors = [SVector::zeros(); D];
-
-        let (v_0, basis) = vectors.split_first_mut().unwrap();
-
-        *v_0 = json
-            .get("center")
-            .and_then(serde_json::Value::as_array)
-            .map(Vec::as_slice)
-            .and_then(util::json_array_to_vector)
-            .ok_or("Failed to parse center")?;
-
-        let basis_json = json
-            .get("basis")
-            .and_then(serde_json::Value::as_array)
-            .filter(|l| l.len() == D - 1)
-            .ok_or("Failed to parse basis")?;
-
-        for (value, vector) in basis_json.iter().zip(basis) {
-            *vector = value
-                .as_array()
-                .map(Vec::as_slice)
-                .and_then(util::json_array_to_vector)
-                .ok_or("Failed to parse basis vector")?;
-        }
 
         let bounds_json = json
             .get("bounds")
@@ -141,7 +117,7 @@ where
             *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
         }
 
-        let plane = Plane::new(vectors).ok_or("Failed to create plane")?;
+        let plane = Plane::from_json(json)?;
 
         Ok(Self { plane, bounds })
     }

@@ -201,6 +201,43 @@ impl<const D: usize> Plane<D> {
             // a now contains a^-1
             .then(|| a * (ray.origin - self.v_0()))
     }
+
+    /// create a new plane from a json value
+    pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        /*
+        example json:
+        {
+            "v_0": [9., 8., 7., ...], (N elements)
+            "basis": [[9., 8., 7., ...], [9., 8., 7., ...], ...], (N-1 elements)
+        }
+        */
+        let mut vectors = [SVector::zeros(); D];
+
+        let (v_0, basis) = vectors.split_first_mut().unwrap();
+
+        *v_0 = json
+            .get("center")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::as_slice)
+            .and_then(util::json_array_to_vector)
+            .ok_or("Failed to parse center")?;
+
+        let basis_json = json
+            .get("basis")
+            .and_then(serde_json::Value::as_array)
+            .filter(|l| l.len() == D - 1)
+            .ok_or("Failed to parse basis")?;
+
+        for (value, vector) in basis_json.iter().zip(basis) {
+            *vector = value
+                .as_array()
+                .map(Vec::as_slice)
+                .and_then(util::json_array_to_vector)
+                .ok_or("Failed to parse basis vector")?;
+        }
+
+        Ok(Plane::new(vectors).ok_or("Failed to create plane")?)
+    }
 }
 
 pub trait Mirror<const D: usize> {
