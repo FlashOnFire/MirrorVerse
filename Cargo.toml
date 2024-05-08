@@ -2,7 +2,7 @@
 
 members = [
     "mirror_verse", 
-    "mirror_verse_json"
+    "run_simulation_json"
 ]
 
 resolver = "2"

@@ -827,15 +827,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mirror_verse_json"
-version = "0.1.0"
-dependencies = [
- "mirror_verse",
- "rand 0.8.5",
- "serde_json",
-]
-
-[[package]]
 name = "nalgebra"
 version = "0.32.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1298,6 +1289,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469052894dcb553421e483e4209ee581a45100d31b4018de03e5a7ad86374a7e"
 dependencies = [
  "bitflags 2.5.0",
+]
+
+[[package]]
+name = "run_simulation_json"
+version = "0.1.0"
+dependencies = [
+ "mirror_verse",
+ "rand 0.8.5",
+ "serde_json",
 ]
 
 [[package]]

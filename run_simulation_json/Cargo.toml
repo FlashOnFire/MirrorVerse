@@ -1,5 +1,5 @@
 [package]
-name = "mirror_verse_json"
+name = "run_simulation_json"
 version = "0.1.0"
 edition = "2021"
 
