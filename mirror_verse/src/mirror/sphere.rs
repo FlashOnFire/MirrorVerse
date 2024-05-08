@@ -89,7 +89,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         };
 
         let scale = match D {
-            1 => [self.radius, 0., 0.],
+            1 => unimplemented!(),
             2 => [self.radius, self.radius, 0.],
             3 => [self.radius, self.radius, self.radius],
             _ => unreachable!(),
