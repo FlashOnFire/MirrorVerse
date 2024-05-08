@@ -9,7 +9,7 @@ pub mod camera;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex<const N: usize> {
-    position: [f32; N],
+    pub position: [f32; N],
 }
 
 type Vertex3D = Vertex<3>;

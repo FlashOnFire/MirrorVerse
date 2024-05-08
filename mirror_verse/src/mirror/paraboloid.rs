@@ -44,6 +44,38 @@ impl<const D: usize> ParaboloidMirror<D> {
             > f32::EPSILON;
         distance_ok && same_direction
     }
+
+    fn get_point(&self, x: f32) -> SVector<f32, D> {
+        /*
+        this is a working python code needed to be adapted here
+                import numpy as np
+
+        # Define the focus and directrix
+        focus = np.array([0, 0])  # Focus of the parabola
+        directrix_point = np.array([-1, -1])  # A point on the directrix line
+        directrix_vector = np.array([-1, 1])  # Direction vector of the directrix line
+
+        # Define the parabola equation
+        def parabola(x, y):
+            return (x - focus[0])**2 + (y - focus[1])**2 - 2 * np.dot(np.array([x, y]).T - directrix_point, directrix_vector)
+
+        # draw the parabola
+        x = np.linspace(-1, 1, 100)
+        y = np.linspace(-1, 1, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = parabola(X, Y)
+        import matplotlib.pyplot as plt
+
+        # Plot the parabola
+        plt.contour(X, Y, Z, [0], colors='r')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Parabola')
+        plt.grid(True)
+        plt.show()
+         */
+        todo!()
+    }
 }
 
 impl ParaboloidMirror<2> {
@@ -173,8 +205,31 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        todo!()
+        let mut points: Vec<SVector<f32, D>> = Vec::new();
+        for i in -10..10 {
+            points.push(self.get_point(i as f32));
+        }
+
+        let paraboloid_render_data = ParaboloidRenderData {
+            vertices: gl::VertexBuffer::new(
+                display,
+                &points
+                    .iter()
+                    .map(|point| {
+                        let mut position: [f32; 3] = [0.; 3];
+                        for i in 0..2 {
+                            position[i] = point[i];
+                        }
+                        position[2] = std::f32::consts::PI;
+                        render::Vertex { position }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap(),
+        };
+        vec![Box::new(paraboloid_render_data)]
     }
+
     fn random() -> Self
     where
         Self: Sized,

@@ -5,7 +5,7 @@ use std::fs::File;
 mod generate;
 use generate::generate_mirror_set;
 
-const DEFAULT_DIM: usize = 3;
+const DEFAULT_DIM: usize = 2;
 
 fn main() {
     let args = std::env::args().skip(1);
