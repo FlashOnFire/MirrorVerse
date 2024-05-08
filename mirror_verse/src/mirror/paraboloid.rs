@@ -34,7 +34,7 @@ impl<const D: usize> ParaboloidMirror<D> {
         let dist_to_directrix =
             (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
         let dist_to_focus = (self.focus - *point).norm();
-        let distance_ok = (dist_to_directrix.powi(2) - 2. * dist_to_focus).abs() < f32::EPSILON;
+        let distance_ok = (dist_to_directrix - dist_to_focus).abs() < 1e-5;
         //check if the point is on the right side of the limit plane
         let point_projection_on_limit_plane = self.limit_plane.orthogonal_projection(*point);
         let focus_projection_on_limit_plane = self.limit_plane.orthogonal_projection(self.focus);
@@ -45,41 +45,10 @@ impl<const D: usize> ParaboloidMirror<D> {
         distance_ok && same_direction
     }
 
-    fn get_point(&self, x: f32) -> SVector<f32, D> {
-        /*
-        this is a working python code needed to be adapted here
-                import numpy as np
-
-        # Define the focus and directrix
-        focus = np.array([0, 0])  # Focus of the parabola
-        directrix_point = np.array([-1, -1])  # A point on the directrix line
-        directrix_vector = np.array([-1, 1])  # Direction vector of the directrix line
-
-        # Define the parabola equation
-        def parabola(x, y):
-            return (x - focus[0])**2 + (y - focus[1])**2 - 2 * np.dot(np.array([x, y]).T - directrix_point, directrix_vector)
-
-        # draw the parabola
-        x = np.linspace(-1, 1, 100)
-        y = np.linspace(-1, 1, 100)
-        X, Y = np.meshgrid(x, y)
-        Z = parabola(X, Y)
-        import matplotlib.pyplot as plt
-
-        # Plot the parabola
-        plt.contour(X, Y, Z, [0], colors='r')
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('Parabola')
-        plt.grid(True)
-        plt.show()
-         */
-        todo!()
-    }
-}
-
-impl ParaboloidMirror<2> {
-    fn get_tangent(&self, point: &SVector<f32, 2>) -> Option<Plane<2>> {
+    fn get_tangent(&self, point: &SVector<f32, D>) -> Option<Plane<D>> {
+        if D != 2 {
+            panic!("InvalidDimension");
+        }
         if !self.is_point_on_parabola(point) {
             return None;
         }
@@ -92,7 +61,68 @@ impl ParaboloidMirror<2> {
         //calculate the tangent
         let direction = point_to_directrix_direction + point_to_focus_direction;
 
-        Some(Plane::new([*point, direction]).unwrap())
+        let mut vectors = [SVector::zeros(); D];
+        vectors[0] = *point;
+        vectors[1] = direction;
+
+        Some(Plane::new(vectors).unwrap())
+    }
+
+    fn get_points(&self) -> Vec<SVector<f32, D>> {
+        if D != 2 {
+            panic!("InvalidDimension");
+        }
+        // lets construct the formula of the parametric equation of the parabola
+        let focus = self.focus;
+        let directrix_point = self.directrix_plane.v_0();
+        let directrix_vector = self.directrix_plane.basis()[0];
+
+        //the directix formula from ax + by + c = 0
+        let directrix_formula = SVector::from([
+            directrix_vector[1],
+            -directrix_vector[0],
+            -directrix_vector[1] * directrix_point[0] + directrix_vector[0] * directrix_point[1],
+        ]);
+
+        /*the parabola formula (with F=(f1,f2) the focus)
+            (ax+by+c)^2
+            ----------- = (x-f1)^2 + (y-f2)^2
+              a^2+b^2
+        */
+        let denominator = directrix_vector.norm_squared();
+        let numerator = directrix_formula.norm_squared();
+
+        todo!();
+
+        // let mut points = Vec::new();
+        // for x in -100..100 {
+        //     let y = ((numerator - ((x as f32) / 10. - focus[0]).powi(2)) / denominator).sqrt()
+        //         + focus[1];
+        //     let mut vector = SVector::zeros();
+        //     vector[0] = x as f32 / 10.;
+        //     vector[1] = y;
+        //     points.push(vector);
+        // }
+
+        // points
+
+        // let focus = self.focus;
+        // let directrix_point = self.directrix_plane.v_0();
+        // let directrix_vector = self.directrix_plane.basis()[0];
+
+        // let parabola = |t: f32| -> [f32; 2] {
+        //     [
+        //         focus[0] + (t.powf(2.)) * directrix_vector[0] - 2. * t * directrix_point[0],
+        //         focus[1] + (t.powf(2.)) * directrix_vector[1] - 2. * t * directrix_point[1],
+        //     ]
+        // };
+
+        // let mut point = SVector::zeros();
+        // for i in 0..2 {
+        //     point[i] = parabola(t)[i];
+        // }
+
+        // point
     }
 }
 
@@ -101,7 +131,6 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         if D != 2 {
             panic!("InvalidDimension");
         }
-
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -128,7 +157,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
 
         // Solve the equation
         let t0 = 1.; // Initial guess for the first root
-        let solution = newton_raphson(t0, func).unwrap(); // You need to implement the Newton-Raphson method
+        let solution = newton_raphson(t0, func).unwrap();
         let mut intersection_points = [Point2::new(0., 0.); 2];
         intersection_points[0] = line_point + solution * line_direction.into_inner();
 
@@ -141,27 +170,29 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             solution - ray_to_focus.norm()
         };
 
-        let solution = newton_raphson(t1, func).unwrap(); // You need to implement the Newton-Raphson method
+        let solution = newton_raphson(t1, func).unwrap();
         intersection_points[1] = line_point + solution * line_direction.into_inner();
 
-        for intersection_point in intersection_points.iter() {
+        for intersection_point in intersection_points[1..].iter() {
             if self.is_point_on_parabola(&SVector::from_vec(vec![
                 intersection_point[0],
                 intersection_point[1],
             ])) {
-                list.push(
-                    // TODO with the new method of momo aucun soucis on utilise
-                    // la tangent self.get_tangent(
-                    //     &[intersection_point[0], intersection_point[1]].into()
-                    // ).unwrap(),
-                    Tangent::Normal {
-                        origin: SVector::from_vec(vec![
-                            intersection_point[0],
-                            intersection_point[1],
-                        ]),
-                        normal: Unit::new_normalize(SVector::from_vec(vec![1., 1.])),
-                    },
-                );
+                println!("saiohcbnpriouygoriuhnostz");
+                self.get_tangent(&SVector::from_vec(vec![
+                    intersection_point[0],
+                    intersection_point[1],
+                ]));
+                let tangent = self.get_tangent(&SVector::from_vec(vec![
+                    intersection_point[0],
+                    intersection_point[1],
+                ]));
+                //TODO j'ai mis ca de manière random
+                let normal = tangent.unwrap().basis()[0];
+                list.push(Tangent::Normal {
+                    origin: SVector::from_vec(vec![intersection_point[0], intersection_point[1]]),
+                    normal: Unit::new_normalize(normal),
+                });
             }
         }
     }
@@ -206,9 +237,12 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         let mut points: Vec<SVector<f32, D>> = Vec::new();
-        for i in -10..10 {
-            points.push(self.get_point(i as f32));
+        for i in self.get_points() {
+            points.push(i);
         }
+        // for i in (-1000..=1000).step_by(1) {
+        //     points.push(self.get_point(i as f32 / 10.));
+        // }
 
         let paraboloid_render_data = ParaboloidRenderData {
             vertices: gl::VertexBuffer::new(
@@ -220,7 +254,6 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
                         for i in 0..2 {
                             position[i] = point[i];
                         }
-                        position[2] = std::f32::consts::PI;
                         render::Vertex { position }
                     })
                     .collect::<Vec<_>>(),
@@ -259,4 +292,22 @@ where
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    #[test]
+    fn test_on_parabola() {
+        let paraboloid = super::ParaboloidMirror::<2> {
+            directrix_plane: super::Plane::new([
+                super::SVector::from_vec(vec![0., -1.]),
+                super::SVector::from_vec(vec![1., 1.]),
+            ])
+            .unwrap(),
+            focus: super::SVector::from_vec(vec![0., 0.]),
+            limit_plane: super::Plane::new([
+                super::SVector::from_vec(vec![0., 0.]),
+                super::SVector::from_vec(vec![0., 1.]),
+            ])
+            .unwrap(),
+        };
+        assert!(paraboloid.is_point_on_parabola(&super::SVector::from_vec(vec![0.44948974, 1.])));
+    }
+}
