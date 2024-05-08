@@ -175,9 +175,11 @@ where
         reflection_limit: usize,
         display: &gl::Display,
     ) -> DrawableSimulation<render::Vertex<D>> {
+        // We first check if there is at least one ray to display its origin
         let origins = if self.rays.is_empty() {
             vec![]
         } else {
+            // if it's the case, we loop through all of them and build a small sphere around the origin of the ray
             Vec::from_iter(
                 self.rays
                     .iter()
@@ -202,6 +204,7 @@ where
             )
         };
 
+        // Then we calculate the path of each ray
         let ray_paths = self
             .get_ray_paths(reflection_limit)
             .into_iter()
@@ -223,6 +226,7 @@ where
             })
             .collect();
 
+        // finally we build the render data of each mirror
         let mirrors = self.mirror.render_data(display);
 
         DrawableSimulation::new(origins, ray_paths, mirrors)
