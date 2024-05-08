@@ -1,3 +1,4 @@
+use glium::index;
 use nalgebra::{Point2, Vector2};
 
 use super::*;
@@ -10,6 +11,22 @@ pub(crate) struct ParaboloidMirror<const D: usize> {
     focus: SVector<f32, D>,
     /// The limit of the parabola
     limit_plane: Plane<D>,
+}
+
+struct ParaboloidRenderData<const D: usize> {
+    vertices: gl::VertexBuffer<render::Vertex<D>>,
+}
+
+impl<const D: usize> render::RenderData for ParaboloidRenderData<D> {
+    fn vertices(&self) -> gl::vertex::VerticesSource {
+        (&self.vertices).into()
+    }
+
+    fn indices(&self) -> gl::index::IndicesSource {
+        gl::index::IndicesSource::NoIndices {
+            primitives: index::PrimitiveType::LineStrip,
+        }
+    }
 }
 
 impl<const D: usize> ParaboloidMirror<D> {
