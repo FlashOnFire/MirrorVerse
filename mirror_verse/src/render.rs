@@ -18,9 +18,15 @@ glium::implement_vertex!(Vertex3D, position);
 type Vertex2D = Vertex<2>;
 glium::implement_vertex!(Vertex2D, position);
 
-impl<const N: usize> From<nalgebra::SVector<f32, N>> for Vertex<N> {
-    fn from(v: nalgebra::SVector<f32, N>) -> Self {
-        Self { position: v.into() }
+impl<const N: usize, const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<N> {
+    fn from(v: nalgebra::SVector<f32, D>) -> Self {
+        assert!(D <= N);
+        let mut position = [0.; N];
+        for i in 0..D {
+            position[i] = v[i];
+        }
+
+        Self { position }
     }
 }
 
@@ -48,16 +54,16 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
     }
 "#;
 
-pub struct DrawableSimulation<T: Copy> {
+pub struct DrawableSimulation<const D: usize> {
     origins: Vec<Sphere>,
-    ray_path_vertices: Vec<VertexBuffer<T>>,
+    ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
     mirrors: Vec<Box<dyn render::RenderData>>,
 }
 
-impl<T: gl::Vertex> DrawableSimulation<T> {
+impl DrawableSimulation<3> {
     pub fn new(
         origins: Vec<Sphere>,
-        ray_path_vertices: Vec<VertexBuffer<T>>,
+        ray_path_vertices: Vec<VertexBuffer<Vertex<3>>>,
         mirrors: Vec<Box<dyn RenderData>>,
     ) -> Self {
         Self {
@@ -87,7 +93,7 @@ impl<T: gl::Vertex> DrawableSimulation<T> {
                 write: false,
                 ..Default::default()
             },
-            line_width: Some(1.),
+            line_width: Some(2.),
             blend: Blend::alpha_blending(),
             ..Default::default()
         };

@@ -19,6 +19,7 @@ pub struct PlaneMirror<const D: usize> {
 
 struct PlaneRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
+    indices: gl::index::PrimitiveType,
 }
 
 impl<const D: usize> render::RenderData for PlaneRenderData<D> {
@@ -28,7 +29,7 @@ impl<const D: usize> render::RenderData for PlaneRenderData<D> {
 
     fn indices(&self) -> gl::index::IndicesSource {
         gl::index::IndicesSource::NoIndices {
-            primitives: index::PrimitiveType::TriangleStrip,
+            primitives: self.indices,
         }
     }
 }
@@ -57,7 +58,7 @@ impl<const D: usize> PlaneMirror<D> {
     }
 }
 
-use gl::index;
+use glium::index::PrimitiveType;
 use serde_json::json;
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D>
@@ -132,10 +133,15 @@ where
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        let vertices: Vec<_> = self.vertices().map(render::Vertex::from).collect();
+        let vertices: Vec<_> = self.vertices().map(render::Vertex::<3>::from).collect();
 
         vec![Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
+            indices: match D {
+                1 | 2 => PrimitiveType::LinesList,
+                3 => PrimitiveType::TriangleStrip,
+                _ => unimplemented!(),
+            },
         })]
     }
     fn random() -> Self

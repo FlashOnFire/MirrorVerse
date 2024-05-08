@@ -29,8 +29,8 @@ const FAR_PLANE: f32 = 2000.;
 const SPEED: f32 = 5.;
 const MOUSE_SENSITIVITY: f32 = 4.0;
 
-const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 0.);
-const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(0.);
+const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 5.);
+const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(-90.);
 const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
 const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
 
@@ -170,11 +170,9 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D>
 where
     render::Vertex<D>: gl::Vertex,
 {
-    fn to_drawable(
-        &self,
-        reflection_limit: usize,
-        display: &gl::Display,
-    ) -> DrawableSimulation<render::Vertex<D>> {
+    fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
+        assert!(D <= 3);
+
         // We first check if there is at least one ray to display its origin
         let origins = if self.rays.is_empty() {
             vec![]
@@ -186,9 +184,9 @@ where
                     .map(|r| r.origin)
                     .map(|v| {
                         if D == 1 {
-                            [*v.get(0).unwrap(), 1.0f32, 1.0f32]
+                            [*v.get(0).unwrap(), 0., 0.]
                         } else if D == 2 {
-                            [*v.get(0).unwrap(), *v.get(1).unwrap(), 1.0f32]
+                            [*v.get(0).unwrap(), *v.get(1).unwrap(), 0.]
                         } else {
                             [*v.get(0).unwrap(), *v.get(1).unwrap(), *v.get(2).unwrap()]
                         }
@@ -219,7 +217,7 @@ where
                             .chain(ray_path.final_direction().map(|dir| {
                                 ray_path.points().last().unwrap() + dir.as_ref() * 2000.
                             }))
-                            .map(render::Vertex::from),
+                            .map(render::Vertex::<3>::from),
                     ),
                 )
                 .unwrap()
@@ -229,7 +227,7 @@ where
         // finally we build the render data of each mirror
         let mirrors = self.mirror.render_data(display);
 
-        DrawableSimulation::new(origins, ray_paths, mirrors)
+        DrawableSimulation::<3>::new(origins, ray_paths, mirrors)
     }
 
     pub fn run_opengl(&self, reflection_limit: usize) {
