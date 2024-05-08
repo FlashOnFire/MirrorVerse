@@ -62,8 +62,9 @@ impl Mirror<2> for BezierMirror {
     }
 
     fn random() -> Self
-        where
-            Self: Sized {
+    where
+        Self: Sized,
+    {
         todo!()
     }
 }

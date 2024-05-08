@@ -57,35 +57,35 @@ impl<const D: usize> RayPath<D> {
         self.points.push(pt);
     }
 
+    /// Attempts to push a point to the path. Aborts and
+    /// returns `false` if it's on a previously followed path
+    pub fn try_push_point(&mut self, pt: SVector<f32, D>, epsilon: f32) -> bool {
+        let no_dupes = !self
+            .points
+            .split_last()
+            .map(|(last_pt, points)| {
+                points.windows(2).any(|window| {
+                    // ugly, but `slice::array_windows` is unstable
+                    let [this_pt, next_pt] = window else {
+                        // because window.len() is always 2
+                        unreachable!()
+                    };
+                    (last_pt - this_pt).norm() < epsilon && (pt - next_pt).norm() < epsilon
+                })
+            })
+            .unwrap_or(false);
+
+        if no_dupes {
+            self.push_point(pt)
+        }
+
+        return no_dupes;
+    }
+
     pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
         let first_time = self.final_direction.is_none();
         self.final_direction = Some(dir);
         first_time
-    }
-
-    pub fn is_last_a_duplicates(&self) -> bool {
-        if self.points.len() < 3 {
-            return false;
-        }
-        let last_departure = self.points[self.points.len() - 1];
-        let last_arrival = self.points[self.points.len() - 2];
-        for i in 0..self.points.len() - 2 {
-            let departure = self.points[i + 1];
-            let arrival = self.points[i];
-            let mut is_same = true;
-            for j in 0..D {
-                if (departure[j] - last_departure[j]).abs() > 1e-5
-                    || (arrival[j] - last_arrival[j]).abs() > 1e-5
-                {
-                    is_same = false;
-                    break;
-                }
-            }
-            if is_same {
-                return true;
-            }
-        }
-        false
     }
 }
 
@@ -96,52 +96,46 @@ pub struct Simulation<T, const D: usize> {
 
 impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
-        let mut intersections = vec![];
-        let mut ray_paths = vec![RayPath::default(); self.rays.len()];
-
-        for (ray, ray_path) in self.rays.iter().zip(ray_paths.iter_mut()) {
-            let mut ray = *ray;
-
-            for _n in 0..reflection_limit {
+        let mut intersections_scratch = vec![];
+        self.rays
+            .iter()
+            .map(|ray| {
+                let mut ray = *ray;
+                let mut ray_path = RayPath::default();
                 ray_path.push_point(ray.origin);
-                if ray_path.is_last_a_duplicates() {
-                    println!("Duplicate found, exiting loop");
-                    ray_path.points.pop();
-                    break;
+
+                for _n in 0..reflection_limit {
+                    self.mirror
+                        .append_intersecting_points(&ray, &mut intersections_scratch);
+
+                    if let Some((distance, tangent)) = intersections_scratch
+                        .iter()
+                        .filter_map(|tangent| {
+                            let dist = tangent
+                                .try_intersection_distance(&ray)
+                                .expect("the ray must intersect with the plane");
+                            (dist > f32::EPSILON * 32.0).then_some((dist, tangent))
+                        })
+                        .min_by(|(d1, _), (d2, _)| {
+                            d1.partial_cmp(d2)
+                                .expect("NaN found in intersection distances: aborting")
+                        })
+                    {
+                        ray.advance(distance);
+                        ray.reflect_direction(tangent);
+                        if !ray_path.try_push_point(ray.origin, f32::EPSILON * 16.0) {
+                            break;
+                        }
+                    } else {
+                        ray_path.set_final_direction(ray.direction);
+                        break;
+                    }
+
+                    intersections_scratch.clear()
                 }
-
-                self.mirror
-                    .append_intersecting_points(&ray, &mut intersections);
-
-                if let Some((distance, tangent)) = intersections
-                    .iter()
-                    .filter_map(|tangent| {
-                        let dist = tangent
-                            .try_intersection_distance(&ray)
-                            .expect("the ray must intersect with the plane");
-                        (dist > f32::EPSILON * 32.0).then_some((dist, tangent))
-                    })
-                    .min_by(|(d1, _), (d2, _)| {
-                        d1.partial_cmp(d2)
-                            .expect("NaN found in intersection distances: aborting")
-                    })
-                {
-                    ray.advance(distance);
-                    ray.reflect_direction(tangent);
-                } else {
-                    ray_path.set_final_direction(ray.direction);
-                    break;
-                }
-
-                intersections.clear()
-            }
-
-            // if we were capped by the reflection limit, our last position wasn't saved
-            if ray_path.final_direction().is_none() {
-                ray_path.push_point(ray.origin)
-            }
-        }
-        ray_paths
+                ray_path
+            })
+            .collect()
     }
 
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
@@ -195,7 +189,7 @@ where
                         SphereBuilder::new()
                             .scale(0.05, 0.05, 0.05)
                             .translate(v[0], v[1], v[2])
-                            .with_divisions(100, 100)
+                            .with_divisions(20, 20)
                             .build(display)
                             .unwrap()
                     }),
