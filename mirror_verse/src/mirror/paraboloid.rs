@@ -64,8 +64,12 @@ impl ParaboloidMirror<2> {
     }
 }
 
-impl Mirror<2> for ParaboloidMirror<2> {
-    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
+impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        if D != 2 {
+            panic!("InvalidDimension");
+        }
+
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -119,8 +123,11 @@ impl Mirror<2> for ParaboloidMirror<2> {
                     //     &[intersection_point[0], intersection_point[1]].into()
                     // ).unwrap(),
                     Tangent::Normal {
-                        origin: [intersection_point[0], intersection_point[1]].into(),
-                        normal: Unit::new_normalize([1., 1.].into()),
+                        origin: SVector::from_vec(vec![
+                            intersection_point[0],
+                            intersection_point[1],
+                        ]),
+                        normal: Unit::new_normalize(SVector::from_vec(vec![1., 1.])),
                     },
                 );
             }
@@ -139,16 +146,30 @@ impl Mirror<2> for ParaboloidMirror<2> {
     where
         Self: Sized,
     {
-        /*
-        example json:
+        let directrix_plane = Plane::from_json(&json["directrix_plane"])?;
+        let limit_plane = Plane::from_json(&json["limit_plane"])?;
 
-        */
+        let focus_json = json["focus"].as_array().ok_or("Invalid JSON")?;
+        let focus = SVector::from_vec(
+            focus_json
+                .iter()
+                .map(|val| val.as_f64().unwrap() as f32)
+                .collect(),
+        );
 
-        todo!()
+        Ok(Self {
+            directrix_plane,
+            focus,
+            limit_plane,
+        })
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        todo!()
+        let mut json = serde_json::Map::new();
+        json.insert("directrix_plane".into(), self.directrix_plane.to_json()?);
+        json.insert("focus".into(), self.focus.iter().cloned().collect());
+        json.insert("limit_plane".into(), self.limit_plane.to_json()?);
+        Ok(json.into())
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {

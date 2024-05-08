@@ -1,0 +1,49 @@
+{
+    "rays": [
+        {
+            "origin": [
+                0.0,
+                0.0
+            ],
+            "direction": [
+                1.0,
+                0.0
+            ]
+        }
+    ],
+    "mirror": {
+        "type": "[]paraboloid",
+        "mirror": [
+            {
+                "directrix_plane": {
+                    "center": [
+                        1.0,
+                        0.0
+                    ],
+                    "basis": [
+                        [
+                            1.0,
+                            0.0
+                        ]
+                    ]
+                },
+                "focus": [
+                    0.0,
+                    0.0
+                ],
+                "limit_plane": {
+                    "center": [
+                        -1.0,
+                        0.0
+                    ],
+                    "basis": [
+                        [
+                            1.0,
+                            0.0
+                        ]
+                    ]
+                }
+            }
+        ]
+    }
+}

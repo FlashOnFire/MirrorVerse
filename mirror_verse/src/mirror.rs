@@ -353,6 +353,8 @@ where
                         }
                         "sphere" => Vec::<sphere::EuclideanSphereMirror<D>>::from_json(mirror)
                             .map(into_type_erased),
+                        "paraboloid" => Vec::<paraboloid::ParaboloidMirror<D>>::from_json(mirror)
+                            .map(into_type_erased),
                         "dynamic" => {
                             Vec::<Box<dyn Mirror<D>>>::from_json(mirror).map(into_type_erased)
                         }
