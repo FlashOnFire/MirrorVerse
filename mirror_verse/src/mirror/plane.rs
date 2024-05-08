@@ -105,7 +105,6 @@ where
         }
         */
 
-
         let bounds_json = json
             .get("bounds")
             .and_then(serde_json::Value::as_array)
@@ -123,21 +122,13 @@ where
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let center: Vec<f32> = self.plane.v_0().iter().cloned().collect();
-        let basis: Vec<Vec<f32>> = self
-            .plane
-            .basis()
-            .iter()
-            .map(|v| v.iter().cloned().collect())
-            .collect();
+        let plane_json = self.plane.to_json()?;
         let bounds: Vec<f32> = self.bounds[1..].to_vec();
-        let json = json!({
-            "center": center,
-            "basis": basis,
+        Ok(json!({
+            "center": plane_json["center"],
+            "basis": plane_json["basis"],
             "bounds": bounds,
-            "darkness": 0.5,
-        });
-        Ok(json)
+        }))
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {

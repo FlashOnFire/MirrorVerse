@@ -238,6 +238,19 @@ impl<const D: usize> Plane<D> {
 
         Ok(Plane::new(vectors).ok_or("Failed to create plane")?)
     }
+
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        let center: Vec<f32> = self.v_0().iter().cloned().collect();
+        let basis: Vec<Vec<f32>> = self
+            .basis()
+            .iter()
+            .map(|v| v.iter().cloned().collect())
+            .collect();
+        Ok(serde_json::json!({
+            "center": center,
+            "basis": basis,
+        }))
+    }
 }
 
 pub trait Mirror<const D: usize> {
