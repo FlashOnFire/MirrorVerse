@@ -204,7 +204,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.4142137).abs() < f32::EPSILON);
+            assert!((t - std::f32::consts::SQRT_2).abs() < f32::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -214,7 +214,7 @@ mod tests {
 
         assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < f32::EPSILON);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-0.70710665, 0.70710695, 0.]))
+            (ray.direction.into_inner() - SVector::from([-std::f32::consts::FRAC_1_SQRT_2, std::f32::consts::FRAC_1_SQRT_2, 0.]))
                 .norm()
                 .abs()
                 < f32::EPSILON
