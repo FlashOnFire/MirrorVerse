@@ -118,16 +118,10 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 let mut ray_path = RayPath::default();
                 ray_path.push_point(ray.origin);
 
-                println!("{ray:?}");
-
                 for _n in 0..reflection_limit {
                     intersections_scratch.clear();
                     self.mirror
                         .append_intersecting_points(&ray, &mut intersections_scratch);
-
-                    for thing in &intersections_scratch {
-                        println!("{thing:?}");
-                    }
 
                     if let Some((distance, tangent)) = intersections_scratch
                         .iter()
