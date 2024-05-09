@@ -25,8 +25,8 @@ use mirror::{util, Mirror, Ray};
 const DEFAULT_WIDTH: u32 = 1280;
 const DEFAULT_HEIGHT: u32 = 720;
 
-const NEAR_PLANE: f32 = 0.1;
-const FAR_PLANE: f32 = 2000.;
+const NEAR_PLANE: f32 = 0.0001;
+const FAR_PLANE: f32 = 10000.;
 
 const SPEED: f32 = 5.;
 const MOUSE_SENSITIVITY: f32 = 4.0;
@@ -118,9 +118,16 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 let mut ray_path = RayPath::default();
                 ray_path.push_point(ray.origin);
 
+                println!("{ray:?}");
+
                 for _n in 0..reflection_limit {
+                    intersections_scratch.clear();
                     self.mirror
                         .append_intersecting_points(&ray, &mut intersections_scratch);
+
+                    for thing in &intersections_scratch {
+                        println!("{thing:?}");
+                    }
 
                     if let Some((distance, tangent)) = intersections_scratch
                         .iter()
@@ -144,8 +151,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                         ray_path.set_final_direction(ray.direction);
                         break;
                     }
-
-                    intersections_scratch.clear()
                 }
                 ray_path
             })

@@ -13,7 +13,7 @@
                     "build",
                 ],
                 "filter": {
-                    "name": "mirror_verse_json",
+                    "name": "run_simulation_json_3d",
                     "kind": "bin"
                 }
             },

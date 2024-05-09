@@ -39,10 +39,9 @@ impl<const D: usize> Ray<D> {
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         /*
         example json:
-                 {
+        {
             "origin": [9., 8., 7., ...], (N elements)
             "direction": [9., 8., 7., ...], (N elements)
-            "brightness": 0.5
         }
         */
 
@@ -147,19 +146,23 @@ impl<const D: usize> Plane<D> {
             orthonormalized,
         })
     }
+
     /// The plane's starting point
     pub fn v_0(&self) -> &SVector<f32, D> {
         self.vectors.first().unwrap()
     }
+
     /// A reference to the stored basis of the plane's associated hyperplane.
     ///
     /// The returned slice is garanteed to be of length D - 1.
     pub fn basis(&self) -> &[SVector<f32, D>] {
         &self.vectors[1..]
     }
+
     fn orthonormalized_basis(&self) -> &[SVector<f32, D>] {
         &self.orthonormalized[1..]
     }
+
     /// Project a vector using the orthonormal basis projection formula.
     pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
         self.orthonormalized_basis()
@@ -243,11 +246,13 @@ impl<const D: usize> Plane<D> {
 
     fn to_json(self) -> Result<serde_json::Value, Box<dyn Error>> {
         let center: Vec<f32> = self.v_0().iter().copied().collect();
+
         let basis: Vec<Vec<f32>> = self
             .basis()
             .iter()
             .map(|v| v.iter().copied().collect())
             .collect();
+
         Ok(serde_json::json!({
             "center": center,
             "basis": basis,
