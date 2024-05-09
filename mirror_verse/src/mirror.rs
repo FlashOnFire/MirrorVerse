@@ -73,9 +73,14 @@ impl<const D: usize> Ray<D> {
         }))
     }
 
-    pub fn random<T: rand::Rng>(rng: &mut T) -> Self {
-        let origin = SVector::<f32, D>::from_fn(|_, _| rng.gen());
-        let direction = Unit::new_normalize(SVector::<f32, D>::from_fn(|_, _| rng.gen()));
+    pub fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
+        let origin = util::random_vector(rng);
+
+        let direction = loop {
+            if let Some(v) = Unit::try_new(util::random_vector(rng), f32::EPSILON * 8.0) {
+                break v;
+            }
+        };
         Self { origin, direction }
     }
 }
@@ -91,7 +96,8 @@ pub enum Tangent<const D: usize> {
 
 impl<const D: usize> Tangent<D> {
     pub fn reflect_unit(&self, vector: Unit<SVector<f32, D>>) -> Unit<SVector<f32, D>> {
-        // SAFETY: orthogonal reflection preserves norms
+        // SAFETY: orthogonal symmetry preserves euclidean norms
+        // This function is supposed to be unsafe, why nalgebra? why?
         Unit::new_unchecked(self.reflect(vector.into_inner()))
     }
 
@@ -113,10 +119,6 @@ impl<const D: usize> Tangent<D> {
                 (u.abs() > f32::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
             }
         }
-    }
-
-    pub fn intersection_distance(&self, ray: &Ray<D>) -> f32 {
-        self.try_intersection_distance(ray).unwrap()
     }
 }
 
@@ -239,12 +241,12 @@ impl<const D: usize> Plane<D> {
         Ok(Plane::new(vectors).ok_or("Failed to create plane")?)
     }
 
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let center: Vec<f32> = self.v_0().iter().cloned().collect();
+    fn to_json(self) -> Result<serde_json::Value, Box<dyn Error>> {
+        let center: Vec<f32> = self.v_0().iter().copied().collect();
         let basis: Vec<Vec<f32>> = self
             .basis()
             .iter()
-            .map(|v| v.iter().cloned().collect())
+            .map(|v| v.iter().copied().collect())
             .collect();
         Ok(serde_json::json!({
             "center": center,
@@ -285,9 +287,10 @@ pub trait Mirror<const D: usize> {
     /// Returns a json representation of the data
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
     /// Returns a list of vertices and index primitves used to render the mirror
+    /// TODO: pass in a list and push to that
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
     /// Returns a random new instance of the mirror
-    fn random<T: rand::Rng>(rng: &mut T) -> Self
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized;
 }
@@ -374,7 +377,8 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         self.as_ref().render_data(display)
     }
-    fn random<T: rand::Rng>(rng: &mut T) -> Self
+
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized,
     {
@@ -433,8 +437,9 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        // TODO:
-        Ok(serde_json::json!({}))
+        let array = util::try_collect(self.iter().map(T::to_json).map(Result::ok))
+            .ok_or("falied to deserialize a mirror");
+        Ok(serde_json::json!(array))
     }
 
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
@@ -443,15 +448,17 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             .collect()
     }
 
-    fn random<U: rand::Rng>(rng: &mut U) -> Self
+    fn random<U: rand::Rng + ?Sized>(rng: &mut U) -> Self
     where
         Self: Sized,
     {
         const MIN_RANDOM_MIRRORS: usize = 4;
         const MAX_RANDOM_MIRRORS: usize = 128;
 
-        (MIN_RANDOM_MIRRORS..MAX_RANDOM_MIRRORS)
-            .map(|_i| T::random(rng))
+        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..MAX_RANDOM_MIRRORS);
+
+        iter::repeat_with(|| T::random(rng))
+            .take(num_mirrors)
             .collect()
     }
 }
@@ -459,7 +466,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 pub mod util {
     use super::*;
 
-    pub fn random_vector<T: rand::Rng, const D: usize>(rng: &mut T) -> SVector<f32, D> {
+    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(rng: &mut T) -> SVector<f32, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
 
         /// every corrdinate is garanteed to be in the range [-MAX_COORD_MAG ; MAX_COORD_MAG]

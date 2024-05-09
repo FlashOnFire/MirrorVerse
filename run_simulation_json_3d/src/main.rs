@@ -1,21 +1,14 @@
 use mirror_verse::{mirror::Mirror, serde_json, Simulation};
-use std::fs::File;
+use std::{error::Error, fs::File};
 
 const DEFAULT_DIM: usize = 3;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
 
     let file_path = args
         .next()
-        .expect("expected a file path as a first argument.");
-
-    // TODO: Show help menu on failure
-    // let Some(file_path) = ... else {
-    //    // display error
-    //    // show help menu
-    //    return;
-    // }
+        .ok_or("expected a file path as a first argument.")?;
 
     let max_num_reflections = args
         .next()
@@ -23,16 +16,10 @@ fn main() {
         .unwrap_or(500);
 
     let simulation = Simulation::<Box<dyn Mirror<DEFAULT_DIM>>, DEFAULT_DIM>::from_json(
-        &serde_json::from_reader(File::open(file_path).unwrap()).unwrap(),
-    )
-    .unwrap();
-
-    // TODO: Show help menu on failure
-    // let Ok(simulation) = ... else {
-    //    // display error
-    //    // show help menu
-    //    return;
-    // }
+        &serde_json::from_reader(File::open(file_path)?)?,
+    )?;
 
     simulation.run_opengl(max_num_reflections);
+
+    Ok(())
 }

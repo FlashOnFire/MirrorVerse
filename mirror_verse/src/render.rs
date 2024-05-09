@@ -60,10 +60,13 @@ pub struct DrawableSimulation<const D: usize> {
     mirrors: Vec<Box<dyn render::RenderData>>,
 }
 
-impl DrawableSimulation<3> {
+impl<const D: usize> DrawableSimulation<D>
+where
+    Vertex<D>: gl::Vertex,
+{
     pub fn new(
         origins: Vec<Sphere>,
-        ray_path_vertices: Vec<VertexBuffer<Vertex<3>>>,
+        ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
         mirrors: Vec<Box<dyn RenderData>>,
     ) -> Self {
         Self {
@@ -157,6 +160,7 @@ pub trait RenderData {
     fn indices(&self) -> gl::index::IndicesSource;
 }
 
+// oh yeah baby
 impl<T> RenderData for T
 where
     for<'a> &'a T: Into<gl::vertex::VerticesSource<'a>>,

@@ -1,11 +1,12 @@
 extern crate alloc;
 pub mod mirror;
-// re-export serde_json for convenience
-pub use serde_json;
+// re-export deps for convenience
 pub use rand;
+pub use serde_json;
 mod render;
 
 use cgmath as cg;
+use core::iter;
 use glium::{
     self as gl,
     glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode},
@@ -80,7 +81,7 @@ impl<const D: usize> RayPath<D> {
             self.push_point(pt)
         }
 
-        return no_dupes;
+        no_dupes
     }
 
     pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
@@ -96,6 +97,18 @@ pub struct Simulation<T, const D: usize> {
 }
 
 impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
+    pub fn random<U: rand::Rng + ?Sized>(rng: &mut U) -> Self {
+        const MIN_NUM_RAYS: usize = 1;
+        const MAX_NUM_RAYS: usize = 16;
+        let num_rays = rng.gen_range(MIN_NUM_RAYS..MAX_NUM_RAYS);
+        Self {
+            rays: iter::repeat_with(|| Ray::random(rng))
+                .take(num_rays)
+                .collect(),
+            mirror: T::random(rng),
+        }
+    }
+
     pub fn get_ray_paths(&self, reflection_limit: usize) -> Vec<RayPath<D>> {
         let mut intersections_scratch = vec![];
         self.rays
@@ -112,10 +125,10 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                     if let Some((distance, tangent)) = intersections_scratch
                         .iter()
                         .filter_map(|tangent| {
-                            let dist = tangent
+                            let d = tangent
                                 .try_intersection_distance(&ray)
                                 .expect("the ray must intersect with the plane");
-                            (dist > f32::EPSILON * 32.0).then_some((dist, tangent))
+                            (d > f32::EPSILON * 16.0).then_some((d, tangent))
                         })
                         .min_by(|(d1, _), (d2, _)| {
                             d1.partial_cmp(d2)
@@ -151,17 +164,22 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 .map(Ray::from_json)
                 .map(Result::ok),
         )
-        .ok_or("failed to deserialize a ray")?;
+        .ok_or("failed to deserialize ray")?;
 
         Ok(Self { mirror, rays })
     }
 
     pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        todo!()
-    }
-}
+        Ok(serde_json::json!({
 
-impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
+            "rays": util::try_collect(
+                self.rays.iter().map(Ray::to_json).map(Result::ok)
+            ).ok_or("failed to serialize a ray")?,
+
+            "mirror": self.mirror.to_json()?
+        }))
+    }
+
     // trop de racisme ici
     fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
         assert!(D <= 3);

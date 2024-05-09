@@ -1,6 +1,5 @@
 use super::*;
 use glium_shapes::sphere::SphereBuilder;
-use rand::random;
 use serde_json::json;
 
 #[derive(Clone, Copy)]
@@ -109,7 +108,8 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
         vec![Box::new(sphere)]
     }
-    fn random<T: rand::Rng>(rng: &mut T) -> Self
+
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized,
     {
@@ -173,7 +173,7 @@ mod tests {
         }))
         .expect("json error");
 
-        let mut ray = Ray {
+        let ray = Ray {
             origin: [-2., 0., 0.].into(),
             direction: Unit::new_normalize([0., 1., 0.].into()),
         };
