@@ -424,19 +424,10 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
                 for inner_json in array {
                     append_to_array(inner_json, list)?
                 }
-
-                Ok(())
             } else {
-                match T::from_json(json) {
-                    Ok(mirror) => {
-                        list.push(mirror);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        Err(f!("failed to deserialize mirror, error returned: {err}").into())
-                    }
-                }
+                list.push(T::from_json(json)?)
             }
+            Ok(())
         }
 
         let mut list = vec![];
