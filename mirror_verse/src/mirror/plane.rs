@@ -147,7 +147,7 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     {
         // bahaha t'y etais presque
         let plane = loop {
-            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng))) {
+            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 24.0))) {
                 break plane;
             }
         };

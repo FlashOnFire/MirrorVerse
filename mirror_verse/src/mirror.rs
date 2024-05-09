@@ -73,10 +73,10 @@ impl<const D: usize> Ray<D> {
     }
 
     pub fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
-        let origin = util::random_vector(rng);
+        let origin = util::random_vector(rng, 24.0);
 
         let direction = loop {
-            if let Some(v) = Unit::try_new(util::random_vector(rng), f32::EPSILON * 8.0) {
+            if let Some(v) = Unit::try_new(util::random_vector(rng, 4.0), f32::EPSILON * 8.0) {
                 break v;
             }
         };
@@ -371,9 +371,10 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        let this = self.as_ref();
         Ok(serde_json::json!({
-            "type": self.as_ref().get_json_type_inner(),
-            "mirror": self.as_ref().to_json()?,
+            "type": this.get_json_type_inner(),
+            "mirror": this.to_json()?,
         }))
     }
 
@@ -385,13 +386,11 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     where
         Self: Sized,
     {
-        let mirror_types = ["plane", "[]plane", "sphere", "[]sphere"];
+        let mirror_types = ["plane", "sphere"];
 
         match rng.gen_range(0..mirror_types.len()) {
             0 => Box::new(plane::PlaneMirror::<D>::random(rng)),
-            1 => Box::new(Vec::<plane::PlaneMirror<D>>::random(rng)),
-            2 => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
-            3 => Box::new(Vec::<sphere::EuclideanSphereMirror<D>>::random(rng)),
+            1 => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
             _ => unreachable!(),
         }
     }
@@ -443,7 +442,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         let array = util::try_collect(self.iter().map(T::to_json).map(Result::ok))
-            .ok_or("falied to deserialize a mirror");
+            .ok_or("falied to deserialize a mirror")?;
         Ok(serde_json::json!(array))
     }
 
@@ -457,10 +456,10 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     where
         Self: Sized,
     {
-        const MIN_RANDOM_MIRRORS: usize = 4;
-        const MAX_RANDOM_MIRRORS: usize = 128;
+        const MIN_RANDOM_MIRRORS: usize = 8;
+        const MAX_RANDOM_MIRRORS: usize = 64;
 
-        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..MAX_RANDOM_MIRRORS);
+        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..=MAX_RANDOM_MIRRORS);
 
         iter::repeat_with(|| T::random(rng))
             .take(num_mirrors)
@@ -471,13 +470,10 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 pub mod util {
     use super::*;
 
-    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(rng: &mut T) -> SVector<f32, D> {
+    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(rng: &mut T, max_coord_mag: f32) -> SVector<f32, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
 
-        /// every corrdinate is garanteed to be in the range [-MAX_COORD_MAG ; MAX_COORD_MAG]
-        const MAX_COORD_MAG: f32 = 48.0;
-
-        SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (MAX_COORD_MAG.abs() * 2.0))
+        SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (max_coord_mag.abs() * 2.0))
     }
 
     /// This is essentially `try_into` then `try_map` but the latter is nightly-only

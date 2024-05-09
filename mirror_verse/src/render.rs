@@ -79,7 +79,7 @@ where
     pub fn render(
         &self,
         display: &gl::backend::glutin::Display,
-        program3d: &mut gl::Program,
+        program3d: &gl::Program,
         camera: &Camera,
         projection: &Projection,
     ) {

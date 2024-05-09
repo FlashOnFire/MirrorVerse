@@ -99,10 +99,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         let sphere = SphereBuilder::new()
             .scale(scale[0], scale[1], scale[2])
             .translate(coords[0], coords[1], coords[2])
-            .with_divisions(
-                (self.radius * 200.0) as usize,
-                (self.radius * 200.0) as usize,
-            )
+            .with_divisions(60, 60)
             .build(display)
             .unwrap();
 
@@ -113,9 +110,9 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     where
         Self: Sized,
     {
-        const MAX_RADIUS: f32 = 24.0;
+        const MAX_RADIUS: f32 = 8.0;
         Self {
-            center: util::random_vector(rng),
+            center: util::random_vector(rng, 24.0),
             radius: rng.gen::<f32>() * MAX_RADIUS.abs(),
         }
     }

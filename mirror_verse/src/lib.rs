@@ -99,7 +99,7 @@ pub struct Simulation<T, const D: usize> {
 impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     pub fn random<U: rand::Rng + ?Sized>(rng: &mut U) -> Self {
         const MIN_NUM_RAYS: usize = 1;
-        const MAX_NUM_RAYS: usize = 16;
+        const MAX_NUM_RAYS: usize = 32;
         let num_rays = rng.gen_range(MIN_NUM_RAYS..MAX_NUM_RAYS);
         Self {
             rays: iter::repeat_with(|| Ray::random(rng))
@@ -169,13 +169,14 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     }
 
     pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+
         Ok(serde_json::json!({
 
             "rays": util::try_collect(
                 self.rays.iter().map(Ray::to_json).map(Result::ok)
             ).ok_or("failed to serialize a ray")?,
 
-            "mirror": self.mirror.to_json()?
+            "mirror": self.mirror.to_json()?,
         }))
     }
 
@@ -183,35 +184,31 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
         assert!(D <= 3);
 
-        // hein?
+        // TODO: do all this on the DrawableSimulation side
         // We first check if there is at least one ray to display its origin
-        let origins = if self.rays.is_empty() {
-            vec![]
-        } else {
-            // if it's the case, we loop through all of them and build a small sphere around the origin of the ray
-            Vec::from_iter(
-                self.rays
-                    .iter()
-                    .map(|r| r.origin)
-                    .map(|v| {
-                        if D == 1 {
-                            [*v.get(0).unwrap(), 0., 0.]
-                        } else if D == 2 {
-                            [*v.get(0).unwrap(), *v.get(1).unwrap(), 0.]
-                        } else {
-                            [*v.get(0).unwrap(), *v.get(1).unwrap(), *v.get(2).unwrap()]
-                        }
-                    })
-                    .map(|v| {
-                        SphereBuilder::new()
-                            .scale(0.05, 0.05, 0.05)
-                            .translate(v[0], v[1], v[2])
-                            .with_divisions(20, 20)
-                            .build(display)
-                            .unwrap()
-                    }),
-            )
-        };
+        // if it's the case, we loop through all of them and build a small sphere around the origin of the ray
+        let origins = Vec::from_iter(
+            self.rays
+                .iter()
+                .map(|r| r.origin)
+                .map(|v| {
+                    if D == 1 {
+                        [*v.get(0).unwrap(), 0., 0.]
+                    } else if D == 2 {
+                        [*v.get(0).unwrap(), *v.get(1).unwrap(), 0.]
+                    } else {
+                        [*v.get(0).unwrap(), *v.get(1).unwrap(), *v.get(2).unwrap()]
+                    }
+                })
+                .map(|v| {
+                    SphereBuilder::new()
+                        .scale(0.1, 0.1, 0.1)
+                        .translate(v[0], v[1], v[2])
+                        .with_divisions(60, 60)
+                        .build(display)
+                        .unwrap()
+                }),
+        );
 
         // Then we calculate the path of each ray
         let ray_paths = self
@@ -266,7 +263,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
 
         let mut camera_controller = CameraController::new(SPEED, MOUSE_SENSITIVITY);
 
-        let mut program3d = gl::Program::from_source(
+        let program3d = gl::Program::from_source(
             &display,
             render::VERTEX_SHADER_SRC_3D,
             render::FRAGMENT_SHADER_SRC,
@@ -338,7 +335,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 last_render_time = now;
 
                 camera_controller.update_camera(&mut camera, dt);
-                drawable_simulation.render(&display, &mut program3d, &camera, &projection);
+                drawable_simulation.render(&display, &program3d, &camera, &projection);
             }
             event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
             event::Event::DeviceEvent {

@@ -1,32 +1,29 @@
 {
-  "rays": [
-    {
-      "origin": [
-        5.0,
-        2.0
-      ],
-      "direction": [
-        -1.0,
-        -1.0
-      ]
-    }
-  ],
-  "mirror": {
-    "type": "[]dynamic",
-    "mirror": [
-      {
-        "type": "sphere",
-        "mirror": {
-          "center": [
-            0.0,
-            0.0
-          ],
-          "radius": 4.0
-        }
-      }
-    ],
-    "description": [
-      ""
-    ]
-  }
+	"rays": [
+		{
+			"origin": [
+				5.0,
+				2.0
+			],
+			"direction": [
+				-1.0,
+				-1.0
+			]
+		}
+	],
+	"mirror": {
+		"type": "[]dynamic",
+		"mirror": [
+			{
+				"type": "sphere",
+				"mirror": {
+					"center": [
+						0.0,
+						0.0
+					],
+					"radius": 4.0
+				}
+			}
+		]
+	}
 }
