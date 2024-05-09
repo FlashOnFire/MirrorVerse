@@ -114,6 +114,7 @@ Enfin, la quatrième version, facultative, pourra intégrer, selon les besoins, 
 - $:l\color{violet}\text{Génération aléatoir d'ensemble de miroirs}$
 - $:l\color{violet}\text{Interface graphique de pour la selection des différentes simulations}$
 - $:l\color{violet}\text{Dévelopement du simulateur sous forme de librairie pour de potentiels utilisations future}$
+- $:l\color{violet}\text{Dévelopement de manière générique fonctionnant en n dimensions}$
 - $:l\color{violet}\text{Affichage du départ du rayon lumineux}$
 
 ## Organisation temporelle
