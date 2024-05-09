@@ -18,7 +18,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         DIM,
     >::random(&mut rng);
 
-    let json = random_simulation.to_json()?;
+    let type_erased_simulation = mirror_verse::Simulation {
+        mirror: Box::new(random_simulation.mirror) as Box<dyn mirror_verse::mirror::Mirror<DIM>>,
+        rays: random_simulation.rays,
+    };
+
+    let json = type_erased_simulation.to_json()?;
 
     serde_json::to_writer_pretty(File::create_new(file_path)?, &json)?;
 

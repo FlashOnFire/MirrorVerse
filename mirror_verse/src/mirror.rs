@@ -353,15 +353,13 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
                         }
                         "sphere" => Vec::<sphere::EuclideanSphereMirror<D>>::from_json(mirror)
                             .map(into_type_erased),
-                        "paraboloid" => Vec::<paraboloid::ParaboloidMirror<D>>::from_json(mirror)
-                            .map(into_type_erased),
                         "dynamic" => {
                             Vec::<Box<dyn Mirror<D>>>::from_json(mirror).map(into_type_erased)
                         }
-                        _ => Err(f!("invalid mirror type {inner}").into()),
+                        _ => Err(f!("invalid mirror type :{other}").into()),
                     }
                 } else {
-                    Err(f!("invalid mirror type {other}").into())
+                    Err(f!("invalid mirror type :{other}").into())
                 }
             }
         }
@@ -382,11 +380,13 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     where
         Self: Sized,
     {
-        let mirror_types = ["plane", "sphere"];
+        let mirror_types = ["plane", "[]plane", "sphere", "[]sphere"];
 
-        match mirror_types[rng.gen_range(0..mirror_types.len())] {
-            "plane" => Box::new(plane::PlaneMirror::<D>::random(rng)),
-            "sphere" => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
+        match rng.gen_range(0..mirror_types.len()) {
+            0 => Box::new(plane::PlaneMirror::<D>::random(rng)),
+            1 => Box::new(Vec::<plane::PlaneMirror<D>>::random(rng)),
+            2 => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
+            3 => Box::new(Vec::<sphere::EuclideanSphereMirror<D>>::random(rng)),
             _ => unreachable!(),
         }
     }
