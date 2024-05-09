@@ -12,7 +12,7 @@ The program is split into four main parts:
 
 1. 📚 The library which really handles the simulations (mirror_verse).
 2. 🏃‍♂️ The runner which takes a JSON, uses the simulator to generate the path, and runs a visualization of the simulation.
-3. 🎲 The random generator which generates a random set of mirrors.
+3. 🔀 The random generator which generates a random set of mirrors.
 4. 🖥️ A graphical user interface to run all these tools easily.
 
 ## GUI
@@ -22,6 +22,12 @@ The program is split into four main parts:
 You should first build the Rust project into the Flutter assets:
 
 ```shell
+# For Windows:
+cargo build --release
+copy target\release\generate_random_simulation_3d.exe mirror_verse_ui\assets
+copy target\release\run_simulation_json_3d.exe mirror_verse_ui\assets
+
+# For linux/macOS:
 cargo build --release && \
 cp target/release/generate_random_simulation_3d mirror_verse_ui/assets && \
 cp target/release/run_simulation_json_3d mirror_verse_ui/assets
@@ -42,7 +48,7 @@ flutter run --release
 cargo run --release --bin run_simulation_json_3d -- "<path/to/simulation.json>"
 ```
 
-### 🎲 Generating random mirror set
+### 🔄 Generating random mirror set
 
 ```shell
 cargo run --release --bin generate_random_simulation_3d -- "<path/to/output.json>"
