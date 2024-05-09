@@ -263,7 +263,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         vec![Box::new(paraboloid_render_data)]
     }
 
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {

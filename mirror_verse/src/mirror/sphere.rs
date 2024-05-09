@@ -109,13 +109,15 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
         vec![Box::new(sphere)]
     }
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {
-        let center = SVector::<f32, D>::from_fn(|_, _| random::<f32>());
-        let radius = random::<f32>();
-        Self { center, radius }
+        const MAX_RADIUS: f32 = 24.0;
+        Self {
+            center: util::random_vector(rng),
+            radius: rng.gen::<f32>() * MAX_RADIUS.abs(),
+        }
     }
 }
 

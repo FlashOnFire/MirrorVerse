@@ -60,7 +60,7 @@ impl Mirror<2> for CubicBezierMirror {
         todo!()
     }
 
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {

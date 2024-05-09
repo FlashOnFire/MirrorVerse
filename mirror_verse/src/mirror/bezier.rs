@@ -61,7 +61,7 @@ impl Mirror<2> for BezierMirror {
         todo!()
     }
 
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {

@@ -73,10 +73,9 @@ impl<const D: usize> Ray<D> {
         }))
     }
 
-    pub fn random() -> Self {
-        let origin = SVector::<f32, D>::from_fn(|_, _| rand::random::<f32>());
-        let direction =
-            Unit::new_normalize(SVector::<f32, D>::from_fn(|_, _| rand::random::<f32>()));
+    pub fn random<T: rand::Rng>(rng: &mut T) -> Self {
+        let origin = SVector::<f32, D>::from_fn(|_, _| rng.gen());
+        let direction = Unit::new_normalize(SVector::<f32, D>::from_fn(|_, _| rng.gen()));
         Self { origin, direction }
     }
 }
@@ -132,6 +131,7 @@ pub struct Plane<const D: usize> {
     vectors: [SVector<f32, D>; D],
     /// A cache containing an orthonormalized version of the family in the `vectors`
     /// field, to facilitate orthogonal projection
+    /// TODO: not all planes are used for projections, seperate this.
     orthonormalized: [SVector<f32, D>; D],
 }
 
@@ -287,7 +287,7 @@ pub trait Mirror<const D: usize> {
     /// Returns a list of vertices and index primitves used to render the mirror
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
     /// Returns a random new instance of the mirror
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized;
 }
@@ -377,15 +377,15 @@ where
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         self.as_ref().render_data(display)
     }
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {
         let mirror_types = ["plane", "sphere"];
 
-        match mirror_types[rand::random::<usize>() % mirror_types.len()] {
-            "plane" => Box::new(plane::PlaneMirror::<D>::random()),
-            "sphere" => Box::new(sphere::EuclideanSphereMirror::<D>::random()),
+        match mirror_types[rng.gen_range(0..mirror_types.len())] {
+            "plane" => Box::new(plane::PlaneMirror::<D>::random(rng)),
+            "sphere" => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
             _ => unreachable!(),
         }
     }
@@ -436,6 +436,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        // TODO:
         Ok(serde_json::json!({}))
     }
 
@@ -445,17 +446,32 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
             .collect()
     }
 
-    fn random() -> Self
+    fn random<U: rand::Rng>(rng: &mut U) -> Self
     where
         Self: Sized,
     {
-        todo!()
+        const MIN_RANDOM_MIRRORS: usize = 4;
+        const MAX_RANDOM_MIRRORS: usize = 128;
+
+        (MIN_RANDOM_MIRRORS..MAX_RANDOM_MIRRORS)
+            .map(|_i| T::random(rng))
+            .collect()
     }
 }
 
 pub mod util {
     use super::*;
 
+    pub fn random_vector<T: rand::Rng, const D: usize>(rng: &mut T) -> SVector<f32, D> {
+        // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
+
+        /// every corrdinate is garanteed to be in the range [-MAX_COORD_MAG ; MAX_COORD_MAG]
+        const MAX_COORD_MAG: f32 = 48.0;
+
+        SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (MAX_COORD_MAG.abs() * 2.0))
+    }
+
+    /// This is essentially `try_into` then `try_map` but the latter is nightly-only
     pub fn json_array_to_float_array<const D: usize>(
         json_array: &[serde_json::Value],
     ) -> Option<[f32; D]> {

@@ -1,4 +1,4 @@
-use core::{mem, ops::Add};
+use core::{array, mem, ops::Add};
 
 use super::*;
 
@@ -144,20 +144,19 @@ where
             },
         })]
     }
-    fn random() -> Self
+    fn random<T: rand::Rng>(rng: &mut T) -> Self
     where
         Self: Sized,
     {
-        let mut basis: [SVector<f32, D>; D] = [SVector::zeros(); D];
-        for vector in basis.iter_mut() {
-            for i in 0..D {
-                vector[i] = rand::random();
+        // bahaha t'y etais presque
+        let plane = loop {
+            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng))) {
+                break plane;
             }
-        }
-        //TODO this is crashing offen probably because of the orthonormalization afte in the Plane::new
-        // let basis: [SVector<f32, D>; D] = [SVector::from_fn(|_, _| rand::random::<f32>()); D];
-        let bounds: [f32; D] = [rand::random::<f32>(); D];
-        let plane = Plane::new(basis).unwrap();
+        };
+
+        let bounds = array::from_fn(|_| rng.gen());
+
         PlaneMirror { plane, bounds }
     }
 }
