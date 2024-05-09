@@ -71,24 +71,32 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.5,
-              child: ListView.builder(
-                itemCount: fileList.length,
-                itemBuilder: (context, index) {
-                  final file = fileList[index];
-                  return ListTile(
-                    tileColor: selectedFile == file ? Colors.grey : null,
-                    title: Text(
-                      file.path
-                          .replaceAll("../assets/", "")
-                          .replaceAll(".json", ""),
-                    ),
-                    onTap: () {
-                      setState(() {
-                        selectedFile = file;
-                      });
-                    },
-                  );
-                },
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < fileList.length; i++)
+                      InkWell(
+                        child: Container(
+                          width: MediaQuery.of(context).size.width,
+                          padding: const EdgeInsets.all(12),
+                          color:
+                              selectedFile == fileList[i] ? Colors.grey : null,
+                          child: Text(
+                            fileList[i]
+                                .path
+                                .replaceAll("../assets/", "")
+                                .replaceAll(".json", ""),
+                          ),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            selectedFile = fileList[i];
+                          });
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
             Row(
@@ -111,9 +119,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       MaterialPageRoute(
                         builder: (context) => const NewGeneration(),
                       ),
-                    );
-                    setState(() {
-                      loadFiles();
+                    ).then((value) {
+                      setState(() {
+                        loadFiles();
+                      });
                     });
                   },
                   child: const Text('Nouveau'),

@@ -26,7 +26,9 @@ cargo run "<path/to/simulation.json>"
 
 You should first build the rust project into the flutter assets
 ```shell
-cargo build --release && cp target/release/mirror_verse_json mirror_verse_ui/assets
+cargo build --release && \
+cp target/release/generate_random_simulation_3d mirror_verse_ui/assets && \
+cp target/release/run_simulation_json_3d mirror_verse_ui/assets
 ```
 Then just run
 ```shell
