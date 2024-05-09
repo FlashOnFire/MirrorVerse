@@ -1,5 +1,5 @@
 [package]
-name = "generate_random_simulation"
+name = "generate_random_simulation_3d"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,0 +1,8 @@
+[package]
+name = "run_simulation_json_3d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+mirror_verse = { path = "../mirror_verse" }
