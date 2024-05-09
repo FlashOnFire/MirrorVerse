@@ -1,6 +1,6 @@
 [workspace]
 
-members = [
+members = [ "generate_random_simulation",
     "mirror_verse", 
     "run_simulation_json"
 ]
