@@ -4,8 +4,6 @@
 
 Enseignant : Jérôme Bastien
 
-Code disponible : [github](https://github.com/FlashOnFire/MirrorVerse/)
-
 ## Cahier des charges
 
 ### Contexte
