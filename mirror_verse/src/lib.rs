@@ -2,6 +2,7 @@ extern crate alloc;
 pub mod mirror;
 // re-export serde_json for convenience
 pub use serde_json;
+pub use rand;
 mod render;
 
 use cgmath as cg;
@@ -122,10 +123,10 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                         })
                     {
                         ray.advance(distance);
-                        ray.reflect_direction(tangent);
                         if !ray_path.try_push_point(ray.origin, f32::EPSILON * 16.0) {
                             break;
                         }
+                        ray.reflect_direction(tangent);
                     } else {
                         ray_path.set_final_direction(ray.direction);
                         break;
@@ -160,13 +161,12 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     }
 }
 
-impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D>
-where
-    render::Vertex<D>: gl::Vertex,
-{
+impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
+    // trop de racisme ici
     fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
         assert!(D <= 3);
 
+        // hein?
         // We first check if there is at least one ray to display its origin
         let origins = if self.rays.is_empty() {
             vec![]

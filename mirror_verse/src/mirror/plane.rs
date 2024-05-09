@@ -61,10 +61,7 @@ impl<const D: usize> PlaneMirror<D> {
 use glium::index::PrimitiveType;
 use serde_json::json;
 
-impl<const D: usize> Mirror<D> for PlaneMirror<D>
-where
-    render::Vertex<D>: gl::Vertex,
-{
+impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         if self
             .plane

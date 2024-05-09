@@ -292,10 +292,7 @@ pub trait Mirror<const D: usize> {
         Self: Sized;
 }
 
-impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>>
-where
-    render::Vertex<D>: gl::Vertex,
-{
+impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         self.as_ref().append_intersecting_points(ray, list);
     }
