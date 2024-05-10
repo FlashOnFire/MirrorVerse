@@ -258,13 +258,14 @@ impl<const D: usize> Plane<D> {
     }
 }
 
-pub trait MirrorExt<const D: usize>{ 
+pub trait MirrorExt<const D: usize> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
 }
 
 impl<const D: usize, T: MirrorExt<D>> MirrorExt<D> for [T] {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter().for_each(|mirror| mirror.append_intersecting_points(ray, list))
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list))
     }
 }
 
@@ -359,14 +360,13 @@ impl<T: JsonSerDyn> JsonSer for Dynamic<T> {
     }
 }
 
-
 impl<T: JsonDes> JsonDes for Dynamic<T> {
     fn des(value: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         T::des(value).map(T::into)
     }
 }
 
-impl<T: OpenGLRenderable> OpenGLRenderable for Dynamic<T>  {
+impl<T: OpenGLRenderable> OpenGLRenderable for Dynamic<T> {
     fn render(&self, display: &gl::Display) -> Vec<Box<dyn RenderData>> {
         self.0.render(display)
     }
@@ -624,4 +624,174 @@ pub mod util {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use nalgebra::Unit;
+    use serde_json::json;
+
+    use crate::Simulation;
+
+    use super::{plane::PlaneMirror, Mirror, Plane, Ray};
+
+    #[test]
+    fn test_loop_detection() {
+        let simulation = Simulation::<Box<dyn Mirror<3>>, 3>::from_json(&json!(
+            {
+                "mirror":
+                {"type": "[]plane",
+                "mirror":
+                [
+                    {
+                            "center": [1., 0., 0.],
+                            "basis": [
+                                [0., 1., 0.],
+                                [0., 0., 1.],
+                            ],
+                            "bounds": [1.,1.],
+                    },
+                    {
+                            "center": [-1., 0., 0.],
+                            "basis": [
+                                [0., 1., 0.],
+                                [0., 0., 1.],
+                            ],
+                            "bounds": [1.,1.],
+                    }
+                ],
+                },
+                "rays": [
+                    {
+                        "origin": [0., 0., 0.],
+                        "direction": [1., 0., 0.],
+                    }
+                ],
+            }
+        ))
+        .unwrap();
+
+        let path = simulation.get_ray_paths(100);
+        assert!(path.first().unwrap().points.len() == 4);
+    }
+    #[test]
+    fn test_no_loop_detection() {
+        let simulation = Simulation::<Box<dyn Mirror<3>>, 3>::from_json(&json!(
+            //Stollen from diamond of hell
+            {
+                "rays": [
+                    {
+                        "origin": [
+                            1.0,
+                            0.3,
+                            0.0
+                        ],
+                        "direction": [
+                            1.0,
+                            1.223780308610836,
+                            0.0
+                        ]
+                    }
+                ],
+                "mirror": {
+                    "type": "[]plane",
+                    "mirror": [
+                        {
+                            "center": [
+                                1.0,
+                                1.0,
+                                0.0
+                            ],
+                            "basis": [
+                                [
+                                    -1.0,
+                                    1.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            ],
+                            "bounds": [
+                                1.5,
+                                0.1
+                            ]
+                        },
+                        {
+                            "center": [
+                                -1.0,
+                                1.0,
+                                0.0
+                            ],
+                            "basis": [
+                                [
+                                    -1.0,
+                                    -1.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            ],
+                            "bounds": [
+                                1.5,
+                                0.1
+                            ]
+                        },
+                        {
+                            "center": [
+                                1.0,
+                                -1.0,
+                                0.0
+                            ],
+                            "basis": [
+                                [
+                                    -1.0,
+                                    -1.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            ],
+                            "bounds": [
+                                1.5,
+                                0.1
+                            ]
+                        },
+                        {
+                            "center": [
+                                -1.0,
+                                -1.0,
+                                0.0
+                            ],
+                            "basis": [
+                                [
+                                    -1.0,
+                                    1.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            ],
+                            "bounds": [
+                                1.5,
+                                0.1
+                            ]
+                        }
+                    ]
+                }
+            }
+        ))
+        .unwrap();
+
+        let path = simulation.get_ray_paths(100);
+        assert!(path.first().unwrap().points.len() == 101);
+    }
+}
