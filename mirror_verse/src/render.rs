@@ -54,7 +54,7 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
     }
 "#;
 
-pub struct DrawableSimulation<const D: usize> {
+pub(crate) struct DrawableSimulation<const D: usize> {
     origins: Vec<Sphere>,
     ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
     mirrors: Vec<Box<dyn render::RenderData>>,
@@ -64,7 +64,7 @@ impl<const D: usize> DrawableSimulation<D>
 where
     Vertex<D>: gl::Vertex,
 {
-    pub fn new(
+    pub(crate) fn new(
         origins: Vec<Sphere>,
         ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
         mirrors: Vec<Box<dyn RenderData>>,
@@ -76,13 +76,17 @@ where
         }
     }
 
-    pub fn render(
+    pub(crate) fn render(
         &self,
         display: &gl::backend::glutin::Display,
         program3d: &gl::Program,
         camera: &Camera,
         projection: &Projection,
     ) {
+        const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+        const RAY_NON_LOOP_COL: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
+        const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
+
         let mut target = display.draw();
 
         target.clear_color_and_depth((1., 0.95, 0.7, 1.), 1.0);
@@ -126,7 +130,7 @@ where
                     &gl::uniform! {
                         perspective: perspective,
                         view: view,
-                        color_vec: RAY_COLOR,
+                        color_vec: RAY_NON_LOOP_COL,
                     },
                     &params,
                 )

@@ -19,7 +19,6 @@ pub struct PlaneMirror<const D: usize> {
 
 struct PlaneRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
-    indices: gl::index::PrimitiveType,
 }
 
 impl<const D: usize> render::RenderData for PlaneRenderData<D> {
@@ -29,7 +28,11 @@ impl<const D: usize> render::RenderData for PlaneRenderData<D> {
 
     fn indices(&self) -> gl::index::IndicesSource {
         gl::index::IndicesSource::NoIndices {
-            primitives: self.indices,
+            primitives: match D {
+                0 => panic!("dimension must not be zero"),
+                1 | 2 => PrimitiveType::LinesList,
+                _ => PrimitiveType::TriangleStrip,
+            },
         }
     }
 }
@@ -134,11 +137,6 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
 
         vec![Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
-            indices: match D {
-                1 | 2 => PrimitiveType::LinesList,
-                3 => PrimitiveType::TriangleStrip,
-                _ => unimplemented!(),
-            },
         })]
     }
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self

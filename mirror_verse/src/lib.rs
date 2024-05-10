@@ -1,18 +1,18 @@
 extern crate alloc;
-pub mod mirror;
+
 // re-export deps for convenience
+pub mod mirror;
+pub mod render;
+pub use glium as gl;
+pub use nalgebra;
 pub use rand;
 pub use serde_json;
-mod render;
 
 use cgmath as cg;
 use core::iter;
-use glium::{
-    self as gl,
-    glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode},
-};
+use gl::glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode};
 use glium_shapes::sphere::SphereBuilder;
-use nalgebra::{SVector, Unit};
+use nalgebra::{Point, SMatrix, SVector, Unit};
 use std::{error::Error, time};
 
 use render::{
@@ -22,71 +22,68 @@ use render::{
 
 use mirror::{util, Mirror, Ray};
 
-const DEFAULT_WIDTH: u32 = 1280;
-const DEFAULT_HEIGHT: u32 = 720;
-
-const NEAR_PLANE: f32 = 0.0001;
-const FAR_PLANE: f32 = 10000.;
-
-const SPEED: f32 = 5.;
-const MOUSE_SENSITIVITY: f32 = 4.0;
-
-const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 5.);
-const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(-90.);
-const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
-const PROJECTION_FOV: cg::Deg<f32> = cg::Deg(85.);
-
-const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
-const RAY_COLOR: [f32; 4] = [0.7, 0.3, 0.1, 0.6];
-const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
-
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct RayPath<const D: usize> {
     points: Vec<SVector<f32, D>>,
-    final_direction: Option<Unit<SVector<f32, D>>>,
+    loop_start: Option<usize>,
+    divergence_direction: Option<Unit<SVector<f32, D>>>,
 }
 
 impl<const D: usize> RayPath<D> {
-    pub fn points(&self) -> &[SVector<f32, D>] {
-        self.points.as_slice()
+    /// returns a pair (non_loop_points, loop_points)
+    pub fn all_points(&self) -> (&[SVector<f32, D>], &[SVector<f32, D>]) {
+        self.points
+            .split_at_checked(self.loop_start.unwrap_or(self.points.len()))
+            .unwrap()
     }
 
-    pub fn final_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
-        self.final_direction.as_ref()
+    // name bikeshedding welcome
+
+    pub fn non_loop_points(&self) -> &[SVector<f32, D>] {
+        &self.points[..self.loop_start.unwrap_or(self.points.len())]
+    }
+
+    pub fn loop_points(&self) -> &[SVector<f32, D>] {
+        self.loop_start
+            .map(|index| &self.points[index..])
+            .unwrap_or_default()
+    }
+
+    pub fn divergence_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
+        self.divergence_direction.as_ref()
     }
 
     pub fn push_point(&mut self, pt: SVector<f32, D>) {
         self.points.push(pt);
     }
 
-    /// Attempts to push a point to the path. Aborts and
-    /// returns `false` if it's on a previously followed path
+    /// Attempts to push a point to the path. If it's on a previously followed path, aborts,
+    /// registers the section of the path that loops, and returns `false`
     pub fn try_push_point(&mut self, pt: SVector<f32, D>, epsilon: f32) -> bool {
-        let no_dupes = !self
-            .points
-            .split_last()
-            .map(|(last_pt, points)| {
-                points.windows(2).any(|window| {
-                    // ugly, but `slice::array_windows` is unstable
-                    let [this_pt, next_pt] = window else {
-                        // because window.len() is always 2
-                        unreachable!()
-                    };
-                    (last_pt - this_pt).norm() < epsilon && (pt - next_pt).norm() < epsilon
-                })
+        let maybe_loop_index = self.points.split_last().and_then(|(last_pt, points)| {
+            points.windows(2).enumerate().find_map(|(i, window)| {
+                // ugly, but `slice::array_windows` is unstable
+                let [this_pt, next_pt] = window else {
+                    // because window.len() is always 2
+                    unreachable!()
+                };
+                ((last_pt - this_pt).norm() < epsilon && (pt - next_pt).norm() < epsilon)
+                    .then_some(i)
             })
-            .unwrap_or(false);
+        });
 
-        if no_dupes {
-            self.push_point(pt)
+        if let Some(loop_index) = maybe_loop_index {
+            self.loop_start = Some(loop_index);
+        } else {
+            self.push_point(pt);
         }
 
-        no_dupes
+        maybe_loop_index.is_none()
     }
 
-    pub fn set_final_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
-        let first_time = self.final_direction.is_none();
-        self.final_direction = Some(dir);
+    pub fn set_divergence_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
+        let first_time = self.divergence_direction.is_none();
+        self.divergence_direction = Some(dir);
         first_time
     }
 }
@@ -142,7 +139,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                         }
                         ray.reflect_direction(tangent);
                     } else {
-                        ray_path.set_final_direction(ray.direction);
+                        ray_path.set_divergence_direction(ray.direction);
                         break;
                     }
                 }
@@ -169,7 +166,6 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     }
 
     pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-
         Ok(serde_json::json!({
 
             "rays": util::try_collect(
@@ -215,16 +211,17 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
             .get_ray_paths(reflection_limit)
             .into_iter()
             .map(|ray_path| {
+                let pts = ray_path.all_points().0;
                 gl::VertexBuffer::new(
                     display,
                     &Vec::from_iter(
-                        ray_path
-                            .points()
-                            .iter()
+                        pts.iter()
                             .copied()
-                            .chain(ray_path.final_direction().map(|dir| {
-                                ray_path.points().last().unwrap() + dir.as_ref() * 2000.
-                            }))
+                            .chain(
+                                ray_path
+                                    .divergence_direction()
+                                    .map(|dir| pts.last().unwrap() + dir.as_ref() * 2000.),
+                            )
                             .map(render::Vertex::<3>::from),
                     ),
                 )
@@ -241,6 +238,9 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     pub fn run_opengl(&self, reflection_limit: usize) {
         let events_loop = glutin::event_loop::EventLoop::new();
 
+        const DEFAULT_WIDTH: u32 = 1280;
+        const DEFAULT_HEIGHT: u32 = 720;
+
         let wb = glutin::window::WindowBuilder::new()
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
@@ -251,15 +251,26 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
 
         let drawable_simulation = self.to_drawable(reflection_limit, &display);
 
+        const DEFAULT_CAMERA_POS: cg::Point3<f32> = cg::Point3::new(0., 0., 5.);
+        const DEFAULT_CAMERA_YAW: cg::Deg<f32> = cg::Deg(-90.);
+        const DEFAULT_CAMERA_PITCH: cg::Deg<f32> = cg::Deg(0.);
+
         let mut camera = Camera::new(DEFAULT_CAMERA_POS, DEFAULT_CAMERA_YAW, DEFAULT_CAMERA_PITCH);
+
+        const DEFAULT_PROJECCTION_POV: cg::Deg<f32> = cg::Deg(85.);
+        const NEAR_PLANE: f32 = 0.0001;
+        const FAR_PLANE: f32 = 10000.;
 
         let mut projection = Projection::new(
             DEFAULT_WIDTH,
             DEFAULT_HEIGHT,
-            PROJECTION_FOV,
+            DEFAULT_PROJECCTION_POV,
             NEAR_PLANE,
             FAR_PLANE,
         );
+
+        const SPEED: f32 = 5.;
+        const MOUSE_SENSITIVITY: f32 = 4.0;
 
         let mut camera_controller = CameraController::new(SPEED, MOUSE_SENSITIVITY);
 

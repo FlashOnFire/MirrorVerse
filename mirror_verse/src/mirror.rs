@@ -1,6 +1,4 @@
-use core::iter;
-
-use nalgebra::{Point, SMatrix};
+use core::{iter, ops::Deref};
 
 use super::*;
 
@@ -268,7 +266,7 @@ pub trait Mirror<const D: usize> {
     /// Here, "bounce" refers to the process of:
     ///     - Moving forward until it intersects the plane
     ///     - Then, orthogonally reflecting it's direction vector with
-    ///       respect to the subspace defining the plane's "orientation"
+    ///       respect to the directing hyperplane
     ///
     /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
     ///
@@ -470,7 +468,10 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
 pub mod util {
     use super::*;
 
-    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(rng: &mut T, max_coord_mag: f32) -> SVector<f32, D> {
+    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(
+        rng: &mut T,
+        max_coord_mag: f32,
+    ) -> SVector<f32, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
 
         SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (max_coord_mag.abs() * 2.0))

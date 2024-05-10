@@ -13,10 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut rng = rand::thread_rng();
 
-    let random_simulation = Simulation::<
-        Vec<Box<dyn Mirror<DIM>>>,
-        DIM,
-    >::random(&mut rng);
+    let random_simulation = Simulation::<Vec<Box<dyn Mirror<DIM>>>, DIM>::random(&mut rng);
 
     let type_erased_simulation = Simulation {
         mirror: Box::new(random_simulation.mirror) as Box<dyn Mirror<DIM>>,
