@@ -37,9 +37,7 @@ impl<const D: usize> RayPath<D> {
 
     /// returns a pair (non_loop_points, loop_points)
     pub fn all_points(&self) -> (&[SVector<f32, D>], &[SVector<f32, D>]) {
-        self.points
-            .split_at_checked(self.loop_start.unwrap_or(self.points.len()))
-            .unwrap()
+        self.points.split_at(self.loop_start.unwrap_or(self.points.len()))
     }
 
     // name bikeshedding welcome
