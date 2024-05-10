@@ -54,10 +54,17 @@ pub const VERTEX_SHADER_SRC_3D: &str = r#"
     }
 "#;
 
+pub struct RayRenderData<const D: usize> {
+    // TODO: find another way to draw this, that preserves
+    // it's no matter how far away you are from it
+    pub origin: Sphere,
+    pub non_loop_path: VertexBuffer<Vertex<D>>,
+    pub loop_path: VertexBuffer<Vertex<D>>,
+}
+
 pub(crate) struct DrawableSimulation<const D: usize> {
-    origins: Vec<Sphere>,
-    ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
-    mirrors: Vec<Box<dyn render::RenderData>>,
+    ray_render_data: Vec<RayRenderData<D>>,
+    mirror_render_data: Vec<Box<dyn render::RenderData>>,
 }
 
 impl<const D: usize> DrawableSimulation<D>
@@ -65,14 +72,12 @@ where
     Vertex<D>: gl::Vertex,
 {
     pub(crate) fn new(
-        origins: Vec<Sphere>,
-        ray_path_vertices: Vec<VertexBuffer<Vertex<D>>>,
-        mirrors: Vec<Box<dyn RenderData>>,
+        ray_render_data: Vec<RayRenderData<D>>,
+        mirror_render_data: Vec<Box<dyn RenderData>>,
     ) -> Self {
         Self {
-            origins,
-            ray_path_vertices,
-            mirrors,
+            ray_render_data,
+            mirror_render_data,
         }
     }
 
@@ -85,6 +90,7 @@ where
     ) {
         const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const RAY_NON_LOOP_COL: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
+        const RAY_LOOP_COL: [f32 ; 4] = [0.0, 1.0, 0.0, 1.0];
         const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
 
         let mut target = display.draw();
@@ -105,39 +111,47 @@ where
             ..Default::default()
         };
 
-        for sphere in &self.origins {
-            target
-                .draw(
-                    sphere,
-                    sphere,
-                    program3d,
-                    &gl::uniform! {
-                        perspective: perspective,
-                        view: view,
-                        color_vec: ORIGIN_COLOR,
-                    },
-                    &params,
-                )
-                .unwrap();
+        for ray in &self.ray_render_data {
+
+            let o = &ray.origin;
+            target.draw(
+                o,
+                o,
+                program3d,
+                &gl::uniform! {
+                    perspective: perspective,
+                    view: view,
+                    color_vec: ORIGIN_COLOR,
+                },
+                &params
+            ).unwrap();
+
+            target.draw(
+                &ray.non_loop_path,
+                NoIndices(PrimitiveType::LineStrip),
+                program3d,
+                &gl::uniform! {
+                    perspective: perspective,
+                    view: view,
+                    color_vec: RAY_NON_LOOP_COL,
+                },
+                &params,
+            ).unwrap();
+
+            target.draw(
+                &ray.loop_path,
+                NoIndices(PrimitiveType::LineStrip),
+                program3d,
+                &gl::uniform! {
+                    perspective: perspective,
+                    view: view,
+                    color_vec: RAY_LOOP_COL,
+                },
+                &params,
+            ).unwrap();
         }
 
-        for buffer in self.ray_path_vertices.as_slice() {
-            target
-                .draw(
-                    buffer,
-                    NoIndices(PrimitiveType::LineStrip),
-                    program3d,
-                    &gl::uniform! {
-                        perspective: perspective,
-                        view: view,
-                        color_vec: RAY_NON_LOOP_COL,
-                    },
-                    &params,
-                )
-                .unwrap();
-        }
-
-        for render_data in &self.mirrors {
+        for render_data in &self.mirror_render_data {
             target
                 .draw(
                     render_data.vertices(),

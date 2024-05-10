@@ -9,7 +9,7 @@ pub use rand;
 pub use serde_json;
 
 use cgmath as cg;
-use core::iter;
+use core::{array, iter};
 use gl::glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode};
 use glium_shapes::sphere::SphereBuilder;
 use nalgebra::{Point, SMatrix, SVector, Unit};
@@ -17,7 +17,7 @@ use std::{error::Error, time};
 
 use render::{
     camera::{Camera, CameraController, Projection},
-    DrawableSimulation,
+    DrawableSimulation, RayRenderData, RenderData,
 };
 
 use mirror::{util, Mirror, Ray};
@@ -30,6 +30,11 @@ pub struct RayPath<const D: usize> {
 }
 
 impl<const D: usize> RayPath<D> {
+
+    pub fn all_points_raw(&self) -> &[SVector<f32, D>] {
+        self.points.as_slice()
+    }
+
     /// returns a pair (non_loop_points, loop_points)
     pub fn all_points(&self) -> (&[SVector<f32, D>], &[SVector<f32, D>]) {
         self.points
@@ -176,63 +181,48 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
         }))
     }
 
-    // trop de racisme ici
+    fn ray_render_data(&self, reflaction_limit: usize, display: &gl::Display) -> Vec<RayRenderData<3>> {
+
+        self.get_ray_paths(reflaction_limit).into_iter().map(|ray_path| {
+            
+            // we'll change the dimension logic in the future
+            let v = ray_path.all_points_raw().first().unwrap();
+            let [x, y, z] = array::from_fn(|i| if i < D { v[i] } else { 0.0 });
+
+            let (non_loop_pts, loop_pts) = ray_path.all_points();
+
+            let non_loop_points = Vec::from_iter(
+                non_loop_pts.iter().copied().chain(
+                    ray_path
+                        .divergence_direction()
+                        .map(|dir| non_loop_pts.last().unwrap() + dir.as_ref() * 2000.),
+                ).map(render::Vertex::<3>::from)
+            );
+            let loop_points = Vec::from_iter(loop_pts.iter().copied().map(render::Vertex::<3>::from));
+
+            RayRenderData {
+                origin: SphereBuilder::new()
+                    .scale(0.1, 0.1, 0.1)
+                    .translate(x, y, z)
+                    .with_divisions(60, 60)
+                    .build(display)
+                    .unwrap(),
+                non_loop_path: gl::VertexBuffer::immutable(display, non_loop_points.as_slice()).unwrap(),
+                loop_path: gl::VertexBuffer::immutable(display, loop_points.as_slice()).unwrap(),
+            }
+        }).collect()
+    }
+
+    pub fn mirror_render_data(&self, display: &gl::Display) -> Vec<Box<dyn RenderData>> {
+        self.mirror.render_data(display)
+    }
+
     fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
-        assert!(D <= 3);
-
-        // TODO: do all this on the DrawableSimulation side
-        // We first check if there is at least one ray to display its origin
-        // if it's the case, we loop through all of them and build a small sphere around the origin of the ray
-        let origins = Vec::from_iter(
-            self.rays
-                .iter()
-                .map(|r| r.origin)
-                .map(|v| {
-                    if D == 1 {
-                        [*v.get(0).unwrap(), 0., 0.]
-                    } else if D == 2 {
-                        [*v.get(0).unwrap(), *v.get(1).unwrap(), 0.]
-                    } else {
-                        [*v.get(0).unwrap(), *v.get(1).unwrap(), *v.get(2).unwrap()]
-                    }
-                })
-                .map(|v| {
-                    SphereBuilder::new()
-                        .scale(0.1, 0.1, 0.1)
-                        .translate(v[0], v[1], v[2])
-                        .with_divisions(60, 60)
-                        .build(display)
-                        .unwrap()
-                }),
-        );
-
-        // Then we calculate the path of each ray
-        let ray_paths = self
-            .get_ray_paths(reflection_limit)
-            .into_iter()
-            .map(|ray_path| {
-                let pts = ray_path.all_points().0;
-                gl::VertexBuffer::new(
-                    display,
-                    &Vec::from_iter(
-                        pts.iter()
-                            .copied()
-                            .chain(
-                                ray_path
-                                    .divergence_direction()
-                                    .map(|dir| pts.last().unwrap() + dir.as_ref() * 2000.),
-                            )
-                            .map(render::Vertex::<3>::from),
-                    ),
-                )
-                .unwrap()
-            })
-            .collect();
-
-        // finally we build the render data of each mirror
-        let mirrors = self.mirror.render_data(display);
-
-        DrawableSimulation::<3>::new(origins, ray_paths, mirrors)
+        
+        DrawableSimulation::<3>::new(
+            self.ray_render_data(reflection_limit, display),
+            self.mirror_render_data(display)
+        )
     }
 
     pub fn run_opengl(&self, reflection_limit: usize) {
