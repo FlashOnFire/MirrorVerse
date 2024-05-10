@@ -5,6 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/mirror_verse/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/mirror_verse_json/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/generate_random_simulation_3d/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/run_simulation_json_3d/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
