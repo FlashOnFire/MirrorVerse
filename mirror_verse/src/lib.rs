@@ -30,14 +30,14 @@ pub struct RayPath<const D: usize> {
 }
 
 impl<const D: usize> RayPath<D> {
-
     pub fn all_points_raw(&self) -> &[SVector<f32, D>] {
         self.points.as_slice()
     }
 
     /// returns a pair (non_loop_points, loop_points)
     pub fn all_points(&self) -> (&[SVector<f32, D>], &[SVector<f32, D>]) {
-        self.points.split_at(self.loop_start.unwrap_or(self.points.len()))
+        self.points
+            .split_at(self.loop_start.unwrap_or(self.points.len()))
     }
 
     // name bikeshedding welcome
@@ -179,36 +179,48 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
         }))
     }
 
-    fn ray_render_data(&self, reflaction_limit: usize, display: &gl::Display) -> Vec<RayRenderData<3>> {
+    fn ray_render_data(
+        &self,
+        reflaction_limit: usize,
+        display: &gl::Display,
+    ) -> Vec<RayRenderData<3>> {
+        self.get_ray_paths(reflaction_limit)
+            .into_iter()
+            .map(|ray_path| {
+                // we'll change the dimension logic in the future
+                let v = ray_path.all_points_raw().first().unwrap();
+                let [x, y, z] = array::from_fn(|i| if i < D { v[i] } else { 0.0 });
 
-        self.get_ray_paths(reflaction_limit).into_iter().map(|ray_path| {
-            
-            // we'll change the dimension logic in the future
-            let v = ray_path.all_points_raw().first().unwrap();
-            let [x, y, z] = array::from_fn(|i| if i < D { v[i] } else { 0.0 });
+                let (non_loop_pts, loop_pts) = ray_path.all_points();
 
-            let (non_loop_pts, loop_pts) = ray_path.all_points();
+                let non_loop_points = Vec::from_iter(
+                    non_loop_pts
+                        .iter()
+                        .copied()
+                        .chain(
+                            ray_path
+                                .divergence_direction()
+                                .map(|dir| non_loop_pts.last().unwrap() + dir.as_ref() * 2000.),
+                        )
+                        .map(render::Vertex::<3>::from),
+                );
+                let loop_points =
+                    Vec::from_iter(loop_pts.iter().copied().map(render::Vertex::<3>::from));
 
-            let non_loop_points = Vec::from_iter(
-                non_loop_pts.iter().copied().chain(
-                    ray_path
-                        .divergence_direction()
-                        .map(|dir| non_loop_pts.last().unwrap() + dir.as_ref() * 2000.),
-                ).map(render::Vertex::<3>::from)
-            );
-            let loop_points = Vec::from_iter(loop_pts.iter().copied().map(render::Vertex::<3>::from));
-
-            RayRenderData {
-                origin: SphereBuilder::new()
-                    .scale(0.1, 0.1, 0.1)
-                    .translate(x, y, z)
-                    .with_divisions(60, 60)
-                    .build(display)
-                    .unwrap(),
-                non_loop_path: gl::VertexBuffer::immutable(display, non_loop_points.as_slice()).unwrap(),
-                loop_path: gl::VertexBuffer::immutable(display, loop_points.as_slice()).unwrap(),
-            }
-        }).collect()
+                RayRenderData {
+                    origin: SphereBuilder::new()
+                        .scale(0.1, 0.1, 0.1)
+                        .translate(x, y, z)
+                        .with_divisions(60, 60)
+                        .build(display)
+                        .unwrap(),
+                    non_loop_path: gl::VertexBuffer::immutable(display, non_loop_points.as_slice())
+                        .unwrap(),
+                    loop_path: gl::VertexBuffer::immutable(display, loop_points.as_slice())
+                        .unwrap(),
+                }
+            })
+            .collect()
     }
 
     pub fn mirror_render_data(&self, display: &gl::Display) -> Vec<Box<dyn RenderData>> {
@@ -216,10 +228,9 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
     }
 
     fn to_drawable(&self, reflection_limit: usize, display: &gl::Display) -> DrawableSimulation<3> {
-        
         DrawableSimulation::<3>::new(
             self.ray_render_data(reflection_limit, display),
-            self.mirror_render_data(display)
+            self.mirror_render_data(display),
         )
     }
 
@@ -334,7 +345,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
                 last_render_time = now;
 
                 camera_controller.update_camera(&mut camera, dt);
-                drawable_simulation.render(&display, &program3d, &camera, &projection);
+                drawable_simulation.render_3d(&display, &program3d, &camera, &projection);
             }
             event::Event::MainEventsCleared => display.gl_window().window().request_redraw(),
             event::Event::DeviceEvent {

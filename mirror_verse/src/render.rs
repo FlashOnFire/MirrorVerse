@@ -12,21 +12,20 @@ pub struct Vertex<const N: usize> {
     pub position: [f32; N],
 }
 
-type Vertex3D = Vertex<3>;
+pub type Vertex2D = Vertex<2>;
+glium::implement_vertex!(Vertex2D, position);
+
+pub type Vertex3D = Vertex<3>;
 glium::implement_vertex!(Vertex3D, position);
 
-type Vertex2D = Vertex<2>;
-glium::implement_vertex!(Vertex2D, position);
+pub type Vertex4D = Vertex<4>;
+glium::implement_vertex!(Vertex4D, position);
 
 impl<const N: usize, const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<N> {
     fn from(v: nalgebra::SVector<f32, D>) -> Self {
-        assert!(D <= N);
-        let mut position = [0.; N];
-        for i in 0..D {
-            position[i] = v[i];
+        Self {
+            position: array::from_fn(|i| if i < D { v[i] } else { 0.0 }),
         }
-
-        Self { position }
     }
 }
 
@@ -80,8 +79,10 @@ where
             mirror_render_data,
         }
     }
+}
 
-    pub(crate) fn render(
+impl DrawableSimulation<3> {
+    pub(crate) fn render_3d(
         &self,
         display: &gl::backend::glutin::Display,
         program3d: &gl::Program,
@@ -90,7 +91,7 @@ where
     ) {
         const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const RAY_NON_LOOP_COL: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
-        const RAY_LOOP_COL: [f32 ; 4] = [0.0, 1.0, 0.0, 1.0];
+        const RAY_LOOP_COL: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
         const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
 
         let mut target = display.draw();
@@ -112,43 +113,48 @@ where
         };
 
         for ray in &self.ray_render_data {
-
             let o = &ray.origin;
-            target.draw(
-                o,
-                o,
-                program3d,
-                &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: ORIGIN_COLOR,
-                },
-                &params
-            ).unwrap();
+            target
+                .draw(
+                    o,
+                    o,
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: ORIGIN_COLOR,
+                    },
+                    &params,
+                )
+                .unwrap();
 
-            target.draw(
-                &ray.non_loop_path,
-                NoIndices(PrimitiveType::LineStrip),
-                program3d,
-                &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: RAY_NON_LOOP_COL,
-                },
-                &params,
-            ).unwrap();
+            target
+                .draw(
+                    &ray.non_loop_path,
+                    NoIndices(PrimitiveType::LineStrip),
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: RAY_NON_LOOP_COL,
+                    },
+                    &params,
+                )
+                .unwrap();
 
-            target.draw(
-                &ray.loop_path,
-                NoIndices(PrimitiveType::LineStrip),
-                program3d,
-                &gl::uniform! {
-                    perspective: perspective,
-                    view: view,
-                    color_vec: RAY_LOOP_COL,
-                },
-                &params,
-            ).unwrap();
+            target
+                .draw(
+                    &ray.loop_path,
+                    NoIndices(PrimitiveType::LineStrip),
+                    program3d,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: RAY_LOOP_COL,
+                    },
+                    &params,
+                )
+                .unwrap();
         }
 
         for render_data in &self.mirror_render_data {
