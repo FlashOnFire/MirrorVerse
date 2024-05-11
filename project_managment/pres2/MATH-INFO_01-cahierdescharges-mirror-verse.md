@@ -99,7 +99,8 @@ Son fonctionnement en nD serait un plus (facultatif en fonction du temps à disp
 #### Fonctionnalités v4
 
 Enfin, la quatrième version, facultative, pourra intégrer, selon les besoins, des fonctionnalités d'analyse de la
-trajectoire du rayon. $"On pense notamment à la " color(red)"détection automatique de la sortie du rayon de l'ensemble
+trajectoire du rayon. 
+On pense notamment à la $color(red)"détection automatique de la sortie du rayon de l'ensemble
 de miroirs"$, ou à la détection automatique d'une boucle (le rayon passe 2 fois au même endroit).
 
 ##### WorkPackages
