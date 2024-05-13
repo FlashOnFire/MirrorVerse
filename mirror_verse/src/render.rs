@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use super::*;
 use gl::{
     index::{NoIndices, PrimitiveType},
@@ -63,7 +65,7 @@ pub struct RayRenderData<const D: usize> {
 
 pub(crate) struct DrawableSimulation<const D: usize> {
     ray_render_data: Vec<RayRenderData<D>>,
-    mirror_render_data: Vec<Box<dyn render::RenderData>>,
+    mirror_render_data: Vec<Box<dyn render::RenderData<D>>>,
 }
 
 impl<const D: usize> DrawableSimulation<D>
@@ -72,7 +74,7 @@ where
 {
     pub(crate) fn new(
         ray_render_data: Vec<RayRenderData<D>>,
-        mirror_render_data: Vec<Box<dyn RenderData>>,
+        mirror_render_data: Vec<Box<dyn RenderData<D>>>,
     ) -> Self {
         Self {
             ray_render_data,
@@ -179,13 +181,14 @@ impl DrawableSimulation<3> {
     }
 }
 
-pub trait RenderData {
+// Again, could have been an associated constant, but `#[feature(generic_const_exprs)]` fucks us over
+pub trait RenderData<const D: usize> {
     fn vertices(&self) -> gl::vertex::VerticesSource;
     fn indices(&self) -> gl::index::IndicesSource;
 }
 
-// oh yeah baby
-impl<T> RenderData for T
+// glium_shapes 3d convenience blanket impl
+impl<T> RenderData<3> for T
 where
     for<'a> &'a T: Into<gl::vertex::VerticesSource<'a>>,
     for<'a> &'a T: Into<gl::index::IndicesSource<'a>>,
@@ -196,5 +199,24 @@ where
 
     fn indices(&self) -> gl::index::IndicesSource {
         self.into()
+    }
+}
+
+pub trait OpenGLRenderable<const D: usize> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<D>>>;
+}
+
+impl<const D: usize, T: OpenGLRenderable<D>> OpenGLRenderable<D> for [T] {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<D>>> {
+        self.iter().flat_map(|a| a.render_data(display)).collect()
+    }
+}
+
+impl<const D: usize, T: Deref> OpenGLRenderable<D> for T
+where
+    T::Target: OpenGLRenderable<D>,
+{
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<D>>> {
+        self.deref().render_data(display)
     }
 }

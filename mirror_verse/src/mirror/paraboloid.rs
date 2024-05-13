@@ -17,7 +17,7 @@ struct ParaboloidRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
 }
 
-impl<const D: usize> render::RenderData for ParaboloidRenderData<D> {
+impl<const D: usize> render::RenderData<D> for ParaboloidRenderData<D> {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         (&self.vertices).into()
     }
@@ -235,7 +235,7 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         Ok(json.into())
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         let mut points: Vec<SVector<f32, D>> = Vec::new();
         for i in self.get_points() {
             points.push(i);

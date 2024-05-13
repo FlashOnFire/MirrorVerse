@@ -197,12 +197,17 @@ impl<const D: usize> Plane<D> {
         */
 
         a.column_iter_mut()
-            .zip(iter::once((-ray.direction).as_ref()).chain(self.basis().iter()))
+            .zip(iter::once(ray.direction.as_ref()).chain(self.basis().iter()))
             .for_each(|(mut i, o)| i.set_column(0, o));
 
         a.try_inverse_mut()
             // a now contains a^-1
-            .then(|| a * (ray.origin - self.v_0()))
+            .then(|| {
+                let mut v = a * (ray.origin - self.v_0());
+                let first = &mut v[0];
+                *first = -*first;
+                v
+            })
     }
 
     /// create a new plane from a json value
@@ -239,7 +244,7 @@ impl<const D: usize> Plane<D> {
                 .ok_or("Failed to parse basis vector")?;
         }
 
-        Ok(Plane::new(vectors).ok_or("Failed to create plane")?)
+        Ok(Plane::new(vectors).ok_or("the provided family of vectors must be free")?)
     }
 
     fn to_json(self) -> Result<serde_json::Value, Box<dyn Error>> {
@@ -256,6 +261,67 @@ impl<const D: usize> Plane<D> {
             "basis": basis,
         }))
     }
+}
+
+pub trait MirrorE<const D: usize> {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
+}
+
+impl<const D: usize, T: MirrorE<D>> MirrorE<D> for [T] {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list))
+    }
+}
+
+impl<const D: usize, T: Deref> MirrorE<D> for T
+where
+    T::Target: MirrorE<D>,
+{
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.deref().append_intersecting_points(ray, list)
+    }
+}
+
+pub trait JsonType {
+    fn json_type() -> String;
+}
+
+impl<T: JsonType> JsonType for [T] {
+    fn json_type() -> String {
+        format!("[]{}", T::json_type())
+    }
+}
+
+impl<T: Deref> JsonType for T
+where
+    T::Target: JsonType,
+{
+    fn json_type() -> String {
+        T::Target::json_type()
+    }
+}
+
+trait JsonTypeDyn {
+    fn json_type_dyn(&self) -> String;
+}
+
+impl<T: JsonType + ?Sized> JsonTypeDyn for T {
+    fn json_type_dyn(&self) -> String {
+        T::json_type()
+    }
+}
+
+pub trait JsonDes {
+    fn des(value: &serde_json::Value) -> Result<Self, Box<dyn Error>>
+    where
+        Self: Sized;
+}
+
+pub trait Random {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
+    where
+        Self: Sized;
 }
 
 pub trait Mirror<const D: usize> {
@@ -291,7 +357,7 @@ pub trait Mirror<const D: usize> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
     /// Returns a list of vertices and index primitves used to render the mirror
     /// TODO: pass in a list and push to that
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>>;
     /// Returns a random new instance of the mirror
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
@@ -376,7 +442,7 @@ impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
         }))
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         self.as_ref().render_data(display)
     }
 
@@ -444,7 +510,7 @@ impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
         Ok(serde_json::json!(array))
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         self.iter()
             .flat_map(|mirror| mirror.render_data(display))
             .collect()

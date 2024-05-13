@@ -57,7 +57,7 @@ impl Mirror<2> for BezierMirror {
         todo!()
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         todo!()
     }
 

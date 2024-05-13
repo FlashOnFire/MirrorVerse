@@ -79,7 +79,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         Ok(json)
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         let coords = match D {
             1 => [self.center[0], 0.0, 0.0],
             2 => [self.center[0], self.center[1], 0.0],

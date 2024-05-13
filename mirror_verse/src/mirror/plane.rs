@@ -7,21 +7,19 @@ use super::*;
 pub struct PlaneMirror<const D: usize> {
     /// The plane this mirror belongs to.
     plane: Plane<D>,
-    /// maximum magnitudes (mu_i_max) of the scalars in the linear combination of the
-    /// basis vectors of the associated hyperplane.
-    ///
-    /// Formally, for all vectors `v = sum mu_i * v_i` of
-    /// the hyperplane, `v` is in this plane mirror iff for all `i`, `|mu_i| <= |mu_i_max|`
-    ///
-    /// Note: the first value of this array is irrelevant
-    bounds: [f32; D],
+}
+
+impl<const D: usize> From<Plane<D>> for PlaneMirror<D> {
+    fn from(plane: Plane<D>) -> Self {
+        Self { plane }
+    }
 }
 
 struct PlaneRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
 }
 
-impl<const D: usize> render::RenderData for PlaneRenderData<D> {
+impl<const D: usize> render::RenderData<D> for PlaneRenderData<D> {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         (&self.vertices).into()
     }
@@ -38,43 +36,31 @@ impl<const D: usize> render::RenderData for PlaneRenderData<D> {
 }
 
 impl<const D: usize> PlaneMirror<D> {
-    pub fn vector_bounds(&self) -> &[f32] {
-        &self.bounds[1..]
-    }
-
     pub fn vertices(&self) -> impl Iterator<Item = SVector<f32, D>> + '_ {
         const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
 
         let basis = self.plane.basis();
         let v_0 = *self.plane.v_0();
-        let bounds = self.vector_bounds();
 
         (0..1 << (D - 1)).map(move |i| {
-            bounds
+            basis
                 .iter()
-                .zip(basis)
                 .enumerate()
-                // returns `mu * v` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, (mu, v))| f32::from_bits(i >> j << SHIFT ^ mu.to_bits()) * v)
+                // returns `v` with the sign flipped if the `j`th bit in `i` is 1
+                .map(|(j, v)| f32::from_bits(i >> j << SHIFT ^ 1f32.to_bits()) * v)
                 .fold(v_0, Add::add)
         })
     }
 }
 
 use glium::index::PrimitiveType;
-use serde_json::json;
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
         if self
             .plane
             .intersection_coordinates(ray)
-            .filter(|v| {
-                v.iter()
-                    .skip(1)
-                    .zip(self.vector_bounds())
-                    .all(|(mu, mu_max)| mu.abs() <= mu_max.abs())
-            })
+            .filter(|v| v.iter().skip(1).all(|mu| mu.abs() < 1.0))
             .is_some()
         {
             list.push(Tangent::Plane(self.plane));
@@ -101,38 +87,17 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
                 [9., 8., 7., ...], (N elements)
                 [6., 5., 4., ...],
             ],
-            "bounds": [6., 9., ...] (N - 1 elements)
-            "darkness": 0.5,
         }
         */
 
-        let bounds_json = json
-            .get("bounds")
-            .and_then(serde_json::Value::as_array)
-            .filter(|l| l.len() == D - 1)
-            .ok_or("Failed to parse bounds")?;
-
-        let mut bounds = [0.; D];
-        for (i, o) in bounds[1..].iter_mut().zip(bounds_json.iter()) {
-            *i = o.as_f64().ok_or("Failed to parse bound")? as f32;
-        }
-
-        let plane = Plane::from_json(json)?;
-
-        Ok(Self { plane, bounds })
+        Plane::from_json(json).map(Self::from)
     }
 
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let plane_json = self.plane.to_json()?;
-        let bounds: Vec<f32> = self.bounds[1..].to_vec();
-        Ok(json!({
-            "center": plane_json["center"],
-            "basis": plane_json["basis"],
-            "bounds": bounds,
-        }))
+        self.plane.to_json()
     }
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
         let vertices: Vec<_> = self.vertices().map(render::Vertex::<3>::from).collect();
 
         vec![Box::new(PlaneRenderData {
@@ -144,15 +109,12 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
         Self: Sized,
     {
         // bahaha t'y etais presque
-        let plane = loop {
+        loop {
             if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 24.0))) {
                 break plane;
             }
-        };
-
-        let bounds = array::from_fn(|_| rng.gen());
-
-        PlaneMirror { plane, bounds }
+        }
+        .into()
     }
 }
 

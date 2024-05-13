@@ -223,7 +223,7 @@ impl<const D: usize, T: Mirror<D>> Simulation<T, D> {
             .collect()
     }
 
-    pub fn mirror_render_data(&self, display: &gl::Display) -> Vec<Box<dyn RenderData>> {
+    pub fn mirror_render_data(&self, display: &gl::Display) -> Vec<Box<dyn RenderData<3>>> {
         self.mirror.render_data(display)
     }
 
