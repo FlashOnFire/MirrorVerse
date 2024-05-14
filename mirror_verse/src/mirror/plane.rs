@@ -19,7 +19,7 @@ struct PlaneRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
 }
 
-impl<const D: usize> render::RenderData<D> for PlaneRenderData<D> {
+impl<const D: usize> render::RenderData for PlaneRenderData<D> {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         (&self.vertices).into()
     }
@@ -27,7 +27,7 @@ impl<const D: usize> render::RenderData<D> for PlaneRenderData<D> {
     fn indices(&self) -> gl::index::IndicesSource {
         gl::index::IndicesSource::NoIndices {
             primitives: match D {
-                0 => panic!("dimension must not be zero"),
+                0 => unreachable!("dimension must not be zero"),
                 1 | 2 => PrimitiveType::LinesList,
                 _ => PrimitiveType::TriangleStrip,
             },
@@ -66,44 +66,51 @@ impl<const D: usize> Mirror<D> for PlaneMirror<D> {
             list.push(Tangent::Plane(self.plane));
         }
     }
+}
 
-    fn get_json_type() -> String {
+impl<const D: usize> JsonType for PlaneMirror<D> {
+    fn json_type() -> String {
         "plane".into()
     }
+}
 
-    fn get_json_type_inner(&self) -> String {
-        "plane".into()
-    }
-
+impl<const D: usize> JsonDes for PlaneMirror<D> {
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
-        /*
-        example json:
-        {
-            "center": [9., 8., 7., ...], (N elements)
-            "basis": [ (N - 1 elements)
-                [9., 8., 7., ...], (N elements)
-                [6., 5., 4., ...],
-            ],
-        }
-        */
-
+        // see mirror::Plane::from_json for more info on this mirror's json format
         Plane::from_json(json).map(Self::from)
     }
+}
 
+impl<const D: usize> JsonSer for PlaneMirror<D> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         self.plane.to_json()
     }
+}
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
+impl render::OpenGLRenderable for PlaneMirror<2> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+        let vertices: Vec<_> = self.vertices().map(render::Vertex::<2>::from).collect();
+
+        vec![Box::new(PlaneRenderData {
+            vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
+        })]
+    }
+}
+
+impl render::OpenGLRenderable for PlaneMirror<3> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         let vertices: Vec<_> = self.vertices().map(render::Vertex::<3>::from).collect();
 
         vec![Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
         })]
     }
+}
+
+impl<const D: usize> Random for PlaneMirror<D> {
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized,

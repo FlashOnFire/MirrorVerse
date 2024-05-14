@@ -2,10 +2,8 @@ use core::{iter, ops::Deref};
 
 use super::*;
 
-use format as f;
-
-pub mod bezier;
-pub mod cubic_bezier;
+// pub mod bezier;
+// pub mod cubic_bezier;
 pub mod paraboloid;
 pub mod plane;
 pub mod sphere;
@@ -215,8 +213,12 @@ impl<const D: usize> Plane<D> {
         /*
         example json:
         {
-            "v_0": [9., 8., 7., ...], (N elements)
-            "basis": [[9., 8., 7., ...], [9., 8., 7., ...], ...], (N-1 elements)
+            "center": [9., 8., 7., ...], (N elements)
+            "basis": [
+                [9., 8., 7., ...], (N elements)
+                [9., 8., 7., ...],
+                ...
+            ] (N-1 elements)
         }
         */
         let mut vectors = [SVector::zeros(); D];
@@ -263,67 +265,6 @@ impl<const D: usize> Plane<D> {
     }
 }
 
-pub trait MirrorE<const D: usize> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
-}
-
-impl<const D: usize, T: MirrorE<D>> MirrorE<D> for [T] {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter()
-            .for_each(|mirror| mirror.append_intersecting_points(ray, list))
-    }
-}
-
-impl<const D: usize, T: Deref> MirrorE<D> for T
-where
-    T::Target: MirrorE<D>,
-{
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.deref().append_intersecting_points(ray, list)
-    }
-}
-
-pub trait JsonType {
-    fn json_type() -> String;
-}
-
-impl<T: JsonType> JsonType for [T] {
-    fn json_type() -> String {
-        format!("[]{}", T::json_type())
-    }
-}
-
-impl<T: Deref> JsonType for T
-where
-    T::Target: JsonType,
-{
-    fn json_type() -> String {
-        T::Target::json_type()
-    }
-}
-
-trait JsonTypeDyn {
-    fn json_type_dyn(&self) -> String;
-}
-
-impl<T: JsonType + ?Sized> JsonTypeDyn for T {
-    fn json_type_dyn(&self) -> String {
-        T::json_type()
-    }
-}
-
-pub trait JsonDes {
-    fn des(value: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized;
-}
-
-pub trait Random {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized;
-}
-
 pub trait Mirror<const D: usize> {
     /// Appends to the list a number of tangent planes, in no particular order.
     ///
@@ -343,407 +284,85 @@ pub trait Mirror<const D: usize> {
     /// TODO: pass in a wrapper around a &mut Vec<_> that
     /// only allows pushing/appending/extending etc..
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
-    /// Returns a string slice, unique to the type, coherent with it's json representation
-    fn get_json_type() -> String
-    where
-        Self: Sized;
-    /// except for trait objects, this should behave the same way as `Mirror::get_json_type`
-    fn get_json_type_inner(&self) -> String;
-    /// Deserialises data from the provided json string, returns `None` in case of error
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized;
-    /// Returns a json representation of the data
+}
+
+impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list))
+    }
+}
+
+impl<const D: usize, T: Deref> Mirror<D> for T
+where
+    T::Target: Mirror<D>,
+{
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+        self.deref().append_intersecting_points(ray, list)
+    }
+}
+
+pub trait JsonType {
+    /// Returns a string slice, unique to the type, found in the "type" field of the json
+    /// representation of a dynamic mirror containing a mirror of this type
+    fn json_type() -> String;
+}
+
+impl<T: JsonType> JsonType for [T] {
+    fn json_type() -> String {
+        format!("[]{}", T::json_type())
+    }
+}
+
+impl<T: Deref> JsonType for T
+where
+    T::Target: JsonType,
+{
+    fn json_type() -> String {
+        T::Target::json_type()
+    }
+}
+
+pub trait JsonSer {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
-    /// Returns a list of vertices and index primitves used to render the mirror
-    /// TODO: pass in a list and push to that
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>>;
-    /// Returns a random new instance of the mirror
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized;
 }
 
-impl<const D: usize> Mirror<D> for Box<dyn Mirror<D>> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.as_ref().append_intersecting_points(ray, list);
-    }
-
-    fn get_json_type() -> String
-    where
-        Self: Sized,
-    {
-        "dynamic".into()
-    }
-
-    fn get_json_type_inner(&self) -> String {
-        self.as_ref().get_json_type_inner()
-    }
-
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        /*
-        example json
-        {
-            "type": "....",
-            "mirror": <json value whose structure depends on "type">,
-        }
-        */
-
-        let mirror_type = json
-            .get("type")
-            .ok_or("Missing mirror type")?
-            .as_str()
-            .ok_or("type must be a string")?;
-
-        let mirror = json.get("mirror").ok_or("Missing mirror data")?;
-
-        fn into_type_erased<const D: usize, T: Mirror<D> + 'static>(
-            mirror: T,
-        ) -> Box<dyn Mirror<D>> {
-            Box::new(mirror) as _
-        }
-
-        match mirror_type {
-            "plane" => plane::PlaneMirror::<D>::from_json(mirror).map(into_type_erased),
-            "sphere" => sphere::EuclideanSphereMirror::<D>::from_json(mirror).map(into_type_erased),
-            "dynamic" => Box::<dyn Mirror<D>>::from_json(mirror).map(into_type_erased),
-            other => {
-                // flatten nested lists
-                if let Some(inner) = {
-                    let inner = other.trim_start_matches("[]");
-                    (other != inner).then_some(inner)
-                } {
-                    match inner {
-                        "plane" => {
-                            Vec::<plane::PlaneMirror<D>>::from_json(mirror).map(into_type_erased)
-                        }
-                        "sphere" => Vec::<sphere::EuclideanSphereMirror<D>>::from_json(mirror)
-                            .map(into_type_erased),
-                        "dynamic" => {
-                            Vec::<Box<dyn Mirror<D>>>::from_json(mirror).map(into_type_erased)
-                        }
-                        _ => Err(f!("invalid mirror type :{other}").into()),
-                    }
-                } else {
-                    Err(f!("invalid mirror type :{other}").into())
-                }
-            }
-        }
-    }
-
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let this = self.as_ref();
-        Ok(serde_json::json!({
-            "type": this.get_json_type_inner(),
-            "mirror": this.to_json()?,
-        }))
-    }
-
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
-        self.as_ref().render_data(display)
-    }
-
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
-        let mirror_types = ["plane", "sphere"];
-
-        match rng.gen_range(0..mirror_types.len()) {
-            0 => Box::new(plane::PlaneMirror::<D>::random(rng)),
-            1 => Box::new(sphere::EuclideanSphereMirror::<D>::random(rng)),
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<const D: usize, T: Mirror<D>> Mirror<D> for Vec<T> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.as_slice()
-            .iter()
-            .for_each(|mirror| mirror.append_intersecting_points(ray, list));
-    }
-
-    fn get_json_type() -> String {
-        format!("[]{}", T::get_json_type())
-    }
-
-    fn get_json_type_inner(&self) -> String {
-        format!("[]{}", T::get_json_type())
-    }
-
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        /* example json
-        [
-            ... (potentially nested) list of json values whose structure depends on `T`
-        ]
-        */
-
-        fn append_to_array<const D: usize, T: Mirror<D>>(
-            json: &serde_json::Value,
-            list: &mut Vec<T>,
-        ) -> Result<(), Box<dyn Error>> {
-            if let Some(array) = json.as_array() {
-                for inner_json in array {
-                    append_to_array(inner_json, list)?
-                }
-            } else {
-                list.push(T::from_json(json)?)
-            }
-            Ok(())
-        }
-
-        let mut list = vec![];
-        append_to_array(json, &mut list)?;
-        Ok(list)
-    }
-
+impl<T: JsonSer> JsonSer for [T] {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         let array = util::try_collect(self.iter().map(T::to_json).map(Result::ok))
             .ok_or("falied to deserialize a mirror")?;
         Ok(serde_json::json!(array))
     }
+}
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
-        self.iter()
-            .flat_map(|mirror| mirror.render_data(display))
-            .collect()
+impl<T: Deref> JsonSer for T
+where
+    T::Target: JsonSer,
+{
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        self.deref().to_json()
     }
+}
 
-    fn random<U: rand::Rng + ?Sized>(rng: &mut U) -> Self
+pub trait JsonDes {
+    fn from_json(value: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
-        Self: Sized,
-    {
-        const MIN_RANDOM_MIRRORS: usize = 8;
-        const MAX_RANDOM_MIRRORS: usize = 64;
+        Self: Sized;
+}
 
-        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..=MAX_RANDOM_MIRRORS);
-
-        iter::repeat_with(|| T::random(rng))
-            .take(num_mirrors)
+impl<T: JsonDes> JsonDes for Vec<T> {
+    fn from_json(value: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        value
+            .as_array()
+            .ok_or("json value must be an array to deserialise an array of mirrors")?
+            .iter()
+            .map(T::from_json)
             .collect()
     }
 }
 
-pub mod util {
-    use super::*;
-
-    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(
-        rng: &mut T,
-        max_coord_mag: f32,
-    ) -> SVector<f32, D> {
-        // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
-
-        SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (max_coord_mag.abs() * 2.0))
-    }
-
-    /// This is essentially `try_into` then `try_map` but the latter is nightly-only
-    pub fn json_array_to_float_array<const D: usize>(
-        json_array: &[serde_json::Value],
-    ) -> Option<[f32; D]> {
-        let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
-
-        let mut center_coords_array = [0.; D];
-        for (coord, value) in center_coords_array.iter_mut().zip(array) {
-            *coord = value.as_f64()? as f32;
-        }
-        Some(center_coords_array)
-    }
-
-    /// This is essentially `try_into` then `try_map` but the latter is nightly-only
-    pub fn json_array_to_vector<const D: usize>(
-        json_array: &[serde_json::Value],
-    ) -> Option<SVector<f32, D>> {
-        json_array_to_float_array(json_array).map(SVector::from)
-    }
-
-    /// This is essentially [`Iterator::try_collect`]
-    /// for `Vec<T>` but without having to use nightly
-    pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
-        let mut vec = vec![];
-        for item in i {
-            vec.push(item?);
-        }
-
-        Some(vec)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use nalgebra::Unit;
-    use serde_json::json;
-
-    use crate::Simulation;
-
-    use super::{plane::PlaneMirror, Mirror, Plane, Ray};
-
-    #[test]
-    fn test_loop_detection() {
-        let simulation = Simulation::<Box<dyn Mirror<3>>, 3>::from_json(&json!(
-            {
-                "mirror":
-                {"type": "[]plane",
-                "mirror":
-                [
-                    {
-                            "center": [1., 0., 0.],
-                            "basis": [
-                                [0., 1., 0.],
-                                [0., 0., 1.],
-                            ],
-                            "bounds": [1.,1.],
-                    },
-                    {
-                            "center": [-1., 0., 0.],
-                            "basis": [
-                                [0., 1., 0.],
-                                [0., 0., 1.],
-                            ],
-                            "bounds": [1.,1.],
-                    }
-                ],
-                },
-                "rays": [
-                    {
-                        "origin": [0., 0., 0.],
-                        "direction": [1., 0., 0.],
-                    }
-                ],
-            }
-        ))
-        .unwrap();
-
-        let path = simulation.get_ray_paths(100);
-        assert!(path.first().unwrap().points.len() == 4);
-    }
-    #[test]
-    fn test_no_loop_detection() {
-        let simulation = Simulation::<Box<dyn Mirror<3>>, 3>::from_json(&json!(
-            //Stollen from diamond of hell
-            {
-                "rays": [
-                    {
-                        "origin": [
-                            1.0,
-                            0.3,
-                            0.0
-                        ],
-                        "direction": [
-                            1.0,
-                            1.223780308610836,
-                            0.0
-                        ]
-                    }
-                ],
-                "mirror": {
-                    "type": "[]plane",
-                    "mirror": [
-                        {
-                            "center": [
-                                1.0,
-                                1.0,
-                                0.0
-                            ],
-                            "basis": [
-                                [
-                                    -1.0,
-                                    1.0,
-                                    0.0
-                                ],
-                                [
-                                    0.0,
-                                    0.0,
-                                    1.0
-                                ]
-                            ],
-                            "bounds": [
-                                1.5,
-                                0.1
-                            ]
-                        },
-                        {
-                            "center": [
-                                -1.0,
-                                1.0,
-                                0.0
-                            ],
-                            "basis": [
-                                [
-                                    -1.0,
-                                    -1.0,
-                                    0.0
-                                ],
-                                [
-                                    0.0,
-                                    0.0,
-                                    1.0
-                                ]
-                            ],
-                            "bounds": [
-                                1.5,
-                                0.1
-                            ]
-                        },
-                        {
-                            "center": [
-                                1.0,
-                                -1.0,
-                                0.0
-                            ],
-                            "basis": [
-                                [
-                                    -1.0,
-                                    -1.0,
-                                    0.0
-                                ],
-                                [
-                                    0.0,
-                                    0.0,
-                                    1.0
-                                ]
-                            ],
-                            "bounds": [
-                                1.5,
-                                0.1
-                            ]
-                        },
-                        {
-                            "center": [
-                                -1.0,
-                                -1.0,
-                                0.0
-                            ],
-                            "basis": [
-                                [
-                                    -1.0,
-                                    1.0,
-                                    0.0
-                                ],
-                                [
-                                    0.0,
-                                    0.0,
-                                    1.0
-                                ]
-                            ],
-                            "bounds": [
-                                1.5,
-                                0.1
-                            ]
-                        }
-                    ]
-                }
-            }
-        ))
-        .unwrap();
-
-        let path = simulation.get_ray_paths(100);
-        assert!(path.first().unwrap().points.len() == 101);
-    }
+pub trait Random {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
+    where
+        Self: Sized;
 }

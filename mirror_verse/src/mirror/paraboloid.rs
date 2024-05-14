@@ -1,6 +1,8 @@
 use glium::index;
 use nalgebra::{Point2, Vector2};
 
+use self::render::OpenGLRenderable;
+
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -17,7 +19,7 @@ struct ParaboloidRenderData<const D: usize> {
     vertices: gl::VertexBuffer<render::Vertex<D>>,
 }
 
-impl<const D: usize> render::RenderData<D> for ParaboloidRenderData<D> {
+impl<const D: usize> render::RenderData for ParaboloidRenderData<D> {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         (&self.vertices).into()
     }
@@ -44,11 +46,10 @@ impl<const D: usize> ParaboloidMirror<D> {
             > f32::EPSILON;
         distance_ok && same_direction
     }
+}
 
-    fn get_tangent(&self, point: &SVector<f32, D>) -> Option<Plane<D>> {
-        if D != 2 {
-            panic!("InvalidDimension");
-        }
+impl ParaboloidMirror<2> {
+    fn get_tangent(&self, point: &SVector<f32, 2>) -> Option<Plane<2>> {
         if !self.is_point_on_parabola(point) {
             return None;
         }
@@ -61,38 +62,33 @@ impl<const D: usize> ParaboloidMirror<D> {
         //calculate the tangent
         let direction = point_to_directrix_direction + point_to_focus_direction;
 
-        let mut vectors = [SVector::zeros(); D];
-        vectors[0] = *point;
-        vectors[1] = direction;
-
-        Some(Plane::new(vectors).unwrap())
+        Some(Plane::new([*point, direction]).unwrap())
     }
 
-    fn get_points(&self) -> Vec<SVector<f32, D>> {
-        if D != 2 {
-            panic!("InvalidDimension");
-        }
+    fn get_points(&self) -> Vec<SVector<f32, 2>> {
+        todo!();
+
         // lets construct the formula of the parametric equation of the parabola
-        let focus = self.focus;
-        let directrix_point = self.directrix_plane.v_0();
-        let directrix_vector = self.directrix_plane.basis()[0];
+        // let focus = self.focus;
+        // let directrix_point = self.directrix_plane.v_0();
+        // let [directrix_vector] = self.directrix_plane.basis() else {
+        //     unreachable!("impossible")
+        // };
 
         //the directix formula from ax + by + c = 0
-        let directrix_formula = SVector::from([
-            directrix_vector[1],
-            -directrix_vector[0],
-            -directrix_vector[1] * directrix_point[0] + directrix_vector[0] * directrix_point[1],
-        ]);
+        // let directrix_formula = SVector::from([
+        //     directrix_vector[1],
+        //     -directrix_vector[0],
+        //     -directrix_vector[1] * directrix_point[0] + directrix_vector[0] * directrix_point[1],
+        // ]);
 
         /*the parabola formula (with F=(f1,f2) the focus)
             (ax+by+c)^2
             ----------- = (x-f1)^2 + (y-f2)^2
               a^2+b^2
         */
-        let denominator = directrix_vector.norm_squared();
-        let numerator = directrix_formula.norm_squared();
-
-        todo!();
+        // let denominator = directrix_vector.norm_squared();
+        // let numerator = directrix_formula.norm_squared();
 
         // let mut points = Vec::new();
         // for x in -100..100 {
@@ -126,11 +122,8 @@ impl<const D: usize> ParaboloidMirror<D> {
     }
 }
 
-impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        if D != 2 {
-            panic!("InvalidDimension");
-        }
+impl Mirror<2> for ParaboloidMirror<2> {
+    fn append_intersecting_points(&self, ray: &Ray<2>, list: &mut Vec<Tangent<2>>) {
         // Define the focus and directrix
         let focus = Point2::new(self.focus[0], self.focus[1]); // Focus of the parabola
         let directrix_point =
@@ -196,15 +189,15 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             }
         }
     }
+}
 
-    fn get_json_type() -> String {
+impl<const D: usize> JsonType for ParaboloidMirror<D> {
+    fn json_type() -> String {
         "paraboloid".into()
     }
+}
 
-    fn get_json_type_inner(&self) -> String {
-        "paraboloid".into()
-    }
-
+impl<const D: usize> JsonDes for ParaboloidMirror<D> {
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
@@ -226,7 +219,9 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             limit_plane,
         })
     }
+}
 
+impl<const D: usize> JsonSer for ParaboloidMirror<D> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         let mut json = serde_json::Map::new();
         json.insert("directrix_plane".into(), self.directrix_plane.to_json()?);
@@ -234,12 +229,11 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
         json.insert("limit_plane".into(), self.limit_plane.to_json()?);
         Ok(json.into())
     }
+}
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
-        let mut points: Vec<SVector<f32, D>> = Vec::new();
-        for i in self.get_points() {
-            points.push(i);
-        }
+impl OpenGLRenderable for ParaboloidMirror<2> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+        let points = self.get_points();
         // for i in (-1000..=1000).step_by(1) {
         //     points.push(self.get_point(i as f32 / 10.));
         // }
@@ -261,13 +255,6 @@ impl<const D: usize> Mirror<D> for ParaboloidMirror<D> {
             .unwrap(),
         };
         vec![Box::new(paraboloid_render_data)]
-    }
-
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
-        todo!()
     }
 }
 

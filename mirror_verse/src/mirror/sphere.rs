@@ -1,5 +1,4 @@
 use super::*;
-use glium_shapes::sphere::SphereBuilder;
 use serde_json::json;
 
 #[derive(Clone, Copy)]
@@ -38,15 +37,15 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             }
         }
     }
+}
 
-    fn get_json_type() -> String {
+impl<const D: usize> JsonType for EuclideanSphereMirror<D> {
+    fn json_type() -> String {
         "sphere".into()
     }
+}
 
-    fn get_json_type_inner(&self) -> String {
-        "sphere".into()
-    }
-
+impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
         /* example json
         {
@@ -69,7 +68,9 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
         Ok(Self { center, radius })
     }
+}
 
+impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
         let center: Vec<f32> = self.center.iter().copied().collect();
         let json = json!({
@@ -78,34 +79,36 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
         });
         Ok(json)
     }
+}
 
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData<3>>> {
-        let coords = match D {
-            1 => [self.center[0], 0.0, 0.0],
-            2 => [self.center[0], self.center[1], 0.0],
-            3 => [self.center[0], self.center[1], self.center[2]],
-            _ => unreachable!(),
-        };
-
-        let scale = match D {
-            1 => unimplemented!(),
-            2 => [self.radius, self.radius, 0.],
-            3 => [self.radius, self.radius, self.radius],
-            _ => unreachable!(),
-        };
+// Use glium_shapes::sphere::Sphere for the 3Dimplementation
+impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+        let r = self.radius;
+        let [x, y, z] = self.center.into();
 
         // The default sphere from the SphereBuilder is a unit-sphere (radius of 1) with its center of mass located at the origin.
         // So we just have to scale it with the sphere radius on each axis and translate it.
-        let sphere = SphereBuilder::new()
-            .scale(scale[0], scale[1], scale[2])
-            .translate(coords[0], coords[1], coords[2])
+        let sphere = glium_shapes::sphere::SphereBuilder::new()
+            .scale(r, r, r)
+            .translate(x, y, z)
             .with_divisions(60, 60)
             .build(display)
             .unwrap();
 
         vec![Box::new(sphere)]
     }
+}
 
+// in 2d, the list of vertices of a circle are easy to calculate
+impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+
+        vec![Box::new(render::Circle::new(self.center.into(), self.radius, display))]
+    }
+}
+
+impl<const D: usize> Random for EuclideanSphereMirror<D> {
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized,
@@ -121,7 +124,6 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_basic_sphere() {
