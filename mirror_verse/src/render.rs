@@ -227,7 +227,7 @@ where
         const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const RAY_NON_LOOP_COL: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
         const RAY_LOOP_COL: [f32; 4] = [1.0, 0.0, 1.0, 1.0];
-        const MIRROR_COLOR: [f32; 4] = [0.3, 0.3, 0.9, 0.4];
+        const MIRROR_COLOR: [f32; 4] = [0.2, 0.2, 0.6, 0.6];
 
         let mut target = display.draw();
 
@@ -242,26 +242,12 @@ where
                 write: false,
                 ..Default::default()
             },
-            line_width: Some(1.),
+            line_width: Some(2.0),
             blend: Blend::alpha_blending(),
             ..Default::default()
         };
 
         for ray in &self.ray_render_data {
-            let o = &ray.origin;
-            target
-                .draw(
-                    o.vertices(),
-                    o.indices(),
-                    &self.program,
-                    &gl::uniform! {
-                        perspective: perspective,
-                        view: view,
-                        color_vec: ORIGIN_COLOR,
-                    },
-                    &params,
-                )
-                .unwrap();
 
             target
                 .draw(
@@ -286,6 +272,21 @@ where
                         perspective: perspective,
                         view: view,
                         color_vec: RAY_LOOP_COL,
+                    },
+                    &params,
+                )
+                .unwrap();
+                
+            let o = &ray.origin;
+            target
+                .draw(
+                    o.vertices(),
+                    o.indices(),
+                    &self.program,
+                    &gl::uniform! {
+                        perspective: perspective,
+                        view: view,
+                        color_vec: ORIGIN_COLOR,
                     },
                     &params,
                 )

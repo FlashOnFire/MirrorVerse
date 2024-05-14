@@ -115,9 +115,8 @@ impl<const D: usize> Random for PlaneMirror<D> {
     where
         Self: Sized,
     {
-        // bahaha t'y etais presque
         loop {
-            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 24.0))) {
+            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 3.0))) {
                 break plane;
             }
         }

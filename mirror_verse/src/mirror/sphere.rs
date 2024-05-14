@@ -113,9 +113,9 @@ impl<const D: usize> Random for EuclideanSphereMirror<D> {
     where
         Self: Sized,
     {
-        const MAX_RADIUS: f32 = 8.0;
+        const MAX_RADIUS: f32 = 2.0;
         Self {
-            center: util::random_vector(rng, 24.0),
+            center: util::random_vector(rng, 4.0),
             radius: rng.gen::<f32>() * MAX_RADIUS.abs(),
         }
     }
