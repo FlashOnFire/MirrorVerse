@@ -1,9 +1,9 @@
 [workspace]
 
 members = [
-    "generate_random_simulation_3d",
+    "gen_rand_sim",
     "mirror_verse", 
-    "run_simulation_json_3d"
+    "run_sim_json"
 ]
 
 resolver = "2"

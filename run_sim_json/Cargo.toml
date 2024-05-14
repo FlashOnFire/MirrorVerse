@@ -1,5 +1,5 @@
 [package]
-name = "run_simulation_json_3d"
+name = "run_sim_json"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,25 +1,23 @@
 # ✨ MirrorVerse ✨
 
-Light ray reflection simulation in Rust, rendered with OpenGL.
+Light ray reflection simulation with 3D rendering.
 
-All these simulations are done using Linear Algebra so it works for n-dimensional space.
+Built with [Rust](https://www.rust-lang.org/), using [`nalgebra](https://nalgebra.org/) for the linear algebra, and [glium](https://github.com/glium/glium) for the graphical rendering.
 
-This project is built using Rust for all the simulation parts. We heavily utilize the nAlgebra library for the calculations and also glium for the 3D rendering.
+GUI app built with [Flutter](https://flutter.dev/)
 
-We used Flutter to make a GUI to run all the things.
-
-The program is split into four main parts:
+This project is split into four main parts:
 
 1. 📚 The library which really handles the simulations (mirror_verse).
-2. 🏃‍♂️ The runner which takes a JSON, uses the simulator to generate the path, and runs a visualization of the simulation.
-3. 🔀 The random generator which generates a random set of mirrors.
-4. 🖥️ A graphical user interface to run all these tools easily.
+2. 🏃‍♂️ A runner which takes a JSON, generates ray's the path, and runs a visualization of the simulation.
+3. 🔀 A random simulation generator which generates a random set of mirrors and rays.
+4. 🖥️ A Flutter GUI app graphical for users who wish to run these tools without the terminal.
 
 ## GUI
 
 ### 🛠️ Compilation
 
-You should first build the Rust project into the Flutter assets:
+Build the Rust project and move the emitted executables into the Flutter assets:
 
 ```shell
 # For Windows:
@@ -33,7 +31,7 @@ cp target/release/generate_random_simulation_3d mirror_verse_ui/assets && \
 cp target/release/run_simulation_json_3d mirror_verse_ui/assets
 ```
 
-### 🚀 Run UI
+### 🚀 Running the UI
 
 ```shell
 cd mirror_verse_ui
@@ -42,14 +40,14 @@ flutter run --release
 
 ## CLI
 
-### 🔬 Simulating
+### 🔬 Running a simulation from a JSON file
 
 ```shell
-cargo run --release --bin run_simulation_json_3d -- "<path/to/simulation.json>"
+cargo run --release -p run_sim_json "<path/to/simulation.json>"
 ```
 
-### 🔄 Generating random mirror set
+### 🔄 Generating random simulation
 
 ```shell
-cargo run --release --bin generate_random_simulation_3d -- "<path/to/output.json>"
+cargo run --release -p gen_rand_sim "<path/to/output.json>"
 ```
