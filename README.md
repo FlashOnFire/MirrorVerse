@@ -49,5 +49,5 @@ cargo run --release -p run_sim_json "<path/to/simulation.json>"
 ### 🔄 Generating random simulation
 
 ```shell
-cargo run --release -p gen_rand_sim "<path/to/output.json>"
+cargo run --release -p gen_rand_sim "<path/to/output.json> <dimension> <num_rays> <num_mirrors>"
 ```
