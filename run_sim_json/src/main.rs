@@ -88,8 +88,6 @@ impl mirror::JsonDes for Box<dyn SimulationMirror3D> {
             .as_str()
             .ok_or("type must be a string")?;
 
-        println!("{mirror_type}");
-
         let mirror = json.get("mirror").ok_or("Missing mirror data")?;
 
         fn into_type_erased<T: SimulationMirror3D + 'static>(
