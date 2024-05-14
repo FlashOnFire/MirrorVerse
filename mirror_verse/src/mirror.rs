@@ -69,10 +69,10 @@ impl<const D: usize> Ray<D> {
     }
 
     pub fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
-        let origin = util::random_vector(rng, 24.0);
+        let origin = util::random_vector(rng, 7.0);
 
         let direction = loop {
-            if let Some(v) = Unit::try_new(util::random_vector(rng, 4.0), f32::EPSILON * 8.0) {
+            if let Some(v) = Unit::try_new(util::random_vector(rng, 1.0), f32::EPSILON * 8.0) {
                 break v;
             }
         };

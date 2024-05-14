@@ -1,0 +1,25 @@
+{
+	"dim": 2,
+	"rays": [
+		{
+			"origin": [
+				5.0,
+				2.0
+			],
+			"direction": [
+				-1.0,
+				-1.0
+			]
+		}
+	],
+	"mirror": {
+		"type": "sphere",
+		"mirror": {
+			"center": [
+				0.0,
+				0.0
+			],
+			"radius": 4.0
+		}
+	}
+}

@@ -113,9 +113,9 @@ impl<const D: usize> Random for EuclideanSphereMirror<D> {
     where
         Self: Sized,
     {
-        const MAX_RADIUS: f32 = 2.0;
+        const MAX_RADIUS: f32 = 3.0;
         Self {
-            center: util::random_vector(rng, 4.0),
+            center: util::random_vector(rng, 9.0),
             radius: rng.gen::<f32>() * MAX_RADIUS.abs(),
         }
     }
@@ -124,6 +124,7 @@ impl<const D: usize> Random for EuclideanSphereMirror<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_basic_sphere() {

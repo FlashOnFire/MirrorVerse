@@ -6,7 +6,6 @@ use gl::{
     index::{NoIndices, PrimitiveType},
     Blend, Surface, VertexBuffer,
 };
-use rand::Fill;
 
 pub(crate) mod camera;
 
@@ -227,7 +226,11 @@ where
         const ORIGIN_COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
         const RAY_NON_LOOP_COL: [f32; 4] = [0.7, 0.3, 0.1, 1.0];
         const RAY_LOOP_COL: [f32; 4] = [1.0, 0.0, 1.0, 1.0];
-        const MIRROR_COLOR: [f32; 4] = [0.2, 0.2, 0.6, 0.6];
+        let mirror_color = if D >= 3 {
+            [0.3f32, 0.3, 0.9, 0.4]
+        } else {
+            [0.15, 0.15, 0.5, 1.0]
+        };
 
         let mut target = display.draw();
 
@@ -302,7 +305,7 @@ where
                     &gl::uniform! {
                         perspective: perspective,
                         view: view,
-                        color_vec: MIRROR_COLOR,
+                        color_vec: mirror_color,
                     },
                     &params,
                 )

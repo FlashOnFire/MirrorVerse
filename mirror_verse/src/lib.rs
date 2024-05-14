@@ -12,7 +12,6 @@ use cgmath as cg;
 use core::iter;
 use gl::glutin::{self, dpi::PhysicalPosition, event, event_loop, window::CursorGrabMode};
 use nalgebra::{SMatrix, SVector, Unit};
-use serde_json::json;
 use std::{error::Error, time};
 
 use render::{
