@@ -2,7 +2,7 @@
 
 Light ray reflection simulation with 3D rendering.
 
-Built with [Rust](https://www.rust-lang.org/), using [`nalgebra](https://nalgebra.org/) for the linear algebra, and [glium](https://github.com/glium/glium) for the graphical rendering.
+Built with [Rust](https://www.rust-lang.org/), using [`nalgebra`](https://nalgebra.org/) for the linear algebra, and [`glium`](https://github.com/glium/glium) for the graphical rendering.
 
 GUI app built with [Flutter](https://flutter.dev/)
 
