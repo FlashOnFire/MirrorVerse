@@ -42,18 +42,15 @@ Future<void> runExe(String exe, List<String>? params) async {
 }
 
 Future<void> runGeneration(File file) async {
-  await runExe("run_simulation_json_3d", [file.path]);
+  await runExe("run_sim_json", [file.path]);
 }
 
 Future<void> generateMirrorSet(
-    {required String name, required Map<MirrorType, int> mirrorCounts}) async {
-  final file = File('../assets/$name.json');
-  List<String> params = [];
-  mirrorCounts.forEach((key, value) {
-    params.add('--${key.name}');
-    params.add(value.toString());
-  });
-  params = []; //TODO remove this line when we will have the correct parameters
-  params.add(file.path);
-  await runExe("generate_random_simulation_3d", params);
+    String name, int dimCount, int mirrorCount, int rayCount) async {
+  await runExe("gen_rand_sim", [
+    File('../assets/$name.json').path,
+    dimCount.toString(),
+    mirrorCount.toString(),
+    rayCount.toString(),
+  ]);
 }

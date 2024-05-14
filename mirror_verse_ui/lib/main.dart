@@ -57,6 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print("reebuild");
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -70,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: [
             SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
+              height: MediaQuery.of(context).size.height * 0.75,
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,6 +94,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           setState(() {
                             selectedFile = fileList[i];
                           });
+                        },
+                        onDoubleTap: () {
+                          selectedFile = fileList[i];
+                          runGeneration(fileList[i]);
+                          setState(() {});
                         },
                       ),
                   ],

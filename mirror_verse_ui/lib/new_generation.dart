@@ -13,15 +13,9 @@ class NewGeneration extends StatefulWidget {
 
 class _NewGenerationState extends State<NewGeneration> {
   String? name;
-  Map<MirrorType, int> mirrorCounts = {};
-
-  @override
-  void initState() {
-    for (final MirrorType mirrorType in MirrorType.values) {
-      mirrorCounts[mirrorType] = 0;
-    }
-    super.initState();
-  }
+  int mirrorCount = 12;
+  int dimCount = 3;
+  int raysCount = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -52,43 +46,121 @@ class _NewGenerationState extends State<NewGeneration> {
                   ),
                 ),
               ),
-              if (false) //TODO remove when adding the correct parameters
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: mirrorCounts.length,
-                    itemBuilder: (context, index) {
-                      final mirrorType = mirrorCounts.keys.elementAt(index);
-                      final count = mirrorCounts[mirrorType];
-                      return ListTile(
-                        title: Text(mirrorType.name),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (count! > 0) {
-                                    mirrorCounts[mirrorType] = count - 1;
-                                  }
-                                });
-                              },
-                              icon: const Icon(Icons.remove),
-                            ),
-                            Text(count.toString()),
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  mirrorCounts[mirrorType] = count! + 1;
-                                });
-                              },
-                              icon: const Icon(Icons.add),
-                            ),
-                          ],
+              Column(
+                children: [
+                  ListTile(
+                    title: const Text("Nombre de dimensions"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              dimCount = dimCount - 1;
+                            });
+                          },
+                          icon: const Icon(Icons.remove),
                         ),
-                      );
-                    },
+                        SizedBox(
+                          width: 40,
+                          child: TextField(
+                            onChanged: (value) {
+                              dimCount = int.parse(value);
+                            },
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(
+                                text: dimCount.toString()),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              dimCount = dimCount + 1;
+                            });
+                          },
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  if (dimCount > 3 || dimCount < 2)
+                    const Text(
+                      "Attention, les dimensions supérieures à 3 ou inférieures à 2 ne pourront pas être visualisées",
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                  ListTile(
+                    title: const Text("Nombre de mirroir"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              mirrorCount = mirrorCount - 1;
+                            });
+                          },
+                          icon: const Icon(Icons.remove),
+                        ),
+                        SizedBox(
+                          width: 40,
+                          child: TextField(
+                            onChanged: (value) {
+                              mirrorCount = int.parse(value);
+                            },
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(
+                                text: mirrorCount.toString()),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              mirrorCount = mirrorCount + 1;
+                            });
+                          },
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text("Nombre de rayons"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              raysCount = raysCount - 1;
+                            });
+                          },
+                          icon: const Icon(Icons.remove),
+                        ),
+                        SizedBox(
+                          width: 40,
+                          child: TextField(
+                            onChanged: (value) {
+                              raysCount = int.parse(value);
+                            },
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(
+                                text: raysCount.toString()),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              raysCount = raysCount + 1;
+                            });
+                          },
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              )
             ],
           ),
         ),
@@ -96,7 +168,7 @@ class _NewGenerationState extends State<NewGeneration> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (name != null && name!.isNotEmpty) {
-            generateMirrorSet(name: name!, mirrorCounts: mirrorCounts)
+            generateMirrorSet(name!, dimCount, mirrorCount, raysCount)
                 .then((value) => showDialog(
                     context: context,
                     builder: (context) {
