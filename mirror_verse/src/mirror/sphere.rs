@@ -72,16 +72,15 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
 
 impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
     fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let center: Vec<f32> = self.center.iter().copied().collect();
         let json = json!({
-            "center": center,
+            "center": self.center.as_slice(),
             "radius": self.radius,
         });
         Ok(json)
     }
 }
 
-// Use glium_shapes::sphere::Sphere for the 3Dimplementation
+// Use glium_shapes::sphere::Sphere for the 3D implementation
 impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         let r = self.radius;
@@ -103,8 +102,11 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
 // in 2d, the list of vertices of a circle are easy to calculate
 impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-
-        vec![Box::new(render::Circle::new(self.center.into(), self.radius, display))]
+        vec![Box::new(render::Circle::new(
+            self.center.into(),
+            self.radius,
+            display,
+        ))]
     }
 }
 

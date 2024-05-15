@@ -4,6 +4,7 @@ use super::*;
 
 // pub mod bezier;
 // pub mod cubic_bezier;
+pub mod cylinder;
 pub mod paraboloid;
 pub mod plane;
 pub mod sphere;
@@ -186,14 +187,6 @@ impl<const D: usize> Plane<D> {
     pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<f32, D>> {
         let mut a = SMatrix::<f32, D, D>::zeros();
 
-        /* bien vuu le boss
-        Fill the matrix "a" with the direction of the ray and the basis of the plane
-        exemple
-        | -ray_direction.x | plane_basis_1.x | plane_basis_2.x | ...
-        | -ray_direction.y | plane_basis_1.y | plane_basis_2.y | ...
-        | -ray_direction.z | plane_basis_1.z | plane_basis_2.z | ...
-        */
-
         a.column_iter_mut()
             .zip(iter::once(ray.direction.as_ref()).chain(self.basis().iter()))
             .for_each(|(mut i, o)| i.set_column(0, o));
@@ -221,6 +214,7 @@ impl<const D: usize> Plane<D> {
             ] (N-1 elements)
         }
         */
+
         let mut vectors = [SVector::zeros(); D];
 
         let (v_0, basis) = vectors.split_first_mut().unwrap();
@@ -277,8 +271,8 @@ pub trait Mirror<const D: usize> {
     ///
     /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
     ///
-    /// It is ok for this method to push intersection points that occur "behind" the ray's
-    /// origin, (`ray.at(t)` where `t < 0.0`) the engine will discard these accordingly
+    /// This method may push intersection points that occur "behind" the ray's
+    /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
     /// TODO: pass in a wrapper around a &mut Vec<_> that
@@ -304,7 +298,7 @@ where
 
 pub trait JsonType {
     /// Returns a string slice, unique to the type, found in the "type" field of the json
-    /// representation of a dynamic mirror containing a mirror of this type
+    /// representation of a "dynamic" mirror containing a mirror of this type
     fn json_type() -> String;
 }
 
@@ -345,15 +339,14 @@ where
 }
 
 pub trait JsonDes {
-    fn from_json(value: &serde_json::Value) -> Result<Self, Box<dyn Error>>
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
 }
 
 impl<T: JsonDes> JsonDes for Vec<T> {
-    fn from_json(value: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        value
-            .as_array()
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        json.as_array()
             .ok_or("json value must be an array to deserialise an array of mirrors")?
             .iter()
             .map(T::from_json)

@@ -1,0 +1,17 @@
+{
+  "dim": 3,
+  "rays": [
+    {
+      "origin": [0, 1.0, 0.0],
+      "direction": [0.1, 1.0, 1.0]
+    }
+  ],
+  "mirror": {
+    "type": "cylinder",
+    "mirror": {
+      "start": [0.0, 0.0, 0.0],
+      "end": [5.0, 0.0, 0.0],
+      "radius": 2.0
+    }
+  }
+}

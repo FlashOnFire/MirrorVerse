@@ -1,0 +1,185 @@
+use self::render::OpenGLRenderable;
+
+use super::*;
+
+/// An open, cylinder-shaped mirror,
+pub struct CylindricalMirror {
+    start: SVector<f32, 3>,
+    dist: SVector<f32, 3>,
+    inv_norm_dist_squared: f32,
+    radius: f32,
+    radius_sq: f32,
+}
+
+impl CylindricalMirror {
+    pub fn new([start, end]: [SVector<f32, 3>; 2], radius: f32) -> Option<Self> {
+        const E: f32 = f32::EPSILON * 4.0;
+
+        let dist = end - start;
+        let dist_sq = dist.norm_squared();
+
+        let r_abs = radius.abs();
+        (dist_sq > E && r_abs > E).then(|| Self {
+            start,
+            dist,
+            radius,
+            radius_sq: radius * radius,
+            inv_norm_dist_squared: dist_sq.recip(),
+        })
+    }
+}
+
+impl Mirror<3> for CylindricalMirror {
+    fn append_intersecting_points(&self, ray: &Ray<3>, list: &mut Vec<Tangent<3>>) {
+        let line_coord = |v| self.dist.dot(&v) * self.inv_norm_dist_squared;
+        let p = |v| line_coord(v) * self.dist;
+
+        let m = ray.origin - self.start;
+        let d = ray.direction.into_inner();
+        let pm = p(m);
+        let pd = p(d);
+
+        let c = (m - pm).norm_squared() - self.radius_sq;
+
+        let b = m.dot(&d) - 2.0 * d.dot(&pm) + pm.dot(&pd);
+
+        let a = (d - pd).norm_squared();
+
+        let delta = b * b - a * c;
+
+        if delta > f32::EPSILON {
+
+            let root_delta = delta.sqrt();
+            let neg_b = -b;
+
+            for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
+                let origin = ray.at(t);
+                let coord = line_coord(origin);
+
+                let line_pt = self.dist * coord;
+
+                if coord <= 1.0 && coord >= 0.0 {
+                    // SAFETY: the length of origin - line_pt is always self.radius
+                    let normal = Unit::new_unchecked((origin - line_pt) / self.radius);
+
+                    list.push(Tangent::Normal { origin, normal })
+                }
+            }
+        }
+    }
+}
+
+impl JsonType for CylindricalMirror {
+    fn json_type() -> String {
+        "cylinder".into()
+    }
+}
+
+impl JsonDes for CylindricalMirror {
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
+    where
+        Self: Sized,
+    {
+        /* example_json:
+        {
+            "start": [1.0, 2.0, 3.0],
+            "end": [4.0, 5.0, 6.0],
+            "radius": 69.0,
+        }
+        */
+
+        let start = json
+            .get("start")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::as_slice)
+            .and_then(util::json_array_to_vector)
+            .ok_or("Failed to parse start")?;
+
+        let end = json
+            .get("end")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::as_slice)
+            .and_then(util::json_array_to_vector)
+            .ok_or("Failed to parse end")?;
+
+        let radius = json
+            .get("radius")
+            .and_then(serde_json::Value::as_f64)
+            .ok_or("Failed to parse radius")? as f32;
+
+        Self::new([start, end], radius)
+            .ok_or("radius is too small or start and end vectors are too close".into())
+    }
+}
+
+impl JsonSer for CylindricalMirror {
+    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+        Ok(serde_json::json!({
+            "start": self.start.as_slice(),
+            "end": (self.start + self.dist).as_slice(),
+            "radius": self.radius,
+        }))
+    }
+}
+
+struct CylinderRenderData {
+    vertices: gl::VertexBuffer<render::Vertex3D>,
+}
+
+impl render::RenderData for CylinderRenderData {
+    fn vertices(&self) -> gl::vertex::VerticesSource {
+        (&self.vertices).into()
+    }
+
+    fn indices(&self) -> gl::index::IndicesSource {
+        gl::index::IndicesSource::NoIndices {
+            primitives: gl::index::PrimitiveType::TriangleStrip,
+        }
+    }
+}
+
+impl OpenGLRenderable for CylindricalMirror {
+    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+        const NUM_POINTS: usize = 360;
+
+        use core::f32::consts::TAU;
+
+        let k = SVector::from([0.0, 0.0, 1.0]) + self.dist.normalize();
+
+        let m = SMatrix::<_, 3, 3>::from_fn(|i, j| k[i] * k[j]);
+
+        let rot = 2.0 / k.norm_squared() * m - SMatrix::identity();
+
+        let r = self.radius;
+
+        let vertices: Vec<_> = (0..=NUM_POINTS)
+            .flat_map(|i| {
+                let [x, y]: [f32; 2] = (i as f32 / NUM_POINTS as f32 * TAU).sin_cos().into();
+                let vertex = [x * r, y * r, 0.0];
+                let v = rot * SVector::<f32, 3>::from(vertex) + self.start;
+                [v, v + self.dist]
+            })
+            .map(render::Vertex3D::from)
+            .collect();
+
+        let vertices = gl::VertexBuffer::immutable(display, vertices.as_slice()).unwrap();
+
+        vec![Box::new(CylinderRenderData { vertices })]
+    }
+}
+
+impl Random for CylindricalMirror {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
+    where
+        Self: Sized,
+    {
+        loop {
+            if let Some(mirror) = Self::new(
+                [util::random_vector(rng, 6.0), util::random_vector(rng, 6.0)],
+                rng.gen::<f32>() * 4.0,
+            ) {
+                break mirror;
+            }
+        }
+    }
+}

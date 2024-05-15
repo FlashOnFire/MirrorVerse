@@ -25,9 +25,7 @@ glium::implement_vertex!(Vertex4D, position);
 
 impl<const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<D> {
     fn from(v: nalgebra::SVector<f32, D>) -> Self {
-        Self {
-            position: v.into(),
-        }
+        Self { position: v.into() }
     }
 }
 
@@ -251,7 +249,6 @@ where
         };
 
         for ray in &self.ray_render_data {
-
             target
                 .draw(
                     &ray.non_loop_path,
@@ -279,7 +276,7 @@ where
                     &params,
                 )
                 .unwrap();
-                
+
             let o = &ray.origin;
             target
                 .draw(
@@ -318,7 +315,6 @@ where
     }
 }
 
-// Again, could have been an associated constant, but `#[feature(generic_const_exprs)]` screws us over
 pub trait RenderData {
     fn vertices(&self) -> gl::vertex::VerticesSource;
     fn indices(&self) -> gl::index::IndicesSource;
@@ -363,18 +359,16 @@ pub(crate) struct Circle {
 }
 
 impl Circle {
-    pub fn new(center: [f32 ; 2], radius: f32, display: &gl::Display) -> Self {
+    pub fn new(center: [f32; 2], radius: f32, display: &gl::Display) -> Self {
         const NUM_POINTS: usize = 360;
 
         use core::f32::consts::TAU;
 
         let c = SVector::from(center);
 
-
-
         let points: Vec<Vertex2D> = (0..NUM_POINTS)
             .map(|i| {
-                let pos: [f32 ; 2] = (i as f32 / NUM_POINTS as f32 * TAU).sin_cos().into();
+                let pos: [f32; 2] = (i as f32 / NUM_POINTS as f32 * TAU).sin_cos().into();
                 (SVector::from(pos) * radius + c).into()
             })
             .collect();
@@ -392,7 +386,7 @@ impl render::RenderData for Circle {
 
     fn indices(&self) -> gl::index::IndicesSource {
         gl::index::IndicesSource::NoIndices {
-            primitives: gl::index::PrimitiveType::LineLoop
+            primitives: gl::index::PrimitiveType::LineLoop,
         }
     }
 }
@@ -412,7 +406,7 @@ impl render::RenderData for FilledCircle {
 
     fn indices(&self) -> gl::index::IndicesSource {
         gl::index::IndicesSource::NoIndices {
-            primitives: gl::index::PrimitiveType::TriangleFan
+            primitives: gl::index::PrimitiveType::TriangleFan,
         }
     }
 }

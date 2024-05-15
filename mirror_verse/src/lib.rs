@@ -15,7 +15,8 @@ use nalgebra::{SMatrix, SVector, Unit};
 use std::{error::Error, time};
 
 use render::{
-    camera::{Camera, CameraController, Projection}, DrawableSimulation
+    camera::{Camera, CameraController, Projection},
+    DrawableSimulation,
 };
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -90,7 +91,13 @@ impl<const D: usize> RayPath<D> {
         first_time
     }
 
-    pub(crate) fn path_vertices(&self, display: &gl::Display) -> (gl::VertexBuffer<render::Vertex<D>>, gl::VertexBuffer<render::Vertex<D>>)
+    pub(crate) fn path_vertices(
+        &self,
+        display: &gl::Display,
+    ) -> (
+        gl::VertexBuffer<render::Vertex<D>>,
+        gl::VertexBuffer<render::Vertex<D>>,
+    )
     where
         render::Vertex<D>: gl::Vertex,
     {
@@ -101,18 +108,16 @@ impl<const D: usize> RayPath<D> {
                 .iter()
                 .copied()
                 .chain(
-                    self
-                        .divergence_direction()
+                    self.divergence_direction()
                         .map(|dir| non_loop_pts.last().unwrap() + dir.as_ref() * 2000.),
                 )
                 .map(render::Vertex::from),
         );
-        let loop_pts =
-            Vec::from_iter(loop_pts.iter().copied().map(render::Vertex::from));
+        let loop_pts = Vec::from_iter(loop_pts.iter().copied().map(render::Vertex::from));
 
         (
             gl::VertexBuffer::immutable(display, non_loop_pts.as_slice()).unwrap(),
-            gl::VertexBuffer::immutable(display, loop_pts.as_slice()).unwrap()
+            gl::VertexBuffer::immutable(display, loop_pts.as_slice()).unwrap(),
         )
     }
 }
@@ -157,7 +162,6 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
 
 impl<const D: usize, T: mirror::JsonSer> Simulation<T, D> {
     pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-
         Ok(serde_json::json!({
             "dim": D,
             "rays": util::try_collect(
@@ -192,7 +196,8 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                             let d = tangent
                                 .try_intersection_distance(&ray)
                                 .expect("a mirror returned a plane parallel to the ray: aborting");
-                            (d > f32::EPSILON * 16.0).then_some((d, tangent))
+                            println!("{d}");
+                            (d > f32::EPSILON * 32.0).then_some((d, tangent))
                         })
                         .min_by(|(d1, _), (d2, _)| {
                             d1.partial_cmp(d2)
@@ -231,12 +236,14 @@ impl<T: mirror::Mirror<3>> Simulation<T, 3> {
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
                 render::RayRenderData {
-                    origin: Box::new(glium_shapes::sphere::SphereBuilder::new()
-                        .scale(0.1, 0.1, 0.1)
-                        .translate(x, y, z)
-                        .with_divisions(60, 60)
-                        .build(display)
-                        .unwrap()),
+                    origin: Box::new(
+                        glium_shapes::sphere::SphereBuilder::new()
+                            .scale(0.1, 0.1, 0.1)
+                            .translate(x, y, z)
+                            .with_divisions(60, 60)
+                            .build(display)
+                            .unwrap(),
+                    ),
                     non_loop_path,
                     loop_path,
                 }
@@ -261,7 +268,9 @@ impl<T: mirror::Mirror<2>> Simulation<T, 2> {
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
                 render::RayRenderData {
-                    origin: Box::new(render::FilledCircle::from(render::Circle::new(center, 0.1, display))),
+                    origin: Box::new(render::FilledCircle::from(render::Circle::new(
+                        center, 0.1, display,
+                    ))),
                     non_loop_path,
                     loop_path,
                 }

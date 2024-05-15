@@ -49,14 +49,14 @@ impl mirror::JsonDes for Box<dyn SimulationMirror2D> {
                     (other != inner).then_some(inner)
                 } {
                     match inner {
-                        "plane" => {
-                            Vec::<mirror::plane::PlaneMirror<2>>::from_json(mirror).map(into_type_erased)
-                        }
-                        "sphere" => Vec::<mirror::sphere::EuclideanSphereMirror<2>>::from_json(mirror)
+                        "plane" => Vec::<mirror::plane::PlaneMirror<2>>::from_json(mirror)
                             .map(into_type_erased),
-                        "dynamic" => {
-                            Vec::<Box<dyn SimulationMirror2D>>::from_json(mirror).map(into_type_erased)
+                        "sphere" => {
+                            Vec::<mirror::sphere::EuclideanSphereMirror<2>>::from_json(mirror)
+                                .map(into_type_erased)
                         }
+                        "dynamic" => Vec::<Box<dyn SimulationMirror2D>>::from_json(mirror)
+                            .map(into_type_erased),
                         _ => Err(f!("invalid mirror type :{other}").into()),
                     }
                 } else {
@@ -101,6 +101,7 @@ impl mirror::JsonDes for Box<dyn SimulationMirror3D> {
             "sphere" => {
                 mirror::sphere::EuclideanSphereMirror::<3>::from_json(mirror).map(into_type_erased)
             }
+            "cylinder" => mirror::cylinder::CylindricalMirror::from_json(mirror).map(into_type_erased),
             "dynamic" => Box::<dyn SimulationMirror3D>::from_json(mirror).map(into_type_erased),
             other => {
                 // flatten nested lists
@@ -109,14 +110,15 @@ impl mirror::JsonDes for Box<dyn SimulationMirror3D> {
                     (other != inner).then_some(inner)
                 } {
                     match inner {
-                        "plane" => {
-                            Vec::<mirror::plane::PlaneMirror<3>>::from_json(mirror).map(into_type_erased)
-                        }
-                        "sphere" => Vec::<mirror::sphere::EuclideanSphereMirror<3>>::from_json(mirror)
+                        "plane" => Vec::<mirror::plane::PlaneMirror<3>>::from_json(mirror)
                             .map(into_type_erased),
-                        "dynamic" => {
-                            Vec::<Box<dyn SimulationMirror3D>>::from_json(mirror).map(into_type_erased)
+                        "sphere" => {
+                            Vec::<mirror::sphere::EuclideanSphereMirror<3>>::from_json(mirror)
+                                .map(into_type_erased)
                         }
+                        "cylinder" => Vec::<mirror::cylinder::CylindricalMirror>::from_json(mirror).map(into_type_erased),
+                        "dynamic" => Vec::<Box<dyn SimulationMirror3D>>::from_json(mirror)
+                            .map(into_type_erased),
                         _ => Err(f!("invalid mirror type :{other}").into()),
                     }
                 } else {
