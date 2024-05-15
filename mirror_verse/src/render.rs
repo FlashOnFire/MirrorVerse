@@ -128,7 +128,7 @@ where
         );
 
         const SPEED: f32 = 5.;
-        const MOUSE_SENSITIVITY: f32 = 4.0;
+        const MOUSE_SENSITIVITY: f32 = 1.0;
 
         let mut camera_controller = CameraController::new(SPEED, MOUSE_SENSITIVITY);
 
@@ -250,6 +250,7 @@ where
                 ..Default::default()
             },
             line_width: Some(2.0),
+            multisampling: true,
             blend: Blend::alpha_blending(),
             ..Default::default()
         };

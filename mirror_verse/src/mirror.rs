@@ -256,8 +256,10 @@ impl<const D: usize> Plane<D> {
     }
 }
 
+// D could have been an associated constant but, lack of
+// `#[feature(generic_const_exprs)]` screws us over, once again.
 pub trait Mirror<const D: usize> {
-    /// Appends to the list a number of tangent planes, in no particular order.
+    /// Appends to the list a number of planes, tangent to this mirror, in no particular order.
     ///
     /// The laser is expected to "bounce" off the closest plane.
     ///

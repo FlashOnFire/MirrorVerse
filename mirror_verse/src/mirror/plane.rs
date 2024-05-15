@@ -47,7 +47,7 @@ impl<const D: usize> PlaneMirror<D> {
                 .iter()
                 .enumerate()
                 // returns `v` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, v)| Float::from_bits(i >> j << SHIFT ^ Float::from(1.0).to_bits()) * v)
+                .map(|(j, v)| Float::from_bits(i >> j << SHIFT ^ Float::to_bits(1.0)) * v)
                 .fold(v_0, Add::add)
         })
     }

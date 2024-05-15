@@ -307,7 +307,7 @@ impl<T: mirror::Mirror<2> + render::OpenGLRenderable> Simulation<T, 2> {
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
 
-        let cb = glutin::ContextBuilder::new().with_vsync(true);
+        let cb = glutin::ContextBuilder::new().with_vsync(true).with_multisampling(1 << 8);
 
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
@@ -350,8 +350,8 @@ impl<T: mirror::Mirror<3> + render::OpenGLRenderable> Simulation<T, 3> {
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
 
-        let cb = glutin::ContextBuilder::new().with_vsync(true);
-
+        let cb = glutin::ContextBuilder::new().with_vsync(true).with_multisampling(1 << 8);
+ 
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
         let drawable_simulation = self.to_drawable(reflection_limit, &display);
