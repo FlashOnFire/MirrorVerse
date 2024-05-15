@@ -159,7 +159,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let max_num_reflections = args
         .next()
         .map(|arg| arg.parse().expect("expected a number as second argument"))
-        .unwrap_or(200);
+        .unwrap_or(1000);
 
     run_simulation(
         max_num_reflections,
