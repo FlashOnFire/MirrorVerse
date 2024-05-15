@@ -4,8 +4,8 @@ use super::*;
 
 // pub mod bezier;
 // pub mod cubic_bezier;
+// pub mod paraboloid;
 pub mod cylinder;
-pub mod paraboloid;
 pub mod plane;
 pub mod sphere;
 
@@ -13,9 +13,9 @@ pub mod sphere;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray<const D: usize> {
     /// Current position of the ray
-    pub origin: SVector<f32, D>,
+    pub origin: SVector<Float, D>,
     /// Current direction of the ray
-    pub direction: Unit<SVector<f32, D>>,
+    pub direction: Unit<SVector<Float, D>>,
 }
 
 impl<const D: usize> Ray<D> {
@@ -24,11 +24,11 @@ impl<const D: usize> Ray<D> {
         self.direction = tangent.reflect_unit(self.direction);
     }
 
-    pub fn advance(&mut self, t: f32) {
+    pub fn advance(&mut self, t: Float) {
         self.origin += t * self.direction.into_inner();
     }
 
-    pub fn at(&self, t: f32) -> SVector<f32, D> {
+    pub fn at(&self, t: Float) -> SVector<Float, D> {
         self.origin + self.direction.into_inner() * t
     }
 
@@ -57,7 +57,7 @@ impl<const D: usize> Ray<D> {
         let direction = util::json_array_to_vector(direction).ok_or("Invalid ray direction")?;
 
         let direction =
-            Unit::try_new(direction, f32::EPSILON).ok_or("Unable to normalize ray direction")?;
+            Unit::try_new(direction, Float::EPSILON).ok_or("Unable to normalize ray direction")?;
 
         Ok(Self { origin, direction })
     }
@@ -73,7 +73,7 @@ impl<const D: usize> Ray<D> {
         let origin = util::random_vector(rng, 7.0);
 
         let direction = loop {
-            if let Some(v) = Unit::try_new(util::random_vector(rng, 1.0), f32::EPSILON * 8.0) {
+            if let Some(v) = Unit::try_new(util::random_vector(rng, 1.0), Float::EPSILON * 8.0) {
                 break v;
             }
         };
@@ -85,19 +85,19 @@ impl<const D: usize> Ray<D> {
 pub enum Tangent<const D: usize> {
     Plane(Plane<D>),
     Normal {
-        origin: SVector<f32, D>,
-        normal: Unit<SVector<f32, D>>,
+        origin: SVector<Float, D>,
+        normal: Unit<SVector<Float, D>>,
     },
 }
 
 impl<const D: usize> Tangent<D> {
-    pub fn reflect_unit(&self, vector: Unit<SVector<f32, D>>) -> Unit<SVector<f32, D>> {
+    pub fn reflect_unit(&self, vector: Unit<SVector<Float, D>>) -> Unit<SVector<Float, D>> {
         // SAFETY: orthogonal symmetry preserves euclidean norms
         // This function is supposed to be unsafe, why nalgebra? why?
         Unit::new_unchecked(self.reflect(vector.into_inner()))
     }
 
-    pub fn reflect(&self, vector: SVector<f32, D>) -> SVector<f32, D> {
+    pub fn reflect(&self, vector: SVector<Float, D>) -> SVector<Float, D> {
         match self {
             Tangent::Plane(plane) => 2.0 * plane.orthogonal_projection(vector) - vector,
             Tangent::Normal { normal, .. } => {
@@ -107,12 +107,12 @@ impl<const D: usize> Tangent<D> {
         }
     }
 
-    pub fn try_intersection_distance(&self, ray: &Ray<D>) -> Option<f32> {
+    pub fn try_intersection_distance(&self, ray: &Ray<D>) -> Option<Float> {
         match self {
             Tangent::Plane(plane) => plane.intersection_coordinates(ray).map(|v| v[0]),
             Tangent::Normal { origin, normal } => {
                 let u = ray.direction.dot(normal);
-                (u.abs() > f32::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
+                (u.abs() > Float::EPSILON).then(|| (origin - ray.origin).dot(normal) / u)
             }
         }
     }
@@ -126,17 +126,17 @@ pub struct Plane<const D: usize> {
     ///
     /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
-    vectors: [SVector<f32, D>; D],
+    vectors: [SVector<Float, D>; D],
     /// A cache containing an orthonormalized version of the family in the `vectors`
     /// field, to facilitate orthogonal projection
     /// TODO: not all planes are used for projections, seperate this.
-    orthonormalized: [SVector<f32, D>; D],
+    orthonormalized: [SVector<Float, D>; D],
 }
 
 impl<const D: usize> Plane<D> {
     /// `vectors` must respect the layout/specification of the `vectors` field
     /// returns None if the provided family isn't free
-    pub fn new(vectors: [SVector<f32, D>; D]) -> Option<Self> {
+    pub fn new(vectors: [SVector<Float, D>; D]) -> Option<Self> {
         let mut orthonormalized = vectors;
         (SVector::orthonormalize(&mut orthonormalized[1..]) == D - 1).then_some(Self {
             vectors,
@@ -145,23 +145,28 @@ impl<const D: usize> Plane<D> {
     }
 
     /// The plane's starting point
-    pub fn v_0(&self) -> &SVector<f32, D> {
+    pub fn v_0(&self) -> &SVector<Float, D> {
         self.vectors.first().unwrap()
+    }
+
+    pub fn set_v_0(&mut self, v: SVector<Float, D>) {
+        self.vectors[0] = v;
+        self.orthonormalized[0] = v;
     }
 
     /// A reference to the stored basis of the plane's associated hyperplane.
     ///
     /// The returned slice is garanteed to be of length D - 1.
-    pub fn basis(&self) -> &[SVector<f32, D>] {
+    pub fn basis(&self) -> &[SVector<Float, D>] {
         &self.vectors[1..]
     }
 
-    fn orthonormalized_basis(&self) -> &[SVector<f32, D>] {
+    fn orthonormalized_basis(&self) -> &[SVector<Float, D>] {
         &self.orthonormalized[1..]
     }
 
     /// Project a vector using the orthonormal basis projection formula.
-    pub fn orthogonal_projection(&self, v: SVector<f32, D>) -> SVector<f32, D> {
+    pub fn orthogonal_projection(&self, v: SVector<Float, D>) -> SVector<Float, D> {
         self.orthonormalized_basis()
             .iter()
             .map(|e| v.dot(e) * e)
@@ -169,7 +174,7 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Project a point onto the plane
-    pub fn orthogonal_point_projection(&self, point: SVector<f32, D>) -> SVector<f32, D> {
+    pub fn orthogonal_point_projection(&self, point: SVector<Float, D>) -> SVector<Float, D> {
         let v = point - self.v_0();
         self.v_0() + self.orthogonal_projection(v)
     }
@@ -184,12 +189,9 @@ impl<const D: usize> Plane<D> {
     /// let `[v_2, ..., v_d]` be the basis of `self`'s associated hyperplane
     ///
     /// `interserction = plane.origin + sum for k in [2 ; n] t_k * v_k`
-    pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<f32, D>> {
-        let mut a = SMatrix::<f32, D, D>::zeros();
-
-        a.column_iter_mut()
-            .zip(iter::once(ray.direction.as_ref()).chain(self.basis().iter()))
-            .for_each(|(mut i, o)| i.set_column(0, o));
+    pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<Float, D>> {
+        let mut a = SMatrix::<Float, D, D>::from_columns(&self.vectors);
+        a.set_column(0, ray.direction.as_ref());
 
         a.try_inverse_mut()
             // a now contains a^-1
@@ -244,17 +246,12 @@ impl<const D: usize> Plane<D> {
     }
 
     fn to_json(self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let center: Vec<f32> = self.v_0().iter().copied().collect();
 
-        let basis: Vec<Vec<f32>> = self
-            .basis()
-            .iter()
-            .map(|v| v.iter().copied().collect())
-            .collect();
+        let slices: Vec<_> = self.basis().iter().map(SVector::as_slice).collect();
 
         Ok(serde_json::json!({
-            "center": center,
-            "basis": basis,
+            "center": self.v_0().as_slice(),
+            "basis": slices,
         }))
     }
 }

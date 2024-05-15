@@ -4,16 +4,16 @@ use super::*;
 
 /// An open, cylinder-shaped mirror,
 pub struct CylindricalMirror {
-    start: SVector<f32, 3>,
-    dist: SVector<f32, 3>,
-    inv_norm_dist_squared: f32,
-    radius: f32,
-    radius_sq: f32,
+    start: SVector<Float, 3>,
+    dist: SVector<Float, 3>,
+    inv_norm_dist_squared: Float,
+    radius: Float,
+    radius_sq: Float,
 }
 
 impl CylindricalMirror {
-    pub fn new([start, end]: [SVector<f32, 3>; 2], radius: f32) -> Option<Self> {
-        const E: f32 = f32::EPSILON * 4.0;
+    pub fn new([start, end]: [SVector<Float, 3>; 2], radius: Float) -> Option<Self> {
+        const E: Float = Float::EPSILON * 4.0;
 
         let dist = end - start;
         let dist_sq = dist.norm_squared();
@@ -47,7 +47,7 @@ impl Mirror<3> for CylindricalMirror {
 
         let delta = b * b - a * c;
 
-        if delta > f32::EPSILON {
+        if delta > Float::EPSILON {
 
             let root_delta = delta.sqrt();
             let neg_b = -b;
@@ -105,7 +105,7 @@ impl JsonDes for CylindricalMirror {
         let radius = json
             .get("radius")
             .and_then(serde_json::Value::as_f64)
-            .ok_or("Failed to parse radius")? as f32;
+            .ok_or("Failed to parse radius")? as Float;
 
         Self::new([start, end], radius)
             .ok_or("radius is too small or start and end vectors are too close".into())
@@ -142,22 +142,24 @@ impl OpenGLRenderable for CylindricalMirror {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         const NUM_POINTS: usize = 360;
 
-        use core::f32::consts::TAU;
-
-        let k = SVector::from([0.0, 0.0, 1.0]) + self.dist.normalize();
+        let k = SVector::from([0.0, 0.0, 1.0]) + self.dist.normalize().map(|s| s as f32);
 
         let m = SMatrix::<_, 3, 3>::from_fn(|i, j| k[i] * k[j]);
 
         let rot = 2.0 / k.norm_squared() * m - SMatrix::identity();
 
-        let r = self.radius;
+        let r = self.radius as f32;
+        let d = self.dist.map(|s| s as f32);
+        let start = self.start.map(|s| s as f32);
+
+        use core::f32::consts::TAU;
 
         let vertices: Vec<_> = (0..=NUM_POINTS)
             .flat_map(|i| {
                 let [x, y]: [f32; 2] = (i as f32 / NUM_POINTS as f32 * TAU).sin_cos().into();
                 let vertex = [x * r, y * r, 0.0];
-                let v = rot * SVector::<f32, 3>::from(vertex) + self.start;
-                [v, v + self.dist]
+                let v = rot * SVector::<f32, 3>::from(vertex) + start;
+                [v, v + d]
             })
             .map(render::Vertex3D::from)
             .collect();
@@ -175,8 +177,8 @@ impl Random for CylindricalMirror {
     {
         loop {
             if let Some(mirror) = Self::new(
-                [util::random_vector(rng, 6.0), util::random_vector(rng, 6.0)],
-                rng.gen::<f32>() * 4.0,
+                [util::random_vector(rng, 10.0), util::random_vector(rng, 10.0)],
+                rng.gen::<Float>() * 4.0,
             ) {
                 break mirror;
             }

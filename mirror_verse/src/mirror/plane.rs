@@ -36,8 +36,8 @@ impl<const D: usize> render::RenderData for PlaneRenderData<D> {
 }
 
 impl<const D: usize> PlaneMirror<D> {
-    pub fn vertices(&self) -> impl Iterator<Item = SVector<f32, D>> + '_ {
-        const SHIFT: usize = mem::size_of::<f32>() * 8 - 1;
+    pub fn vertices(&self) -> impl Iterator<Item = SVector<Float, D>> + '_ {
+        const SHIFT: usize = mem::size_of::<Float>() * 8 - 1;
 
         let basis = self.plane.basis();
         let v_0 = *self.plane.v_0();
@@ -47,7 +47,7 @@ impl<const D: usize> PlaneMirror<D> {
                 .iter()
                 .enumerate()
                 // returns `v` with the sign flipped if the `j`th bit in `i` is 1
-                .map(|(j, v)| f32::from_bits(i >> j << SHIFT ^ 1f32.to_bits()) * v)
+                .map(|(j, v)| Float::from_bits(i >> j << SHIFT ^ Float::from(1.0).to_bits()) * v)
                 .fold(v_0, Add::add)
         })
     }
@@ -127,8 +127,6 @@ impl<const D: usize> Random for PlaneMirror<D> {
 #[cfg(test)]
 mod tests {
 
-    use core::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
-
     use super::*;
     use serde_json::json;
 
@@ -158,7 +156,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.).abs() < f32::EPSILON);
+            assert!((t - 1.).abs() < Float::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -166,12 +164,12 @@ mod tests {
 
         ray.reflect_direction(tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 
@@ -202,7 +200,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.).abs() < f32::EPSILON);
+            assert!((t - 1.).abs() < Float::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -210,12 +208,12 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([1., 0.]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 
@@ -224,7 +222,7 @@ mod tests {
         let mirror = PlaneMirror::<2>::from_json(&json!({
             "center": [0., 0.],
             "basis": [
-                [FRAC_1_SQRT_2, FRAC_1_SQRT_2],
+                [0.70710677, 0.70710677],
             ],
             "bounds": [1.],
         }))
@@ -245,7 +243,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - SQRT_2).abs() < f32::EPSILON * 2.);
+            assert!((t - 1.4142135).abs() < Float::EPSILON * 2.);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -253,12 +251,12 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-FRAC_1_SQRT_2, FRAC_1_SQRT_2]))
+            (ray.direction.into_inner() - SVector::from([-0.70710677, 0.70710677]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 
@@ -299,26 +297,26 @@ mod tests {
         let d2 = t2.try_intersection_distance(&ray);
 
         if let Some(t) = d1 {
-            assert!((t - 10.).abs() < f32::EPSILON * 2.);
+            assert!((t - 10.).abs() < Float::EPSILON * 2.);
             ray.advance(t);
         } else {
             panic!("there must be distance");
         }
 
         if let Some(t) = d2 {
-            assert!((t - -1.).abs() < f32::EPSILON * 2.);
+            assert!((t - -1.).abs() < Float::EPSILON * 2.);
         } else {
             panic!("there must be distance");
         }
 
         ray.reflect_direction(&t1);
 
-        assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < Float::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 }

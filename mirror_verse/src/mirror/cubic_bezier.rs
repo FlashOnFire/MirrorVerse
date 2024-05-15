@@ -3,7 +3,7 @@ use super::*;
 // TODO: fix bezier mirror implementations
 
 pub struct CubicBezierMirror {
-    control_points: Vec<Point<f32, 2>>,
+    control_points: Vec<Point<Float, 2>>,
 }
 
 impl Mirror<2> for CubicBezierMirror {
@@ -69,11 +69,11 @@ impl Mirror<2> for CubicBezierMirror {
 }
 
 impl CubicBezierMirror {
-    pub fn new(control_points: Vec<Point<f32, 2>>) -> Self {
+    pub fn new(control_points: Vec<Point<Float, 2>>) -> Self {
         Self { control_points }
     }
 
-    pub fn calculate_point(&self, t: f32) -> Point<f32, 2> {
+    pub fn calculate_point(&self, t: Float) -> Point<Float, 2> {
         // P(t) = (1 - t)^3 * P0 + 3t(1-t)^2 * P1 + 3t^2 (1-t) * P2 + t^3 * P3
         let t2 = t * t;
         let t3 = t2 * t;
@@ -100,13 +100,13 @@ impl CubicBezierMirror {
         result
     }
 
-    pub fn calculate_tangent(&self, t: f32) -> SVector<f32, 2> {
+    pub fn calculate_tangent(&self, t: Float) -> SVector<Float, 2> {
         // dP(t) / dt =  3(1-t)^2 * (P1-P0) + 6(1-t) * t * (P2 -P1) + 3t^2 * (P3-P2)
         let t2 = t * t;
         let one_minus_t = 1. - t;
         let one_minus_t2 = one_minus_t * one_minus_t;
 
-        let mut result = SVector::<f32, 2>::zeros();
+        let mut result = SVector::<Float, 2>::zeros();
 
         for i in 0..2 {
             let p0 = &self.control_points[0][i];

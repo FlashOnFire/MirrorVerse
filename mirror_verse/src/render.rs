@@ -29,6 +29,12 @@ impl<const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<D> {
     }
 }
 
+impl<const D: usize> From<nalgebra::SVector<f64, D>> for Vertex<D> {
+    fn from(v: nalgebra::SVector<f64, D>) -> Self {
+        Self { position: v.map(|s| s as f32).into() }
+    }
+}
+
 pub(crate) const FRAGMENT_SHADER_SRC: &str = r#"
     #version 140
 
@@ -362,9 +368,9 @@ impl Circle {
     pub fn new(center: [f32; 2], radius: f32, display: &gl::Display) -> Self {
         const NUM_POINTS: usize = 360;
 
-        use core::f32::consts::TAU;
-
         let c = SVector::from(center);
+
+        use core::f32::consts::TAU;
 
         let points: Vec<Vertex2D> = (0..NUM_POINTS)
             .map(|i| {

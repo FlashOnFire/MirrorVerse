@@ -3,8 +3,8 @@ use serde_json::json;
 
 #[derive(Clone, Copy)]
 pub struct EuclideanSphereMirror<const D: usize> {
-    center: SVector<f32, D>,
-    radius: f32,
+    center: SVector<Float, D>,
+    radius: Float,
 }
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
@@ -26,7 +26,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
         let delta = b * b - a * c;
 
-        if delta > f32::EPSILON {
+        if delta > Float::EPSILON {
             let root_delta = delta.sqrt();
             let neg_b = -b;
 
@@ -64,7 +64,7 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
         let radius = json
             .get("radius")
             .and_then(serde_json::Value::as_f64)
-            .ok_or("Failed to parse radius")? as f32;
+            .ok_or("Failed to parse radius")? as Float;
 
         Ok(Self { center, radius })
     }
@@ -83,8 +83,8 @@ impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
 // Use glium_shapes::sphere::Sphere for the 3D implementation
 impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        let r = self.radius;
-        let [x, y, z] = self.center.into();
+        let r = self.radius as f32;
+        let [x, y, z] = self.center.map(|s| s as f32).into();
 
         // The default sphere from the SphereBuilder is a unit-sphere (radius of 1) with its center of mass located at the origin.
         // So we just have to scale it with the sphere radius on each axis and translate it.
@@ -103,8 +103,8 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
 impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         vec![Box::new(render::Circle::new(
-            self.center.into(),
-            self.radius,
+            self.center.map(|s| s as f32).into(),
+            self.radius as f32,
             display,
         ))]
     }
@@ -115,10 +115,10 @@ impl<const D: usize> Random for EuclideanSphereMirror<D> {
     where
         Self: Sized,
     {
-        const MAX_RADIUS: f32 = 3.0;
+        const MAX_RADIUS: Float = 3.0;
         Self {
             center: util::random_vector(rng, 9.0),
-            radius: rng.gen::<f32>() * MAX_RADIUS.abs(),
+            radius: rng.gen::<Float>() * MAX_RADIUS.abs(),
         }
     }
 }
@@ -150,7 +150,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.).abs() < f32::EPSILON);
+            assert!((t - 1.).abs() < Float::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -158,12 +158,12 @@ mod tests {
 
         ray.reflect_direction(tangent);
 
-        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < Float::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([-1., 0., 0.]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 
@@ -208,7 +208,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.4142137).abs() < f32::EPSILON);
+            assert!((t - 1.4142137).abs() < Float::EPSILON);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -216,12 +216,12 @@ mod tests {
 
         ray.reflect_direction(tangent);
 
-        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < f32::EPSILON);
+        assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < Float::EPSILON);
         assert!(
             (ray.direction.into_inner() - SVector::from([-0.70710665, 0.70710695, 0.]))
                 .norm()
                 .abs()
-                < f32::EPSILON
+                < Float::EPSILON
         );
     }
 

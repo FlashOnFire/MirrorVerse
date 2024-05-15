@@ -10,7 +10,7 @@ pub(crate) struct ParaboloidMirror<const D: usize> {
     /// The plane this mirror belongs to.
     directrix_plane: Plane<D>,
     /// The focus the parabola is centered on
-    focus: SVector<f32, D>,
+    focus: SVector<Float, D>,
     /// The limit of the parabola
     limit_plane: Plane<D>,
 }
@@ -32,7 +32,7 @@ impl<const D: usize> render::RenderData for ParaboloidRenderData<D> {
 }
 
 impl<const D: usize> ParaboloidMirror<D> {
-    fn is_point_on_parabola(&self, point: &SVector<f32, D>) -> bool {
+    fn is_point_on_parabola(&self, point: &SVector<Float, D>) -> bool {
         let dist_to_directrix =
             (self.directrix_plane.orthogonal_point_projection(*point) - *point).norm();
         let dist_to_focus = (self.focus - *point).norm();
@@ -43,13 +43,13 @@ impl<const D: usize> ParaboloidMirror<D> {
         //check if the two vector are in the same direction
         let same_direction = (point_projection_on_limit_plane - focus_projection_on_limit_plane)
             .dot(&(point - focus_projection_on_limit_plane))
-            > f32::EPSILON;
+            > Float::EPSILON;
         distance_ok && same_direction
     }
 }
 
 impl ParaboloidMirror<2> {
-    fn get_tangent(&self, point: &SVector<f32, 2>) -> Option<Plane<2>> {
+    fn get_tangent(&self, point: &SVector<Float, 2>) -> Option<Plane<2>> {
         if !self.is_point_on_parabola(point) {
             return None;
         }
@@ -65,7 +65,7 @@ impl ParaboloidMirror<2> {
         Some(Plane::new([*point, direction]).unwrap())
     }
 
-    fn get_points(&self) -> Vec<SVector<f32, 2>> {
+    fn get_points(&self) -> Vec<SVector<Float, 2>> {
         todo!();
 
         // lets construct the formula of the parametric equation of the parabola
@@ -92,10 +92,10 @@ impl ParaboloidMirror<2> {
 
         // let mut points = Vec::new();
         // for x in -100..100 {
-        //     let y = ((numerator - ((x as f32) / 10. - focus[0]).powi(2)) / denominator).sqrt()
+        //     let y = ((numerator - ((x as Float) / 10. - focus[0]).powi(2)) / denominator).sqrt()
         //         + focus[1];
         //     let mut vector = SVector::zeros();
-        //     vector[0] = x as f32 / 10.;
+        //     vector[0] = x as Float / 10.;
         //     vector[1] = y;
         //     points.push(vector);
         // }
@@ -106,7 +106,7 @@ impl ParaboloidMirror<2> {
         // let directrix_point = self.directrix_plane.v_0();
         // let directrix_vector = self.directrix_plane.basis()[0];
 
-        // let parabola = |t: f32| -> [f32; 2] {
+        // let parabola = |t: Float| -> [Float; 2] {
         //     [
         //         focus[0] + (t.powf(2.)) * directrix_vector[0] - 2. * t * directrix_point[0],
         //         focus[1] + (t.powf(2.)) * directrix_vector[1] - 2. * t * directrix_point[1],
@@ -137,7 +137,7 @@ impl Mirror<2> for ParaboloidMirror<2> {
         let line_point = Point2::new(ray.origin[0], ray.origin[1]); // A point on the line
         let line_direction = Unit::new_normalize(Vector2::new(ray.direction[0], ray.direction[1])); // Direction vector of the line
 
-        let func = |t: f32| -> f32 {
+        let func = |t: Float| -> Float {
             //x and y of the line
             let x = line_point[0] + t * line_direction[0];
             let y = line_point[1] + t * line_direction[1];
@@ -209,7 +209,7 @@ impl<const D: usize> JsonDes for ParaboloidMirror<D> {
         let focus = SVector::from_vec(
             focus_json
                 .iter()
-                .map(|val| val.as_f64().unwrap() as f32)
+                .map(|val| val.as_f64().unwrap() as Float)
                 .collect(),
         );
 
@@ -235,7 +235,7 @@ impl OpenGLRenderable for ParaboloidMirror<2> {
     fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
         let points = self.get_points();
         // for i in (-1000..=1000).step_by(1) {
-        //     points.push(self.get_point(i as f32 / 10.));
+        //     points.push(self.get_point(i as Float / 10.));
         // }
 
         let paraboloid_render_data = ParaboloidRenderData {
@@ -258,9 +258,9 @@ impl OpenGLRenderable for ParaboloidMirror<2> {
     }
 }
 
-fn newton_raphson<F>(guess: f32, f: F) -> Option<f32>
+fn newton_raphson<F>(guess: Float, f: F) -> Option<Float>
 where
-    F: Fn(f32) -> f32,
+    F: Fn(Float) -> Float,
 {
     let mut x = guess;
     let mut dx;
@@ -268,7 +268,7 @@ where
     for _ in 0..1000 {
         // Maximum 1000 iterations
         dx = f(x) / (f(x + 0.01) - f(x)) * 0.01; // Numerical derivative
-        if dx.abs() < f32::EPSILON {
+        if dx.abs() < Float::EPSILON {
             // Convergence criterion
             return Some(x);
         }

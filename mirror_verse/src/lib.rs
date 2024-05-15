@@ -19,45 +19,47 @@ use render::{
     DrawableSimulation,
 };
 
+pub type Float = f64;
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct RayPath<const D: usize> {
-    points: Vec<SVector<f32, D>>,
+    points: Vec<SVector<Float, D>>,
     loop_start: Option<usize>,
-    divergence_direction: Option<Unit<SVector<f32, D>>>,
+    divergence_direction: Option<Unit<SVector<Float, D>>>,
 }
 
 impl<const D: usize> RayPath<D> {
-    pub fn all_points_raw(&self) -> &[SVector<f32, D>] {
+    pub fn all_points_raw(&self) -> &[SVector<Float, D>] {
         self.points.as_slice()
     }
 
     /// returns a pair (non_loop_points, loop_points)
-    pub fn all_points(&self) -> (&[SVector<f32, D>], &[SVector<f32, D>]) {
+    pub fn all_points(&self) -> (&[SVector<Float, D>], &[SVector<Float, D>]) {
         self.points
             .split_at(self.loop_start.unwrap_or(self.points.len()))
     }
 
     // name bikeshedding welcome
 
-    pub fn non_loop_points(&self) -> &[SVector<f32, D>] {
+    pub fn non_loop_points(&self) -> &[SVector<Float, D>] {
         &self.points[..self.loop_start.unwrap_or(self.points.len())]
     }
 
-    pub fn loop_points(&self) -> &[SVector<f32, D>] {
+    pub fn loop_points(&self) -> &[SVector<Float, D>] {
         self.loop_start
             .map(|index| &self.points[index..])
             .unwrap_or_default()
     }
 
-    pub fn divergence_direction(&self) -> Option<&Unit<SVector<f32, D>>> {
+    pub fn divergence_direction(&self) -> Option<&Unit<SVector<Float, D>>> {
         self.divergence_direction.as_ref()
     }
 
-    pub fn push_point(&mut self, pt: SVector<f32, D>) {
+    pub fn push_point(&mut self, pt: SVector<Float, D>) {
         self.points.push(pt);
     }
 
-    pub fn causes_loop_at(&self, pt: SVector<f32, D>, epsilon: f32) -> Option<usize> {
+    pub fn causes_loop_at(&self, pt: SVector<Float, D>, epsilon: Float) -> Option<usize> {
         self.points.split_last().and_then(|(last_pt, points)| {
             points.windows(2).enumerate().find_map(|(i, window)| {
                 // ugly, but `slice::array_windows` is unstable
@@ -73,7 +75,7 @@ impl<const D: usize> RayPath<D> {
 
     /// Attempts to push a point to the path. If it's on a previously followed path, aborts,
     /// registers the section of the path that loops, and returns `false`
-    pub fn try_push_point(&mut self, pt: SVector<f32, D>, epsilon: f32) -> bool {
+    pub fn try_push_point(&mut self, pt: SVector<Float, D>, epsilon: Float) -> bool {
         let maybe_loop_index = self.causes_loop_at(pt, epsilon);
 
         if let Some(loop_index) = maybe_loop_index {
@@ -85,7 +87,7 @@ impl<const D: usize> RayPath<D> {
         maybe_loop_index.is_none()
     }
 
-    pub fn set_divergence_direction(&mut self, dir: Unit<SVector<f32, D>>) -> bool {
+    pub fn set_divergence_direction(&mut self, dir: Unit<SVector<Float, D>>) -> bool {
         let first_time = self.divergence_direction.is_none();
         self.divergence_direction = Some(dir);
         first_time
@@ -196,8 +198,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                             let d = tangent
                                 .try_intersection_distance(&ray)
                                 .expect("a mirror returned a plane parallel to the ray: aborting");
-                            println!("{d}");
-                            (d > f32::EPSILON * 32.0).then_some((d, tangent))
+                            (d > Float::EPSILON * 64.0).then_some((d, tangent))
                         })
                         .min_by(|(d1, _), (d2, _)| {
                             d1.partial_cmp(d2)
@@ -205,7 +206,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                         })
                     {
                         ray.advance(distance);
-                        if !ray_path.try_push_point(ray.origin, f32::EPSILON * 16.0) {
+                        if !ray_path.try_push_point(ray.origin, Float::EPSILON * 16.0) {
                             break;
                         }
                         ray.reflect_direction(tangent);
@@ -231,7 +232,7 @@ impl<T: mirror::Mirror<3>> Simulation<T, 3> {
             .map(|ray_path| {
                 // we'll change this to a square or circle that's doesn't get scaled by the projection matrix
                 // use Sphere for 3D, and Circle for 2D
-                let [x, y, z] = ray_path.all_points_raw().first().copied().unwrap().into();
+                let [x, y, z] = ray_path.all_points_raw().first().unwrap().map(|s| s as f32).into();
 
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
@@ -263,7 +264,7 @@ impl<T: mirror::Mirror<2>> Simulation<T, 2> {
             .map(|ray_path| {
                 // we'll change this to a square or circle that's doesn't get scaled by the projection matrix
                 // use Sphere for 3D, and Circle for 2D
-                let center = ray_path.all_points_raw().first().copied().unwrap().into();
+                let center = ray_path.all_points_raw().first().unwrap().map(|s| s as f32).into();
 
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
@@ -364,22 +365,22 @@ pub mod util {
 
     pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(
         rng: &mut T,
-        max_coord_mag: f32,
-    ) -> SVector<f32, D> {
+        max_coord_mag: Float,
+    ) -> SVector<Float, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
 
-        SVector::<f32, D>::from_fn(|_, _| (rng.gen::<f32>() - 0.5) * (max_coord_mag.abs() * 2.0))
+        SVector::<Float, D>::from_fn(|_, _| (rng.gen::<Float>() - 0.5) * (max_coord_mag.abs() * 2.0))
     }
 
     /// This is essentially `try_into` then `try_map` but the latter is nightly-only
     pub fn json_array_to_float_array<const D: usize>(
         json_array: &[serde_json::Value],
-    ) -> Option<[f32; D]> {
+    ) -> Option<[Float; D]> {
         let array: &[serde_json::Value; D] = json_array.try_into().ok()?;
 
         let mut center_coords_array = [0.; D];
         for (coord, value) in center_coords_array.iter_mut().zip(array) {
-            *coord = value.as_f64()? as f32;
+            *coord = value.as_f64()? as Float;
         }
         Some(center_coords_array)
     }
@@ -387,7 +388,7 @@ pub mod util {
     /// This is essentially `try_into` then `try_map` but the latter is nightly-only
     pub fn json_array_to_vector<const D: usize>(
         json_array: &[serde_json::Value],
-    ) -> Option<SVector<f32, D>> {
+    ) -> Option<SVector<Float, D>> {
         json_array_to_float_array(json_array).map(SVector::from)
     }
 

@@ -4,7 +4,7 @@ use super::*;
 
 #[derive(PartialEq, Debug)]
 pub struct BezierMirror {
-    control_points: Vec<Point<f32, 2>>,
+    control_points: Vec<Point<Float, 2>>,
 }
 
 impl Mirror<2> for BezierMirror {
@@ -71,12 +71,12 @@ impl Mirror<2> for BezierMirror {
 
 impl BezierMirror {
     // Method to calculate a point on the Bezier curve
-    fn calculate_point(&self, t: f32) -> Point<f32, 2> {
-        let mut point: Point<f32, 2> = Point::origin();
+    fn calculate_point(&self, t: Float) -> Point<Float, 2> {
+        let mut point: Point<Float, 2> = Point::origin();
         let n = self.control_points.len() - 1; // degree of the curve
 
         for (i, control_point) in self.control_points.iter().enumerate() {
-            let bernstein_polynomial = binomial_coefficient(n, i) as f32
+            let bernstein_polynomial = binomial_coefficient(n, i) as Float
                 * t.powi(i as i32)
                 * (1. - t).powi((n - i) as i32);
 
@@ -88,13 +88,13 @@ impl BezierMirror {
         point
     }
 
-    fn calculate_tangent(&self, t: f32) -> SVector<f32, 2> {
+    fn calculate_tangent(&self, t: Float) -> SVector<Float, 2> {
         let n = self.control_points.len() - 1; // degree of the curve
-        let mut tangent: SVector<f32, 2> = SVector::zeros();
+        let mut tangent: SVector<Float, 2> = SVector::zeros();
 
         for i in 0..n {
-            let bernstein_derivative = (n as f32)
-                * binomial_coefficient(n - 1, i) as f32
+            let bernstein_derivative = (n as Float)
+                * binomial_coefficient(n - 1, i) as Float
                 * t.powi(i as i32)
                 * (1. - t).powi((n - 1 - i) as i32);
 
@@ -188,7 +188,7 @@ mod tests {
         };
 
         let vector = bezier_mirror.calculate_tangent(1.);
-        let axis = SVector::<f32, 2>::from_vec(vec![1., 0., 0.]);
+        let axis = SVector::<Float, 2>::from_vec(vec![1., 0., 0.]);
         let dot_product = vector.dot(&axis);
         let reflected_vector = 2. * dot_product * axis - vector;
 
