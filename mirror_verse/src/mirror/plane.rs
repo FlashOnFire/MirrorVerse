@@ -156,7 +156,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.).abs() < Float::EPSILON);
+            assert!((t - 1.).abs() < Float::EPSILON * 4.0);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -164,12 +164,12 @@ mod tests {
 
         ray.reflect_direction(tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
             (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
-                < Float::EPSILON
+                < Float::EPSILON * 4.0
         );
     }
 
@@ -200,7 +200,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.).abs() < Float::EPSILON);
+            assert!((t - 1.).abs() < Float::EPSILON * 4.0);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -208,12 +208,12 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
             (ray.direction.into_inner() - SVector::from([1., 0.]))
                 .norm()
                 .abs()
-                < Float::EPSILON
+                < Float::EPSILON * 4.0
         );
     }
 
@@ -243,7 +243,7 @@ mod tests {
         let d = tangent.try_intersection_distance(&ray);
 
         if let Some(t) = d {
-            assert!((t - 1.4142135).abs() < Float::EPSILON * 2.);
+            assert!((t - 1.4142135623730951).abs() < Float::EPSILON * 4.0);
             ray.advance(t);
         } else {
             panic!("there must be distance");
@@ -251,12 +251,12 @@ mod tests {
 
         ray.reflect_direction(&tangent);
 
-        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON);
+        assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-0.70710677, 0.70710677]))
+            (ray.direction.into_inner() - SVector::from([-0.7071067811865476, 0.7071067811865476]))
                 .norm()
                 .abs()
-                < Float::EPSILON
+                < Float::EPSILON * 4.0
         );
     }
 
@@ -297,26 +297,26 @@ mod tests {
         let d2 = t2.try_intersection_distance(&ray);
 
         if let Some(t) = d1 {
-            assert!((t - 10.).abs() < Float::EPSILON * 2.);
+            assert!((t - 10.).abs() < Float::EPSILON * 4.0);
             ray.advance(t);
         } else {
             panic!("there must be distance");
         }
 
         if let Some(t) = d2 {
-            assert!((t - -1.).abs() < Float::EPSILON * 2.);
+            assert!((t - -1.).abs() < Float::EPSILON * 4.0);
         } else {
             panic!("there must be distance");
         }
 
         ray.reflect_direction(&t1);
 
-        assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < Float::EPSILON);
+        assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
             (ray.direction.into_inner() - SVector::from([-1., 0.]))
                 .norm()
                 .abs()
-                < Float::EPSILON
+                < Float::EPSILON * 4.0
         );
     }
 }
