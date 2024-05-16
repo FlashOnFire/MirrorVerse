@@ -53,20 +53,19 @@ impl mirror::Random for Dynamic2D {
 }
 
 impl mirror::JsonSer for Dynamic2D {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let mut json = vec![];
+    fn to_json(&self) -> serde_json::Value {
 
-        for mirror in self.0.iter() {
-            json.push(serde_json::json!({
-                "type": mirror.json_type_dyn(),
-                "mirror": mirror.to_json()?,
-            }));
-        }
-
-        Ok(serde_json::json!({
+        serde_json::json!({
             "type": "[]dynamic",
-            "mirror": json,
-        }))
+            "mirror": Vec::from_iter(
+                self.0.iter().map(|mirror| {
+                    serde_json::json!({
+                        "type": mirror.json_type_dyn(),
+                        "mirror": mirror.to_json(),
+                    })
+                })
+            ),
+        })
     }
 }
 
@@ -101,20 +100,19 @@ impl mirror::Random for Dynamic3D {
 }
 
 impl mirror::JsonSer for Dynamic3D {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let mut json = vec![];
+    fn to_json(&self) -> serde_json::Value{
 
-        for mirror in self.0.iter() {
-            json.push(serde_json::json!({
-                "type": mirror.json_type_dyn(),
-                "mirror": mirror.to_json()?,
-            }));
-        }
-
-        Ok(serde_json::json!({
+        serde_json::json!({
             "type": "[]dynamic",
-            "mirror": json,
-        }))
+            "mirror": Vec::from_iter(
+                self.0.iter().map(|mirror| {
+                    serde_json::json!({
+                        "type": mirror.json_type_dyn(),
+                        "mirror": mirror.to_json(),
+                    })
+                })
+            ),
+        })
     }
 }
 
@@ -125,21 +123,21 @@ fn generate_random_simulation(
 ) -> Result<serde_json::Value, Box<dyn Error>> {
     let mut rng = rand::thread_rng();
     if dim == 2 {
-        Simulation {
+        Ok(Simulation {
             mirror: Dynamic2D::random(num_mirrors, &mut rng),
             rays: iter::repeat_with(|| mirror::Ray::<2>::random(&mut rng))
                 .take(num_rays)
                 .collect(),
         }
-        .to_json()
+        .to_json())
     } else if dim == 3 {
-        Simulation {
+        Ok(Simulation {
             mirror: Dynamic3D::random(num_mirrors, &mut rng),
             rays: iter::repeat_with(|| mirror::Ray::<3>::random(&mut rng))
                 .take(num_rays)
                 .collect(),
         }
-        .to_json()
+        .to_json())
     } else {
         Err("dimension must be 2 or 3".into())
     }

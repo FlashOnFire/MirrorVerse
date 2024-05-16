@@ -2,31 +2,37 @@
 
 Light ray reflection simulation with 3D rendering.
 
-Built with [Rust](https://www.rust-lang.org/), using [nalgebra](https://nalgebra.org/) for the linear algebra, and [glium](https://github.com/glium/glium) for the graphical rendering.
+Built with [Rust](https://www.rust-lang.org/), using [nalgebra](https://nalgebra.org/) for general computation, and [glium](https://github.com/glium/glium) for graphical rendering.
 
 GUI app built with [Flutter](https://flutter.dev/)
 
 This project is split into four main parts:
 
-1. 📚 The library which really handles the simulations (mirror_verse).
-2. 🏃‍♂️ A runner which takes a JSON, generates ray's the path, and runs a visualization of the simulation.
-3. 🔀 A random simulation generator which generates a random set of mirrors and rays.
-4. 🖥️ A Flutter GUI app graphical for users who wish to run these tools without the terminal.
+1. 📚 The library which contains the core simulation engine, and API for creating new mirrors (`mirror_verse`).
+2. 🏃‍♂️ A program that runs a visualisation of a simulation, from it's JSON representation. (see `assets`)
+3. 🔀 A program that generates simulations randomly and serialises them to JSON files.
+4. 🖥️ A Flutter GUI app enabling users to run these tools without the terminal.
 
 ## GUI
 
+First, make sure you have [Rust](https://www.rust-lang.org/) and [Flutter](https://flutter.dev/) installed on your machine.
+
 ### 🛠️ Compilation
 
-Build the Rust project and move the emitted executables into the Flutter assets:
+Build the Rust project and move the emitted executables into the Flutter project's `assets` directory:
+
+#### Windows
 
 ```shell
-# For Windows:
-cargo build --release
-copy target\release\generate_random_simulation_3d.exe mirror_verse_ui\assets
-copy target\release\run_simulation_json_3d.exe mirror_verse_ui\assets
+cargo build -r
+copy "target\release\generate_random_simulation_3d.exe mirror_verse_ui\assets"
+copy "target\release\run_simulation_json_3d.exe mirror_verse_ui\assets"
+```
 
-# For linux/macOS:
-cargo build --release && \
+#### For Linux/MacOS
+
+```shell
+cargo build -r && \
 cp target/release/generate_random_simulation_3d mirror_verse_ui/assets && \
 cp target/release/run_simulation_json_3d mirror_verse_ui/assets
 ```
@@ -40,14 +46,26 @@ flutter run --release
 
 ## CLI
 
+Installing [Flutter](https://flutter.dev/) is not necessary to run/generate simulations from the command line.
+
 ### 🔬 Running a simulation from a JSON file
 
 ```shell
-cargo run --release -p run_sim_json "<path/to/simulation.json>"
+cargo run --release -p run_sim_json "<path/to/simulation.json>" [max_reflection_count]
 ```
 
-### 🔄 Generating random simulation
+#### Controls
+
+You can use the following controls during the visualisation of a simulation:
+
+- Use the ZQSD keys (or WASD) to move forward, backward, left, and right, respectively.
+- Use the space bar to move up and the shift key to move down.
+- Click and drag your mouse on the screen to look around, and rotate the camera.
+- Use the right/left arrow key to increase/decrease camera movement sensitivity.
+- Use the up/down key to increase/decrease physical movement speed.
+
+### 🔄 Generating a random simulation
 
 ```shell
-cargo run --release -p gen_rand_sim "<path/to/output.json> <dimension> <num_mirrors> <num_rays>"
+cargo run --release -p gen_rand_sim "<path/to/output.json>" [dimension, default=2] [num_mirrors, default=12] [num_rays, default=4]
 ```

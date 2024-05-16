@@ -322,6 +322,10 @@ where
     }
 }
 
+/// A trait encompassing a shape that can be rendered
+/// 
+/// Mirrors implementing [`OpenGLRenderable`] return objects for this trait enabling them to be rendered
+/// on-screen in simulations.
 pub trait RenderData {
     fn vertices(&self) -> gl::vertex::VerticesSource;
     fn indices(&self) -> gl::index::IndicesSource;

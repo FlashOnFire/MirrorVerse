@@ -12,14 +12,16 @@ pub struct CylindricalMirror {
 }
 
 impl CylindricalMirror {
-    pub fn new([start, end]: [SVector<Float, 3>; 2], radius: Float) -> Option<Self> {
-        const E: Float = Float::EPSILON * 4.0;
+    /// Create a new cylinder from a line segment and a radius
+    pub fn new(line_segment: [SVector<Float, 3>; 2], radius: Float) -> Option<Self> {
+        const E: Float = Float::EPSILON * 8.0;
 
+        let [start, end] = line_segment;
         let dist = end - start;
         let dist_sq = dist.norm_squared();
 
         let r_abs = radius.abs();
-        (dist_sq > E && r_abs > E).then(|| Self {
+        (dist_sq.sqrt() > E && r_abs > E).then(|| Self {
             start,
             dist,
             radius,
@@ -76,17 +78,18 @@ impl JsonType for CylindricalMirror {
 }
 
 impl JsonDes for CylindricalMirror {
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        /* example_json:
-        {
-            "start": [1.0, 2.0, 3.0],
-            "end": [4.0, 5.0, 6.0],
-            "radius": 69.0,
-        }
-        */
+    /// Deserialize a new cylindrical mirror from a JSON object.
+    /// 
+    /// The JSON object must follow the following format:
+    /// 
+    /// ```ignore
+    /// {
+    ///     "start": [1.0, 2.0, 3.0],
+    ///     "end": [4.0, 5.0, 6.0],
+    ///     "radius": 69.0,
+    /// }
+    /// ```
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
 
         let start = json
             .get("start")
@@ -113,12 +116,15 @@ impl JsonDes for CylindricalMirror {
 }
 
 impl JsonSer for CylindricalMirror {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        Ok(serde_json::json!({
+    /// Serialize a cylindrical mirror into a JSON object.
+    /// 
+    /// The format of the returned object is explained in [`Self::from_json`]
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "start": self.start.as_slice(),
             "end": (self.start + self.dist).as_slice(),
             "radius": self.radius,
-        }))
+        })
     }
 }
 
@@ -146,6 +152,7 @@ impl OpenGLRenderable for CylindricalMirror {
 
         let m = SMatrix::<_, 3, 3>::from_fn(|i, j| k[i] * k[j]);
 
+        // rotation matrix to rotate the circle so it faces the axis formed by our line segment
         let rot = 2.0 / k.norm_squared() * m - SMatrix::identity();
 
         let r = self.radius as f32;

@@ -9,7 +9,7 @@ pub mod cylinder;
 pub mod plane;
 pub mod sphere;
 
-/// A light ray
+/// A light ray, represented as a half-line of starting point `origin` and direction `direction`
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray<const D: usize> {
     /// Current position of the ray
@@ -19,28 +19,32 @@ pub struct Ray<const D: usize> {
 }
 
 impl<const D: usize> Ray<D> {
-    /// Reflect the ray with respect to the given plane
+    /// Reflect the ray's direction with respect to the given tangent's directing (hyper)plane
     pub fn reflect_direction(&mut self, tangent: &Tangent<D>) {
         self.direction = tangent.reflect_unit(self.direction);
     }
 
+    /// Move the ray's position forward (or backward if t < 0.0) by `t`
     pub fn advance(&mut self, t: Float) {
         self.origin += t * self.direction.into_inner();
     }
 
+    /// Get the point at distance `t` (can be negative) from the ray's origin
     pub fn at(&self, t: Float) -> SVector<Float, D> {
         self.origin + self.direction.into_inner() * t
     }
 
-    /// Create a new ray with a given origin and direction
+    /// Deserialize a new ray from a JSON object.
+    /// 
+    /// The JSON object must follow the following format:
+    /// 
+    /// ```ignore
+    /// {
+    ///     "origin": [9., 8., 7., ...], (an array of D floats)
+    ///     "direction": [9., 8., 7., ...], (an array of D floats, must have at least one non-zero value)
+    /// }
+    /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        /*
-        example json:
-        {
-            "origin": [9., 8., 7., ...], (N elements)
-            "direction": [9., 8., 7., ...], (N elements)
-        }
-        */
 
         let origin = json
             .get("origin")
@@ -62,11 +66,14 @@ impl<const D: usize> Ray<D> {
         Ok(Self { origin, direction })
     }
 
-    pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        Ok(serde_json::json!({
+    /// Serialize a ray into a JSON object.
+    /// 
+    /// The format of the returned object is explained in [`Self::from_json`]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "origin": self.origin.as_slice(),
             "direction": self.direction.into_inner().as_slice(),
-        }))
+        })
     }
 
     pub fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
@@ -91,12 +98,14 @@ pub enum Tangent<const D: usize> {
 }
 
 impl<const D: usize> Tangent<D> {
+    /// Reflect a unit vector with respect to this tangent plane's direction space
     pub fn reflect_unit(&self, vector: Unit<SVector<Float, D>>) -> Unit<SVector<Float, D>> {
         // SAFETY: orthogonal symmetry preserves euclidean norms
         // This function is supposed to be unsafe, why nalgebra? why?
         Unit::new_unchecked(self.reflect(vector.into_inner()))
     }
 
+    /// Reflect a vector with respect to this tangent plane's direction space
     pub fn reflect(&self, vector: SVector<Float, D>) -> SVector<Float, D> {
         match self {
             Tangent::Plane(plane) => 2.0 * plane.orthogonal_projection(vector) - vector,
@@ -107,6 +116,9 @@ impl<const D: usize> Tangent<D> {
         }
     }
 
+    /// Return the distance `t` such that `ray.at(t)` intersects with this tangent plane
+    /// 
+    /// Returns `None` if `ray` is parallel to `self`
     pub fn try_intersection_distance(&self, ray: &Ray<D>) -> Option<Float> {
         match self {
             Tangent::Plane(plane) => plane.intersection_coordinates(ray).map(|v| v[0]),
@@ -149,6 +161,7 @@ impl<const D: usize> Plane<D> {
         self.vectors.first().unwrap()
     }
 
+    /// Change this plane's starting vector
     pub fn set_v_0(&mut self, v: SVector<Float, D>) {
         self.vectors[0] = v;
         self.orthonormalized[0] = v;
@@ -186,7 +199,7 @@ impl<const D: usize> Plane<D> {
     ///
     /// `intersection = ray.origin + t_1 * ray.direction` and,
     ///
-    /// let `[v_2, ..., v_d]` be the basis of `self`'s associated hyperplane
+    /// let `[v_2, ..., v_d]` be the basis of `self`'s direction space
     ///
     /// `interserction = plane.origin + sum for k in [2 ; n] t_k * v_k`
     pub fn intersection_coordinates(&self, ray: &Ray<D>) -> Option<SVector<Float, D>> {
@@ -203,19 +216,21 @@ impl<const D: usize> Plane<D> {
             })
     }
 
-    /// create a new plane from a json value
+    /// Deserialize a new plane from a JSON object.
+    /// 
+    /// The JSON object must follow the following format:
+    /// 
+    /// ```ignore
+    /// {
+    ///     "center": [9., 8., 7., ...], (N elements)
+    ///     "basis": [
+    ///         [9., 8., 7., ...], (N elements)
+    ///         [9., 8., 7., ...],
+    ///         ...
+    ///     ] (N-1 elements, must be a free family of vectors)
+    /// }
+    /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        /*
-        example json:
-        {
-            "center": [9., 8., 7., ...], (N elements)
-            "basis": [
-                [9., 8., 7., ...], (N elements)
-                [9., 8., 7., ...],
-                ...
-            ] (N-1 elements)
-        }
-        */
 
         let mut vectors = [SVector::zeros(); D];
 
@@ -245,23 +260,27 @@ impl<const D: usize> Plane<D> {
         Ok(Plane::new(vectors).ok_or("the provided family of vectors must be free")?)
     }
 
-    fn to_json(self) -> Result<serde_json::Value, Box<dyn Error>> {
+    /// Serialize a ray into a JSON object.
+    /// 
+    /// The format of the returned object is explained in [`Self::from_json`]
+    fn to_json(self) -> serde_json::Value {
 
-        let slices: Vec<_> = self.basis().iter().map(SVector::as_slice).collect();
+        let slices = self.vectors.each_ref().map(SVector::as_slice);
+        let (center, basis) = slices.split_first().unwrap();
 
-        Ok(serde_json::json!({
-            "center": self.v_0().as_slice(),
-            "basis": slices,
-        }))
+        serde_json::json!({
+            "center": center,
+            "basis": basis,
+        })
     }
 }
 
 // D could have been an associated constant but, lack of
 // `#[feature(generic_const_exprs)]` screws us over, once again.
 pub trait Mirror<const D: usize> {
-    /// Appends to the list a number of planes, tangent to this mirror, in no particular order.
+    /// Appends to `list` a number of (hyper)planes, tangent to this mirror, in no particular order.
     ///
-    /// The laser is expected to "bounce" off the closest plane.
+    /// `ray` is expected to "bounce" off the closest plane.
     ///
     /// Here, "bounce" refers to the process of:
     ///     - Moving forward until it intersects the plane
@@ -274,6 +293,7 @@ pub trait Mirror<const D: usize> {
     /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly
     ///
     /// It is a logic error for this function to remove/reorder elements in `list`
+    /// 
     /// TODO: pass in a wrapper around a &mut Vec<_> that
     /// only allows pushing/appending/extending etc..
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
@@ -281,8 +301,7 @@ pub trait Mirror<const D: usize> {
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter()
-            .for_each(|mirror| mirror.append_intersecting_points(ray, list))
+        self.iter().for_each(|mirror| mirror.append_intersecting_points(ray, list))
     }
 }
 
@@ -296,7 +315,7 @@ where
 }
 
 pub trait JsonType {
-    /// Returns a string slice, unique to the type, found in the "type" field of the json
+    /// Returns a string, unique to the type, found in the "type" field of the json
     /// representation of a "dynamic" mirror containing a mirror of this type
     fn json_type() -> String;
 }
@@ -317,14 +336,13 @@ where
 }
 
 pub trait JsonSer {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>>;
+    /// Serialize `self` into a JSON object.
+    fn to_json(&self) -> serde_json::Value;
 }
 
 impl<T: JsonSer> JsonSer for [T] {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let array = util::try_collect(self.iter().map(T::to_json).map(Result::ok))
-            .ok_or("falied to deserialize a mirror")?;
-        Ok(serde_json::json!(array))
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!(Vec::from_iter(self.iter().map(T::to_json)))
     }
 }
 
@@ -332,12 +350,15 @@ impl<T: Deref> JsonSer for T
 where
     T::Target: JsonSer,
 {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+    fn to_json(&self) -> serde_json::Value {
         self.deref().to_json()
     }
 }
 
 pub trait JsonDes {
+    /// Deserialize from a JSON object.
+    /// 
+    /// Returns an error if `json`'s format or values are invalid.
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
@@ -354,6 +375,9 @@ impl<T: JsonDes> JsonDes for Vec<T> {
 }
 
 pub trait Random {
+    /// Generate a randomized version of this mirror using the provided `rng`
+    /// 
+    /// This method must not fail. If creating a mirror is faillible, keep trying until success
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where
         Self: Sized;

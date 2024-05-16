@@ -1,7 +1,9 @@
 use super::*;
-use serde_json::json;
 
 #[derive(Clone, Copy)]
+/// All vectors at a certain distance (radius) from a certain vector (center)
+/// where the distance here is the standard euclidean distance
+// TODO: We can do other distances can we huh?
 pub struct EuclideanSphereMirror<const D: usize> {
     center: SVector<Float, D>,
     radius: Float,
@@ -9,8 +11,6 @@ pub struct EuclideanSphereMirror<const D: usize> {
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        // TODO: more calculations can be offset to the inside of the if block
-        // mental note: Cauchy-Schwarz
 
         let d = &ray.direction;
         let a = d.norm_squared();
@@ -46,13 +46,17 @@ impl<const D: usize> JsonType for EuclideanSphereMirror<D> {
 }
 
 impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
+    /// Deserialize a new eudclidean sphere mirror from a JSON object.
+    /// 
+    /// The JSON object must follow the following format:
+    /// 
+    /// ```ignore
+    /// {
+    ///     "center": [1., 2., 3., ...], (an array of D floats)
+    ///     "radius": 4., (must be a float)
+    /// }
+    /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
-        /* example json
-        {
-            "center": [1., 2., 3.],
-            "radius": 4.,
-        }
-         */
 
         let center = json
             .get("center")
@@ -71,12 +75,14 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
 }
 
 impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        let json = json!({
+    /// Serialize a euclidean sphere mirror into a JSON object.
+    /// 
+    /// The format of the returned object is explained in [`Self::from_json`]
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "center": self.center.as_slice(),
             "radius": self.radius,
-        });
-        Ok(json)
+        })
     }
 }
 
@@ -111,10 +117,7 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
 }
 
 impl<const D: usize> Random for EuclideanSphereMirror<D> {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
         const MAX_RADIUS: Float = 3.0;
         Self {
             center: util::random_vector(rng, 9.0),
@@ -233,7 +236,7 @@ mod tests {
         }))
         .expect("json error");
 
-        let json = mirror.to_json().expect("json error");
+        let json = mirror.to_json();
 
         let mirror2 = EuclideanSphereMirror::<3>::from_json(&json).expect("json error");
 

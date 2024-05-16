@@ -15,26 +15,6 @@ impl<const D: usize> From<Plane<D>> for PlaneMirror<D> {
     }
 }
 
-struct PlaneRenderData<const D: usize> {
-    vertices: gl::VertexBuffer<render::Vertex<D>>,
-}
-
-impl<const D: usize> render::RenderData for PlaneRenderData<D> {
-    fn vertices(&self) -> gl::vertex::VerticesSource {
-        (&self.vertices).into()
-    }
-
-    fn indices(&self) -> gl::index::IndicesSource {
-        gl::index::IndicesSource::NoIndices {
-            primitives: match D {
-                0 => unreachable!("dimension must not be zero"),
-                1 | 2 => PrimitiveType::LinesList,
-                _ => PrimitiveType::TriangleStrip,
-            },
-        }
-    }
-}
-
 impl<const D: usize> PlaneMirror<D> {
     pub fn vertices(&self) -> impl Iterator<Item = SVector<Float, D>> + '_ {
         const SHIFT: usize = mem::size_of::<Float>() * 8 - 1;
@@ -53,7 +33,6 @@ impl<const D: usize> PlaneMirror<D> {
     }
 }
 
-use glium::index::PrimitiveType;
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
@@ -75,18 +54,41 @@ impl<const D: usize> JsonType for PlaneMirror<D> {
 }
 
 impl<const D: usize> JsonDes for PlaneMirror<D> {
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
-        // see mirror::Plane::from_json for more info on this mirror's json format
+    /// Deserialize a new plane mirror from a JSON object.
+    /// 
+    /// The JSON object must follow the same format as that
+    /// described in the documentation of [Plane::from_json]
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
         Plane::from_json(json).map(Self::from)
     }
 }
 
 impl<const D: usize> JsonSer for PlaneMirror<D> {
-    fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
+    /// Serialize a plane mirror into a JSON object.
+    /// 
+    /// The format of the returned object is explained in [`Self::from_json`]
+    fn to_json(&self) -> serde_json::Value {
         self.plane.to_json()
+    }
+}
+
+struct PlaneRenderData<const D: usize> {
+    vertices: gl::VertexBuffer<render::Vertex<D>>,
+}
+
+impl<const D: usize> render::RenderData for PlaneRenderData<D> {
+    fn vertices(&self) -> gl::vertex::VerticesSource {
+        (&self.vertices).into()
+    }
+
+    fn indices(&self) -> gl::index::IndicesSource {
+        gl::index::IndicesSource::NoIndices {
+            primitives: match D {
+                0 => unreachable!("dimension must not be zero"),
+                1 | 2 => gl::index::PrimitiveType::LinesList,
+                _ => gl::index::PrimitiveType::TriangleStrip,
+            },
+        }
     }
 }
 
@@ -111,10 +113,7 @@ impl render::OpenGLRenderable for PlaneMirror<3> {
 }
 
 impl<const D: usize> Random for PlaneMirror<D> {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
         loop {
             if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 10.0))) {
                 break plane;

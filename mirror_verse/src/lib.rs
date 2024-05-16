@@ -163,15 +163,12 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
 }
 
 impl<const D: usize, T: mirror::JsonSer> Simulation<T, D> {
-    pub fn to_json(&self) -> Result<serde_json::Value, Box<dyn Error>> {
-        Ok(serde_json::json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "dim": D,
-            "rays": util::try_collect(
-                self.rays.iter().map(mirror::Ray::to_json).map(Result::ok)
-            ).ok_or("failed to serialize a ray")?,
-
-            "mirror": self.mirror.to_json()?,
-        }))
+            "rays": Vec::from_iter(self.rays.iter().map(mirror::Ray::to_json)),
+            "mirror": self.mirror.to_json(),
+        })
     }
 }
 
