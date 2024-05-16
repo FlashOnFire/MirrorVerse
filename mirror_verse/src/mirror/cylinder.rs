@@ -56,9 +56,9 @@ impl Mirror<3> for CylindricalMirror {
 
             for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
                 let origin = ray.at(t);
-                let coord = line_coord(origin);
+                let coord = line_coord(origin - self.start);
 
-                let line_pt = self.dist * coord;
+                let line_pt = self.start + self.dist * coord;
 
                 if coord <= 1.0 && coord >= 0.0 {
                     // SAFETY: the length of origin - line_pt is always self.radius
