@@ -33,7 +33,6 @@ impl<const D: usize> PlaneMirror<D> {
     }
 }
 
-
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
         if self
@@ -55,7 +54,7 @@ impl<const D: usize> JsonType for PlaneMirror<D> {
 
 impl<const D: usize> JsonDes for PlaneMirror<D> {
     /// Deserialize a new plane mirror from a JSON object.
-    /// 
+    ///
     /// The JSON object must follow the same format as that
     /// described in the documentation of [Plane::from_json]
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
@@ -65,7 +64,7 @@ impl<const D: usize> JsonDes for PlaneMirror<D> {
 
 impl<const D: usize> JsonSer for PlaneMirror<D> {
     /// Serialize a plane mirror into a JSON object.
-    /// 
+    ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(&self) -> serde_json::Value {
         self.plane.to_json()
@@ -93,22 +92,30 @@ impl<const D: usize> render::RenderData for PlaneRenderData<D> {
 }
 
 impl render::OpenGLRenderable for PlaneMirror<2> {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn append_render_data(
+        &self,
+        display: &gl::Display,
+        mut list: List<Box<dyn render::RenderData>>,
+    ) {
         let vertices: Vec<_> = self.vertices().map(render::Vertex::<2>::from).collect();
 
-        vec![Box::new(PlaneRenderData {
+        list.push(Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
-        })]
+        }))
     }
 }
 
 impl render::OpenGLRenderable for PlaneMirror<3> {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn append_render_data(
+        &self,
+        display: &gl::Display,
+        mut list: List<Box<dyn render::RenderData>>,
+    ) {
         let vertices: Vec<_> = self.vertices().map(render::Vertex::<3>::from).collect();
 
-        vec![Box::new(PlaneRenderData {
+        list.push(Box::new(PlaneRenderData {
             vertices: gl::VertexBuffer::new(display, vertices.as_slice()).unwrap(),
-        })]
+        }))
     }
 }
 

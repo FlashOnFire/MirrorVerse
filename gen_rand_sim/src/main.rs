@@ -54,7 +54,6 @@ impl mirror::Random for Dynamic2D {
 
 impl mirror::JsonSer for Dynamic2D {
     fn to_json(&self) -> serde_json::Value {
-
         serde_json::json!({
             "type": "[]dynamic",
             "mirror": Vec::from_iter(
@@ -100,8 +99,7 @@ impl mirror::Random for Dynamic3D {
 }
 
 impl mirror::JsonSer for Dynamic3D {
-    fn to_json(&self) -> serde_json::Value{
-
+    fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "[]dynamic",
             "mirror": Vec::from_iter(

@@ -37,9 +37,9 @@ impl<const D: usize> Ray<D> {
     }
 
     /// Deserialize a new ray from a JSON object.
-    /// 
+    ///
     /// The JSON object must follow the following format:
-    /// 
+    ///
     /// ```ignore
     /// {
     ///     "origin": [9., 8., 7., ...], (an array of D floats)
@@ -47,7 +47,6 @@ impl<const D: usize> Ray<D> {
     /// }
     /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-
         let origin = json
             .get("origin")
             .and_then(serde_json::Value::as_array)
@@ -69,7 +68,7 @@ impl<const D: usize> Ray<D> {
     }
 
     /// Serialize a ray into a JSON object.
-    /// 
+    ///
     /// The format of the returned object is explained in [`Self::from_json`]
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
@@ -93,7 +92,7 @@ impl<const D: usize> Ray<D> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 /// Different ways of representing an affine hyperplane in D-dimensional euclidean space
 pub enum Tangent<const D: usize> {
-    /// Stored as a starting point v_0 and a 
+    /// Stored as a starting point v_0 and a
     Plane(Plane<D>),
     Normal {
         origin: SVector<Float, D>,
@@ -121,7 +120,7 @@ impl<const D: usize> Tangent<D> {
     }
 
     /// Return the distance `t` such that `ray.at(t)` intersects with this tangent plane
-    /// 
+    ///
     /// Returns `None` if `ray` is parallel to `self`
     pub fn try_intersection_distance(&self, ray: &Ray<D>) -> Option<Float> {
         match self {
@@ -221,9 +220,9 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Deserialize a new plane from a JSON object.
-    /// 
+    ///
     /// The JSON object must follow the following format:
-    /// 
+    ///
     /// ```ignore
     /// {
     ///     "center": [9., 8., 7., ...], (N elements)
@@ -235,7 +234,6 @@ impl<const D: usize> Plane<D> {
     /// }
     /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-
         let mut vectors = [SVector::zeros(); D];
 
         let (v_0, basis) = vectors.split_first_mut().unwrap();
@@ -265,10 +263,9 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Serialize a ray into a JSON object.
-    /// 
+    ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(self) -> serde_json::Value {
-
         let slices = self.vectors.each_ref().map(SVector::as_slice);
         let (center, basis) = slices.split_first().unwrap();
 
@@ -300,7 +297,6 @@ pub trait Mirror<const D: usize> {
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
-
         for mirror in self {
             mirror.append_intersecting_points(ray, list.reborrow());
         }
@@ -359,7 +355,7 @@ where
 
 pub trait JsonDes {
     /// Deserialize from a JSON object.
-    /// 
+    ///
     /// Returns an error if `json`'s format or values are invalid.
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
     where
@@ -378,7 +374,7 @@ impl<T: JsonDes> JsonDes for Vec<T> {
 
 pub trait Random {
     /// Generate a randomized version of this mirror using the provided `rng`
-    /// 
+    ///
     /// This method must not fail. If creating a mirror is faillible, keep trying until success
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
     where

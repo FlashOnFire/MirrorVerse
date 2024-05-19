@@ -31,7 +31,9 @@ impl<const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<D> {
 
 impl<const D: usize> From<nalgebra::SVector<f64, D>> for Vertex<D> {
     fn from(v: nalgebra::SVector<f64, D>) -> Self {
-        Self { position: v.map(|s| s as f32).into() }
+        Self {
+            position: v.map(|s| s as f32).into(),
+        }
     }
 }
 
@@ -323,7 +325,7 @@ where
 }
 
 /// A trait encompassing a shape that can be rendered
-/// 
+///
 /// Mirrors implementing [`OpenGLRenderable`] return objects for this trait enabling them to be rendered
 /// on-screen in simulations.
 pub trait RenderData {
@@ -347,12 +349,13 @@ where
 }
 
 pub trait OpenGLRenderable {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>>;
+    fn append_render_data(&self, display: &gl::Display, list: util::List<Box<dyn RenderData>>);
 }
 
 impl<T: OpenGLRenderable> OpenGLRenderable for [T] {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        self.iter().flat_map(|a| a.render_data(display)).collect()
+    fn append_render_data(&self, display: &gl::Display, mut list: util::List<Box<dyn RenderData>>) {
+        self.iter()
+            .for_each(|a| a.append_render_data(display, list.reborrow()))
     }
 }
 
@@ -360,13 +363,13 @@ impl<T: Deref> OpenGLRenderable for T
 where
     T::Target: OpenGLRenderable,
 {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        self.deref().render_data(display)
+    fn append_render_data(&self, display: &gl::Display, list: util::List<Box<dyn RenderData>>) {
+        self.deref().append_render_data(display, list)
     }
 }
 
 pub(crate) struct Circle {
-    pub vertices: gl::VertexBuffer<render::Vertex2D>,
+    pub vertices: gl::VertexBuffer<Vertex2D>,
 }
 
 impl Circle {
@@ -390,7 +393,7 @@ impl Circle {
     }
 }
 
-impl render::RenderData for Circle {
+impl RenderData for Circle {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         (&self.vertices).into()
     }
@@ -410,7 +413,7 @@ impl From<Circle> for FilledCircle {
     }
 }
 
-impl render::RenderData for FilledCircle {
+impl RenderData for FilledCircle {
     fn vertices(&self) -> gl::vertex::VerticesSource {
         self.0.vertices()
     }

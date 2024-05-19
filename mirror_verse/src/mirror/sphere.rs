@@ -11,7 +11,6 @@ pub struct EuclideanSphereMirror<const D: usize> {
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
-
         let d = &ray.direction;
         let a = d.norm_squared();
 
@@ -47,9 +46,9 @@ impl<const D: usize> JsonType for EuclideanSphereMirror<D> {
 
 impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
     /// Deserialize a new eudclidean sphere mirror from a JSON object.
-    /// 
+    ///
     /// The JSON object must follow the following format:
-    /// 
+    ///
     /// ```ignore
     /// {
     ///     "center": [1., 2., 3., ...], (an array of D floats)
@@ -57,7 +56,6 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
-
         let center = json
             .get("center")
             .and_then(serde_json::Value::as_array)
@@ -76,7 +74,7 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
 
 impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
     /// Serialize a euclidean sphere mirror into a JSON object.
-    /// 
+    ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
@@ -88,7 +86,11 @@ impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
 
 // Use glium_shapes::sphere::Sphere for the 3D implementation
 impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn append_render_data(
+        &self,
+        display: &gl::Display,
+        mut list: List<Box<dyn render::RenderData>>,
+    ) {
         let r = self.radius as f32;
         let [x, y, z] = self.center.map(|s| s as f32).into();
 
@@ -101,18 +103,22 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
             .build(display)
             .unwrap();
 
-        vec![Box::new(sphere)]
+        list.push(Box::new(sphere))
     }
 }
 
 // in 2d, the list of vertices of a circle are easy to calculate
 impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        vec![Box::new(render::Circle::new(
+    fn append_render_data(
+        &self,
+        display: &gl::Display,
+        mut list: List<Box<dyn render::RenderData>>,
+    ) {
+        list.push(Box::new(render::Circle::new(
             self.center.map(|s| s as f32).into(),
             self.radius as f32,
             display,
-        ))]
+        )))
     }
 }
 
@@ -221,9 +227,10 @@ mod tests {
 
         assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
-            (ray.direction.into_inner() - SVector::from([-0.7071067811865476, 0.7071067811865476, 0.]))
-                .norm()
-                .abs()
+            (ray.direction.into_inner()
+                - SVector::from([-0.7071067811865476, 0.7071067811865476, 0.]))
+            .norm()
+            .abs()
                 < Float::EPSILON * 4.0
         );
     }

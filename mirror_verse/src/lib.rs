@@ -184,8 +184,10 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
 
                 for _n in 0..reflection_limit {
                     intersections_scratch.clear();
-                    self.mirror
-                        .append_intersecting_points(&ray, util::List::new(&mut intersections_scratch));
+                    self.mirror.append_intersecting_points(
+                        &ray,
+                        util::List::new(&mut intersections_scratch),
+                    );
 
                     // TODO: make some of these error messages more useful
 
@@ -229,7 +231,12 @@ impl<T: mirror::Mirror<3>> Simulation<T, 3> {
             .map(|ray_path| {
                 // we'll change this to a square or circle that's doesn't get scaled by the projection matrix
                 // use Sphere for 3D, and Circle for 2D
-                let [x, y, z] = ray_path.all_points_raw().first().unwrap().map(|s| s as f32).into();
+                let [x, y, z] = ray_path
+                    .all_points_raw()
+                    .first()
+                    .unwrap()
+                    .map(|s| s as f32)
+                    .into();
 
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
@@ -261,7 +268,12 @@ impl<T: mirror::Mirror<2>> Simulation<T, 2> {
             .map(|ray_path| {
                 // we'll change this to a square or circle that's doesn't get scaled by the projection matrix
                 // use Sphere for 3D, and Circle for 2D
-                let center = ray_path.all_points_raw().first().unwrap().map(|s| s as f32).into();
+                let center = ray_path
+                    .all_points_raw()
+                    .first()
+                    .unwrap()
+                    .map(|s| s as f32)
+                    .into();
 
                 let (non_loop_path, loop_path) = ray_path.path_vertices(display);
 
@@ -304,7 +316,9 @@ impl<T: mirror::Mirror<2> + render::OpenGLRenderable> Simulation<T, 2> {
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
 
-        let cb = glutin::ContextBuilder::new().with_vsync(true).with_multisampling(1 << 8);
+        let cb = glutin::ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(1 << 8);
 
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
@@ -316,7 +330,12 @@ impl<T: mirror::Mirror<2> + render::OpenGLRenderable> Simulation<T, 2> {
 
 impl<const D: usize, T: render::OpenGLRenderable> Simulation<T, D> {
     pub fn mirror_render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
-        self.mirror.render_data(display)
+        let mut render_data = vec![];
+
+        self.mirror
+            .append_render_data(display, util::List::from(&mut render_data));
+
+        render_data
     }
 }
 
@@ -347,8 +366,10 @@ impl<T: mirror::Mirror<3> + render::OpenGLRenderable> Simulation<T, 3> {
             .with_inner_size(glutin::dpi::LogicalSize::new(DEFAULT_WIDTH, DEFAULT_HEIGHT))
             .with_title("MirrorVerse");
 
-        let cb = glutin::ContextBuilder::new().with_vsync(true).with_multisampling(1 << 8);
- 
+        let cb = glutin::ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(1 << 8);
+
         let display = gl::Display::new(wb, cb, &events_loop).unwrap();
 
         let drawable_simulation = self.to_drawable(reflection_limit, &display);
@@ -368,7 +389,9 @@ pub mod util {
     ) -> SVector<Float, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly
 
-        SVector::<Float, D>::from_fn(|_, _| (rng.gen::<Float>() - 0.5) * (max_coord_mag.abs() * 2.0))
+        SVector::<Float, D>::from_fn(|_, _| {
+            (rng.gen::<Float>() - 0.5) * (max_coord_mag.abs() * 2.0)
+        })
     }
 
     /// This is essentially `try_into` then `try_map` but the latter is nightly-only
@@ -409,7 +432,9 @@ pub mod util {
             List(self.0)
         }
 
-        pub fn new(list: &'a mut Vec<T>) -> Self { Self(list) }
+        pub fn new(list: &'a mut Vec<T>) -> Self {
+            Self(list)
+        }
 
         pub fn capacity(&self) -> usize {
             self.0.capacity()
@@ -441,7 +466,7 @@ pub mod util {
 
         pub fn extend_from_slice(&mut self, slice: &[T])
         where
-            T: Clone
+            T: Clone,
         {
             self.0.extend_from_slice(slice)
         }

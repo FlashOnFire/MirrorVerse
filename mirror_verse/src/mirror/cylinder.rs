@@ -50,7 +50,6 @@ impl Mirror<3> for CylindricalMirror {
         let delta = b * b - a * c;
 
         if delta > Float::EPSILON {
-
             let root_delta = delta.sqrt();
             let neg_b = -b;
 
@@ -60,7 +59,8 @@ impl Mirror<3> for CylindricalMirror {
 
                 let line_pt = self.start + self.dist * coord;
 
-                if coord <= 1.0 && coord >= 0.0 {
+                // Thanks clippy!
+                if (0.0..=1.0).contains(&coord) {
                     // SAFETY: the length of origin - line_pt is always self.radius
                     let normal = Unit::new_unchecked((origin - line_pt) / self.radius);
 
@@ -79,9 +79,9 @@ impl JsonType for CylindricalMirror {
 
 impl JsonDes for CylindricalMirror {
     /// Deserialize a new cylindrical mirror from a JSON object.
-    /// 
+    ///
     /// The JSON object must follow the following format:
-    /// 
+    ///
     /// ```ignore
     /// {
     ///     "start": [1.0, 2.0, 3.0],
@@ -90,7 +90,6 @@ impl JsonDes for CylindricalMirror {
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-
         let start = json
             .get("start")
             .and_then(serde_json::Value::as_array)
@@ -117,7 +116,7 @@ impl JsonDes for CylindricalMirror {
 
 impl JsonSer for CylindricalMirror {
     /// Serialize a cylindrical mirror into a JSON object.
-    /// 
+    ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
@@ -145,7 +144,11 @@ impl render::RenderData for CylinderRenderData {
 }
 
 impl OpenGLRenderable for CylindricalMirror {
-    fn render_data(&self, display: &gl::Display) -> Vec<Box<dyn render::RenderData>> {
+    fn append_render_data(
+        &self,
+        display: &gl::Display,
+        mut list: List<Box<dyn render::RenderData>>,
+    ) {
         const NUM_POINTS: usize = 360;
 
         let k = SVector::from([0.0, 0.0, 1.0]) + self.dist.normalize().map(|s| s as f32);
@@ -173,7 +176,7 @@ impl OpenGLRenderable for CylindricalMirror {
 
         let vertices = gl::VertexBuffer::immutable(display, vertices.as_slice()).unwrap();
 
-        vec![Box::new(CylinderRenderData { vertices })]
+        list.push(Box::new(CylinderRenderData { vertices }))
     }
 }
 
@@ -184,7 +187,10 @@ impl Random for CylindricalMirror {
     {
         loop {
             if let Some(mirror) = Self::new(
-                [util::random_vector(rng, 10.0), util::random_vector(rng, 10.0)],
+                [
+                    util::random_vector(rng, 10.0),
+                    util::random_vector(rng, 10.0),
+                ],
                 rng.gen::<Float>() * 4.0,
             ) {
                 break mirror;
