@@ -35,7 +35,7 @@ impl<const D: usize> PlaneMirror<D> {
 
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
         if self
             .plane
             .intersection_coordinates(ray)
@@ -146,7 +146,7 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(List::from(&mut intersections)));
 
         let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
@@ -190,7 +190,7 @@ mod tests {
 
         let mut intersections = vec![];
 
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(List::from(&mut intersections)));
 
         let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
@@ -233,7 +233,7 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(&mut intersections));
 
         let [tangent] = intersections.as_slice() else {
             panic!("there must be an intersection");
@@ -285,8 +285,8 @@ mod tests {
         };
 
         let mut pts = vec![];
-        m1.append_intersecting_points(&ray, &mut pts);
-        m2.append_intersecting_points(&ray, &mut pts);
+        m1.append_intersecting_points(&ray, List::from(&mut pts));
+        m2.append_intersecting_points(&ray, List::from(&mut pts));
 
         let [t1, t2] = pts.as_slice() else {
             panic!("there must be an intersection");

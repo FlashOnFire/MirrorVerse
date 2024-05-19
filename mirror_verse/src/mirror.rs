@@ -9,6 +9,8 @@ pub mod cylinder;
 pub mod plane;
 pub mod sphere;
 
+use util::List;
+
 /// A light ray, represented as a half-line of starting point `origin` and direction `direction`
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray<const D: usize> {
@@ -89,7 +91,9 @@ impl<const D: usize> Ray<D> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// Different ways of representing an affine hyperplane in D-dimensional euclidean space
 pub enum Tangent<const D: usize> {
+    /// Stored as a starting point v_0 and a 
     Plane(Plane<D>),
     Normal {
         origin: SVector<Float, D>,
@@ -134,7 +138,7 @@ impl<const D: usize> Tangent<D> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plane<const D: usize> {
     /// The first element of this array is the plane's "starting point" (i. e. v_0).
-    /// The remaining N-1 vectors are an orthonormal family spanning it's associated subspace.
+    /// The remaining N-1 vectors are an orthonormal family spanning it's direction hyperplane
     ///
     /// Note that an expression like `[T ; N - 1]`
     /// is locked under `#[feature(const_generic_exprs)]`
@@ -167,7 +171,7 @@ impl<const D: usize> Plane<D> {
         self.orthonormalized[0] = v;
     }
 
-    /// A reference to the stored basis of the plane's associated hyperplane.
+    /// A reference to the basis of the plane's direction space.
     ///
     /// The returned slice is garanteed to be of length D - 1.
     pub fn basis(&self) -> &[SVector<Float, D>] {
@@ -278,7 +282,7 @@ impl<const D: usize> Plane<D> {
 // D could have been an associated constant but, lack of
 // `#[feature(generic_const_exprs)]` screws us over, once again.
 pub trait Mirror<const D: usize> {
-    /// Appends to `list` a number of (hyper)planes, tangent to this mirror, in no particular order.
+    /// Appends to `list` a number of affine (hyper)planes, tangent to this mirror, in no particular order.
     ///
     /// `ray` is expected to "bounce" off the closest plane.
     ///
@@ -291,17 +295,15 @@ pub trait Mirror<const D: usize> {
     ///
     /// This method may push intersection points that occur "behind" the ray's
     /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly
-    ///
-    /// It is a logic error for this function to remove/reorder elements in `list`
-    /// 
-    /// TODO: pass in a wrapper around a &mut Vec<_> that
-    /// only allows pushing/appending/extending etc..
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>);
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: List<Tangent<D>>);
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
-        self.iter().for_each(|mirror| mirror.append_intersecting_points(ray, list))
+    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
+
+        for mirror in self {
+            mirror.append_intersecting_points(ray, list.reborrow());
+        }
     }
 }
 
@@ -309,7 +311,7 @@ impl<const D: usize, T: Deref> Mirror<D> for T
 where
     T::Target: Mirror<D>,
 {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, list: List<Tangent<D>>) {
         self.deref().append_intersecting_points(ray, list)
     }
 }

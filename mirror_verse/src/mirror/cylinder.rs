@@ -32,7 +32,7 @@ impl CylindricalMirror {
 }
 
 impl Mirror<3> for CylindricalMirror {
-    fn append_intersecting_points(&self, ray: &Ray<3>, list: &mut Vec<Tangent<3>>) {
+    fn append_intersecting_points(&self, ray: &Ray<3>, mut list: List<Tangent<3>>) {
         let line_coord = |v| self.dist.dot(&v) * self.inv_norm_dist_squared;
         let p = |v| line_coord(v) * self.dist;
 

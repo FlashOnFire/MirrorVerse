@@ -185,7 +185,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                 for _n in 0..reflection_limit {
                     intersections_scratch.clear();
                     self.mirror
-                        .append_intersecting_points(&ray, &mut intersections_scratch);
+                        .append_intersecting_points(&ray, util::List::new(&mut intersections_scratch));
 
                     // TODO: make some of these error messages more useful
 
@@ -358,6 +358,8 @@ impl<T: mirror::Mirror<3> + render::OpenGLRenderable> Simulation<T, 3> {
 }
 
 pub mod util {
+    use alloc::collections::TryReserveError;
+
     use super::*;
 
     pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(
@@ -398,5 +400,62 @@ pub mod util {
         }
 
         Some(vec)
+    }
+
+    pub struct List<'a, T>(&'a mut Vec<T>);
+
+    impl<'a, T> List<'a, T> {
+        pub fn reborrow(&mut self) -> List<T> {
+            List(self.0)
+        }
+
+        pub fn new(list: &'a mut Vec<T>) -> Self { Self(list) }
+
+        pub fn capacity(&self) -> usize {
+            self.0.capacity()
+        }
+
+        pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
+            self.0.try_reserve(additional)
+        }
+
+        pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), TryReserveError> {
+            self.0.try_reserve_exact(additional)
+        }
+
+        pub fn reserve(&mut self, additional: usize) {
+            self.0.reserve(additional)
+        }
+
+        pub fn reserve_exact(&mut self, additional: usize) {
+            self.0.reserve_exact(additional)
+        }
+
+        pub fn push(&mut self, v: T) {
+            self.0.push(v)
+        }
+
+        pub fn append(&mut self, vec: &mut Vec<T>) {
+            self.0.append(vec)
+        }
+
+        pub fn extend_from_slice(&mut self, slice: &[T])
+        where
+            T: Clone
+        {
+            self.0.extend_from_slice(slice)
+        }
+    }
+
+    impl<'a, T> Extend<T> for List<'a, T> {
+        fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+            self.0.extend(iter)
+        }
+    }
+
+    impl<'a, T> From<&'a mut Vec<T>> for List<'a, T> {
+        fn from(value: &'a mut Vec<T>) -> Self {
+            Self(value)
+        }
     }
 }

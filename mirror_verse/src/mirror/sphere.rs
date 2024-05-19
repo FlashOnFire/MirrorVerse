@@ -3,14 +3,14 @@ use super::*;
 #[derive(Clone, Copy)]
 /// All vectors at a certain distance (radius) from a certain vector (center)
 /// where the distance here is the standard euclidean distance
-// TODO: We can do other distances can we huh?
+// TODO: We can do other distances, can we huh?
 pub struct EuclideanSphereMirror<const D: usize> {
     center: SVector<Float, D>,
     radius: Float,
 }
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, list: &mut Vec<Tangent<D>>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
 
         let d = &ray.direction;
         let a = d.norm_squared();
@@ -145,7 +145,7 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(&mut intersections));
 
         assert_eq!(intersections.len(), 2);
 
@@ -184,7 +184,7 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(&mut intersections));
 
         assert_eq!(intersections.len(), 0);
     }
@@ -203,7 +203,7 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, &mut intersections);
+        mirror.append_intersecting_points(&ray, List::from(&mut intersections));
 
         assert_eq!(intersections.len(), 2);
 
