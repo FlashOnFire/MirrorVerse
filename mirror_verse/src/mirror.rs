@@ -40,10 +40,10 @@ impl<const D: usize> Ray<D> {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
-    ///     "origin": [9., 8., 7., ...], (an array of D floats)
-    ///     "direction": [9., 8., 7., ...], (an array of D floats, must have at least one non-zero value)
+    ///     "origin": [9., 8., 7., ...], // (an array of D floats)
+    ///     "direction": [9., 8., 7., ...], // (an array of D floats, must have at least one non-zero value)
     /// }
     /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
@@ -94,7 +94,6 @@ impl<const D: usize> Ray<D> {
 pub enum Tangent<const D: usize> {
     /// Stored as a starting point v_0 and a basis of the direction hyperlane
     Plane(Plane<D>),
-    ///
     Normal {
         origin: SVector<Float, D>,
         normal: Unit<SVector<Float, D>>,
@@ -225,14 +224,14 @@ impl<const D: usize> Plane<D> {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
-    ///     "center": [9., 8., 7., ...], (N elements)
+    ///     "center": [9., 8., 7., ...], // (N elements)
     ///     "basis": [
-    ///         [9., 8., 7., ...], (N elements)
+    ///         [9., 8., 7., ...], // (N elements)
     ///         [9., 8., 7., ...],
     ///         ...
-    ///     ] (N-1 elements, must be a free family of vectors)
+    ///     ] // (N-1 elements, must be a free family of vectors)
     /// }
     /// ```
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
@@ -294,14 +293,15 @@ pub trait Mirror<const D: usize> {
     ///
     /// This method may push intersection points that occur "behind" the ray's
     /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly.
-    /// 
+    ///
     /// This method is deterministic, i. e. not random: for some `ray`, it always has the same behavior for that `ray`.
     fn append_intersecting_points(&self, ray: &Ray<D>, list: List<Tangent<D>>);
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
-        self.iter().for_each(|mirror| mirror.append_intersecting_points(ray, list.reborrow()))
+        self.iter()
+            .for_each(|mirror| mirror.append_intersecting_points(ray, list.reborrow()))
     }
 }
 

@@ -49,10 +49,10 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
-    ///     "center": [1., 2., 3., ...], (an array of D floats)
-    ///     "radius": 4., (must be a float)
+    ///     "center": [1., 2., 3., ...], // (an array of D floats)
+    ///     "radius": 4., // (must be a float)
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {

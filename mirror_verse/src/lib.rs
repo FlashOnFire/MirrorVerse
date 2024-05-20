@@ -147,7 +147,10 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         let mirror = T::from_json(json.get("mirror").ok_or("mirror field expected")?)?;
 
-        let rays = util::map_json_array(json, mirror::Ray::from_json)?;
+        let rays = util::map_json_array(
+            json.get("rays").ok_or("ray field expected")?,
+            mirror::Ray::from_json,
+        )?;
 
         Ok(Self { mirror, rays })
     }
@@ -407,6 +410,7 @@ pub mod util {
         json: &serde_json::Value,
         map: impl FnMut(&serde_json::Value) -> Result<T, Box<dyn Error>>,
     ) -> Result<Vec<T>, Box<dyn Error>> {
+        println!("{json:#}");
         json.as_array()
             .ok_or("json value must be an array")?
             .iter()

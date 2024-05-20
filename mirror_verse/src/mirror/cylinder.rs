@@ -82,7 +82,7 @@ impl JsonDes for CylindricalMirror {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
     ///     "start": [1.0, 2.0, 3.0],
     ///     "end": [4.0, 5.0, 6.0],

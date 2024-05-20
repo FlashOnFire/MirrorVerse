@@ -33,7 +33,6 @@ fn deserialize_boxed<const D: usize>(
     json: &serde_json::Value,
     deserializers: &HashMap<String, MirrorDeserializer<D>>,
 ) -> Result<Box<dyn SimulationMirror<D>>, Box<dyn Error>> {
-
     let mirror_type = json
         .get("type")
         .ok_or("Missing mirror type")?
@@ -47,7 +46,7 @@ fn deserialize_boxed<const D: usize>(
         .ok_or(f!("invalid_mirror_type: {mirror_type}"))?;
 
     if mirror_type.starts_with("[]") {
-        util::map_json_array(json, deserializer).map(boxed)
+        util::map_json_array(mirror_json, deserializer).map(boxed)
     } else {
         deserializer(mirror_json)
     }
@@ -58,10 +57,10 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<2>> {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
     ///     "type": "string",
-    ///     "mirror": <layout depends on "type">
+    ///     "mirror": // <layout depends on the value at "type">
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
@@ -95,10 +94,10 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<3>> {
     ///
     /// The JSON object must follow the following format:
     ///
-    /// ```ignore
+    /// ```json
     /// {
     ///     "type": "string",
-    ///     "mirror": <layout depends on "type">
+    ///     "mirror": // <layout depends on the value at "type">
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
