@@ -73,7 +73,7 @@ impl<const D: usize> RayPath<D> {
         })
     }
 
-    /// Attempts to push a point to the path. If it's on a previously followed path, aborts,
+    /// Attempts to push a point to the path. If it causes an infinite loop, aborts,
     /// registers the section of the path that loops, and returns `false`
     pub fn try_push_point(&mut self, pt: SVector<Float, D>, epsilon: Float) -> bool {
         let maybe_loop_index = self.causes_loop_at(pt, epsilon);
@@ -147,16 +147,7 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
     pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         let mirror = T::from_json(json.get("mirror").ok_or("mirror field expected")?)?;
 
-        let rays = util::try_collect(
-            json.get("rays")
-                .ok_or("rays field not found")?
-                .as_array()
-                .ok_or("`rays` field must be an array")?
-                .iter()
-                .map(mirror::Ray::from_json)
-                .map(Result::ok),
-        )
-        .ok_or("failed to deserialize ray")?;
+        let rays = util::map_json_array(json, mirror::Ray::from_json)?;
 
         Ok(Self { mirror, rays })
     }
@@ -188,8 +179,6 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                         &ray,
                         util::List::new(&mut intersections_scratch),
                     );
-
-                    // TODO: make some of these error messages more useful
 
                     if let Some((distance, tangent)) = intersections_scratch
                         .iter()
@@ -414,15 +403,15 @@ pub mod util {
         json_array_to_float_array(json_array).map(SVector::from)
     }
 
-    /// This is essentially [`Iterator::try_collect`]
-    /// for `Vec<T>` but without having to use nightly
-    pub fn try_collect<T>(i: impl Iterator<Item = Option<T>>) -> Option<Vec<T>> {
-        let mut vec = vec![];
-        for item in i {
-            vec.push(item?);
-        }
-
-        Some(vec)
+    pub fn map_json_array<T>(
+        json: &serde_json::Value,
+        map: impl FnMut(&serde_json::Value) -> Result<T, Box<dyn Error>>,
+    ) -> Result<Vec<T>, Box<dyn Error>> {
+        json.as_array()
+            .ok_or("json value must be an array")?
+            .iter()
+            .map(map)
+            .collect()
     }
 
     pub struct List<'a, T>(&'a mut Vec<T>);

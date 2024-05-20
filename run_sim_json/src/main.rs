@@ -1,134 +1,131 @@
-use mirror_verse::{mirror, render, serde_json, Simulation};
-use std::{error::Error, format as f, fs::File};
+use mirror_verse::{
+    mirror::{
+        self, cylinder::CylindricalMirror, plane::PlaneMirror, sphere::EuclideanSphereMirror,
+        JsonType,
+    },
+    render, serde_json, util, Simulation,
+};
+use std::{collections::HashMap, error::Error, format as f, fs::File, sync::OnceLock};
 
-trait SimulationMirror2D: mirror::Mirror<2> + render::OpenGLRenderable {}
+trait SimulationMirror<const D: usize>: mirror::Mirror<D> + render::OpenGLRenderable {}
 
-trait SimulationMirror3D: mirror::Mirror<3> + render::OpenGLRenderable {}
+impl<const D: usize, T: mirror::Mirror<D> + render::OpenGLRenderable + ?Sized> SimulationMirror<D>
+    for T
+{
+}
 
-impl<T: mirror::Mirror<2> + render::OpenGLRenderable + ?Sized> SimulationMirror2D for T {}
+impl<const D: usize> JsonType for dyn SimulationMirror<D> {
+    fn json_type() -> String {
+        "dynamic".into()
+    }
+}
 
-impl<T: mirror::Mirror<3> + render::OpenGLRenderable + ?Sized> SimulationMirror3D for T {}
+fn boxed<'a, const D: usize, T: SimulationMirror<D> + 'a>(
+    mirror: T,
+) -> Box<dyn SimulationMirror<D> + 'a> {
+    Box::new(mirror)
+}
 
-impl mirror::JsonDes for Box<dyn SimulationMirror2D> {
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        /*
-        example json
-        {
-            "type": "....",
-            "mirror": <json value whose structure depends on "type">,
-        }
-        */
+type MirrorDeserializer<const D: usize> =
+    fn(&serde_json::Value) -> Result<Box<dyn SimulationMirror<D>>, Box<dyn Error>>;
 
-        let mirror_type = json
-            .get("type")
-            .ok_or("Missing mirror type")?
-            .as_str()
-            .ok_or("type must be a string")?;
+fn deserialize_boxed<const D: usize>(
+    json: &serde_json::Value,
+    deserializers: &HashMap<String, MirrorDeserializer<D>>,
+) -> Result<Box<dyn SimulationMirror<D>>, Box<dyn Error>> {
 
-        let mirror = json.get("mirror").ok_or("Missing mirror data")?;
+    let mirror_type = json
+        .get("type")
+        .ok_or("Missing mirror type")?
+        .as_str()
+        .ok_or("type must be a string")?;
 
-        fn into_type_erased<T: SimulationMirror2D + 'static>(
-            mirror: T,
-        ) -> Box<dyn SimulationMirror2D> {
-            Box::new(mirror) as _
-        }
+    let mirror_json = json.get("mirror").ok_or("Missing mirror data")?;
 
-        match mirror_type {
-            "plane" => mirror::plane::PlaneMirror::<2>::from_json(mirror).map(into_type_erased),
-            "sphere" => {
-                mirror::sphere::EuclideanSphereMirror::<2>::from_json(mirror).map(into_type_erased)
-            }
-            "dynamic" => Box::<dyn SimulationMirror2D>::from_json(mirror).map(into_type_erased),
-            other => {
-                // flatten nested lists
-                if let Some(inner) = {
-                    let inner = other.trim_start_matches("[]");
-                    (other != inner).then_some(inner)
-                } {
-                    match inner {
-                        "plane" => Vec::<mirror::plane::PlaneMirror<2>>::from_json(mirror)
-                            .map(into_type_erased),
-                        "sphere" => {
-                            Vec::<mirror::sphere::EuclideanSphereMirror<2>>::from_json(mirror)
-                                .map(into_type_erased)
-                        }
-                        "dynamic" => Vec::<Box<dyn SimulationMirror2D>>::from_json(mirror)
-                            .map(into_type_erased),
-                        _ => Err(f!("invalid mirror type :{other}").into()),
-                    }
-                } else {
-                    Err(f!("invalid mirror type :{other}").into())
-                }
-            }
-        }
+    let deserializer = deserializers
+        .get(mirror_type.trim_start_matches("[]"))
+        .ok_or(f!("invalid_mirror_type: {mirror_type}"))?;
+
+    if mirror_type.starts_with("[]") {
+        util::map_json_array(json, deserializer).map(boxed)
+    } else {
+        deserializer(mirror_json)
+    }
+}
+
+impl mirror::JsonDes for Box<dyn SimulationMirror<2>> {
+    /// Deserialize a new 2D simulation mirror object from a JSON object.
+    ///
+    /// The JSON object must follow the following format:
+    ///
+    /// ```ignore
+    /// {
+    ///     "type": "string",
+    ///     "mirror": <layout depends on "type">
+    /// }
+    /// ```
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        static DESERIALIZERS: OnceLock<HashMap<String, MirrorDeserializer<2>>> = OnceLock::new();
+
+        #[rustfmt::skip]
+        let deserializers = DESERIALIZERS.get_or_init(|| HashMap::from([
+            (
+                // recurse
+                Box::<dyn SimulationMirror<2>>::json_type(),
+                (|value| Box::<dyn SimulationMirror<2>>::from_json(value).map(boxed)) as MirrorDeserializer<2>,
+            ),
+            (
+                PlaneMirror::<2>::json_type(),
+                |value| PlaneMirror::<2>::from_json(value).map(boxed),
+            ),
+            (
+                EuclideanSphereMirror::<2>::json_type(),
+                |value| PlaneMirror::<2>::from_json(value).map(boxed),
+            ),
+        ]));
+
+        deserialize_boxed(json, deserializers)
     }
 }
 
 // copy paste lol
 
-impl mirror::JsonDes for Box<dyn SimulationMirror3D> {
-    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>>
-    where
-        Self: Sized,
-    {
-        /*
-        example json
-        {
-            "type": "....",
-            "mirror": <json value whose structure depends on "type">,
-        }
-        */
+impl mirror::JsonDes for Box<dyn SimulationMirror<3>> {
+    /// Deserialize a new 3D simulation mirror object from a JSON object.
+    ///
+    /// The JSON object must follow the following format:
+    ///
+    /// ```ignore
+    /// {
+    ///     "type": "string",
+    ///     "mirror": <layout depends on "type">
+    /// }
+    /// ```
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+        static DESERIALIZERS: OnceLock<HashMap<String, MirrorDeserializer<3>>> = OnceLock::new();
 
-        let mirror_type = json
-            .get("type")
-            .ok_or("Missing mirror type")?
-            .as_str()
-            .ok_or("type must be a string")?;
+        #[rustfmt::skip]
+        let deserializers = DESERIALIZERS.get_or_init(|| HashMap::from([
+            (
+                // recurse
+                Box::<dyn SimulationMirror<3>>::json_type(),
+                (|json| Box::<dyn SimulationMirror<3>>::from_json(json).map(boxed)) as MirrorDeserializer<3>,
+            ),
+            (
+                PlaneMirror::<3>::json_type(),
+                |json| PlaneMirror::<3>::from_json(json).map(boxed),
+            ),
+            (
+                EuclideanSphereMirror::<3>::json_type(),
+                |json| PlaneMirror::<3>::from_json(json).map(boxed),
+            ),
+            (
+                CylindricalMirror::json_type(),
+                |json| CylindricalMirror::from_json(json).map(boxed)
+            )
+        ]));
 
-        let mirror = json.get("mirror").ok_or("Missing mirror data")?;
-
-        fn into_type_erased<T: SimulationMirror3D + 'static>(
-            mirror: T,
-        ) -> Box<dyn SimulationMirror3D> {
-            Box::new(mirror) as _
-        }
-
-        match mirror_type {
-            "plane" => mirror::plane::PlaneMirror::<3>::from_json(mirror).map(into_type_erased),
-            "sphere" => {
-                mirror::sphere::EuclideanSphereMirror::<3>::from_json(mirror).map(into_type_erased)
-            }
-            "cylinder" => {
-                mirror::cylinder::CylindricalMirror::from_json(mirror).map(into_type_erased)
-            }
-            "dynamic" => Box::<dyn SimulationMirror3D>::from_json(mirror).map(into_type_erased),
-            other => {
-                // flatten nested lists
-                if let Some(inner) = {
-                    let inner = other.trim_start_matches("[]");
-                    (other != inner).then_some(inner)
-                } {
-                    match inner {
-                        "plane" => Vec::<mirror::plane::PlaneMirror<3>>::from_json(mirror)
-                            .map(into_type_erased),
-                        "sphere" => {
-                            Vec::<mirror::sphere::EuclideanSphereMirror<3>>::from_json(mirror)
-                                .map(into_type_erased)
-                        }
-                        "cylinder" => Vec::<mirror::cylinder::CylindricalMirror>::from_json(mirror)
-                            .map(into_type_erased),
-                        "dynamic" => Vec::<Box<dyn SimulationMirror3D>>::from_json(mirror)
-                            .map(into_type_erased),
-                        _ => Err(f!("invalid mirror type :{other}").into()),
-                    }
-                } else {
-                    Err(f!("invalid mirror type :{other}").into())
-                }
-            }
-        }
+        deserialize_boxed(json, deserializers)
     }
 }
 
@@ -139,17 +136,13 @@ fn run_simulation(reflection_cap: usize, json: &serde_json::Value) -> Result<(),
         .as_u64()
         .ok_or(r#""dim" field must be a number"#)?;
 
-    if dim == 2 {
-        Simulation::<Box<dyn SimulationMirror2D>, 2>::from_json(json)?
-            .run_opengl_3d(reflection_cap);
-    } else if dim == 3 {
-        Simulation::<Box<dyn SimulationMirror3D>, 3>::from_json(json)?
-            .run_opengl_3d(reflection_cap);
-    } else {
-        panic!("dimension must be 2 or 3");
+    match dim {
+        2 => Simulation::<Box<dyn SimulationMirror<2>>, 2>::from_json(json)
+            .map(|sim| sim.run_opengl_3d(reflection_cap)),
+        3 => Simulation::<Box<dyn SimulationMirror<3>>, 3>::from_json(json)
+            .map(|sim| sim.run_opengl_3d(reflection_cap)),
+        _ => Err("dimension must be 2 or 3".into()),
     }
-
-    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -177,7 +170,7 @@ mod tests {
     #[test]
     fn test_loop_detection() {
         let simulation =
-            Simulation::<Box<dyn SimulationMirror3D>, 3>::from_json(&serde_json::json!(
+            Simulation::<Box<dyn SimulationMirror<3>>, 3>::from_json(&serde_json::json!(
                 {
                     "mirror": {
                         "type": "[]plane",
@@ -216,7 +209,7 @@ mod tests {
 
     #[test]
     fn test_no_loop_detection() {
-        let simulation = Simulation::<Box<dyn SimulationMirror3D>, 3>::from_json(
+        let simulation = Simulation::<Box<dyn SimulationMirror<3>>, 3>::from_json(
             &include_str!("../../assets/diamond_of_hell.json")
                 .parse()
                 .expect("invalid json in assets/diamond_of_hell.json"),

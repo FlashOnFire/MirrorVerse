@@ -92,8 +92,9 @@ impl<const D: usize> Ray<D> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 /// Different ways of representing an affine hyperplane in D-dimensional euclidean space
 pub enum Tangent<const D: usize> {
-    /// Stored as a starting point v_0 and a
+    /// Stored as a starting point v_0 and a basis of the direction hyperlane
     Plane(Plane<D>),
+    ///
     Normal {
         origin: SVector<Float, D>,
         normal: Unit<SVector<Float, D>>,
@@ -190,9 +191,10 @@ impl<const D: usize> Plane<D> {
     }
 
     /// Project a point onto the plane
-    pub fn orthogonal_point_projection(&self, point: SVector<Float, D>) -> SVector<Float, D> {
-        let v = point - self.v_0();
-        self.v_0() + self.orthogonal_projection(v)
+    pub fn orthogonal_point_projection(&self, p: SVector<Float, D>) -> SVector<Float, D> {
+        let v0 = self.v_0();
+        let v = p - v0;
+        v0 + self.orthogonal_projection(v)
     }
 
     /// Returns a vector `[t_1, ..., t_d]` whose coordinates represent
@@ -284,22 +286,22 @@ pub trait Mirror<const D: usize> {
     /// `ray` is expected to "bounce" off the closest plane.
     ///
     /// Here, "bounce" refers to the process of:
-    ///     - Moving forward until it intersects the plane
+    ///     - Moving forward until it intersects the plane.
     ///     - Then, orthogonally reflecting it's direction vector with
-    ///       respect to the directing hyperplane
+    ///       respect to the direction hyperplane.
     ///
-    /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents
+    /// Appends nothing if the ray doesn't intersect with the mirror that `self` represents.
     ///
     /// This method may push intersection points that occur "behind" the ray's
-    /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly
+    /// origin, (`ray.at(t)` where `t < 0.0`) simulations must discard these accordingly.
+    /// 
+    /// This method is deterministic, i. e. not random: for some `ray`, it always has the same behavior for that `ray`.
     fn append_intersecting_points(&self, ray: &Ray<D>, list: List<Tangent<D>>);
 }
 
 impl<const D: usize, T: Mirror<D>> Mirror<D> for [T] {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
-        for mirror in self {
-            mirror.append_intersecting_points(ray, list.reborrow());
-        }
+        self.iter().for_each(|mirror| mirror.append_intersecting_points(ray, list.reborrow()))
     }
 }
 
@@ -364,11 +366,7 @@ pub trait JsonDes {
 
 impl<T: JsonDes> JsonDes for Vec<T> {
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
-        json.as_array()
-            .ok_or("json value must be an array to deserialise an array of mirrors")?
-            .iter()
-            .map(T::from_json)
-            .collect()
+        util::map_json_array(json, T::from_json)
     }
 }
 
