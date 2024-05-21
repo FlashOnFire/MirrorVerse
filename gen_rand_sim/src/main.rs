@@ -1,117 +1,62 @@
 use core::iter;
 use std::{env, error::Error, fs::File};
 
-use mirror_verse::{
-    mirror::{self, Random},
-    rand, serde_json, Simulation,
-};
+use mirror_verse::{mirror, rand, serde_json, Simulation};
 
-const NUM_MIRROR_TYPES_2D: usize = 2;
-const NUM_MIRROR_TYPES_3D: usize = 3;
-const MIN_RANDOM_MIRRORS: usize = 8;
-const MAX_RANDOM_MIRRORS: usize = 64;
-
-pub(crate) trait JsonTypeDyn {
+trait JsonTypeDyn {
     fn json_type_dyn(&self) -> String;
 }
 
 impl<T: mirror::JsonType + ?Sized> JsonTypeDyn for T {
     fn json_type_dyn(&self) -> String {
-        T::json_type()
+        Self::json_type()
     }
 }
 
-trait JsonSerDyn: JsonTypeDyn + mirror::JsonSer {}
+trait JsonSerDyn: mirror::JsonSer + JsonTypeDyn {}
 
-impl<T: JsonTypeDyn + mirror::JsonSer + ?Sized> JsonSerDyn for T {}
+impl<T: mirror::JsonSer + JsonTypeDyn> JsonSerDyn for T {}
 
-struct Dynamic2D(Vec<Box<dyn JsonSerDyn>>);
+struct Dynamic<const D: usize>(Box<dyn JsonSerDyn>);
 
-impl Dynamic2D {
-    fn random<T: rand::Rng + ?Sized>(num_mirrors: usize, rng: &mut T) -> Self {
-        Self(
-            iter::repeat_with(|| match rng.gen_range(0..NUM_MIRROR_TYPES_2D) {
-                0 => Box::new(mirror::plane::PlaneMirror::<2>::random(rng)) as Box<dyn JsonSerDyn>,
-                1 => Box::new(mirror::sphere::EuclideanSphereMirror::<2>::random(rng)),
-                _ => unreachable!(),
-            })
-            .take(num_mirrors)
-            .collect(),
-        )
-    }
-}
-
-impl mirror::Random for Dynamic2D {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
-        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..=MAX_RANDOM_MIRRORS);
-
-        Self::random(num_mirrors, rng)
-    }
-}
-
-impl mirror::JsonSer for Dynamic2D {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "type": "[]dynamic",
-            "mirror": Vec::from_iter(
-                self.0.iter().map(|mirror| {
-                    serde_json::json!({
-                        "type": mirror.json_type_dyn(),
-                        "mirror": mirror.to_json(),
-                    })
-                })
-            ),
+impl mirror::Random for Dynamic<2> {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
+        Self(match rng.gen_range(0usize..2) {
+            0 => Box::new(mirror::plane::PlaneMirror::<2>::random(rng)) as Box<dyn JsonSerDyn>,
+            1 => Box::new(mirror::sphere::EuclideanSphereMirror::<2>::random(rng)),
+            _ => unreachable!(),
         })
     }
 }
 
-// copy paste lol
-
-struct Dynamic3D(Vec<Box<dyn JsonSerDyn>>);
-
-impl Dynamic3D {
-    fn random<T: rand::Rng + ?Sized>(num_mirrors: usize, rng: &mut T) -> Self {
-        Self(
-            iter::repeat_with(|| match rng.gen_range(0..NUM_MIRROR_TYPES_3D) {
-                0 => Box::new(mirror::plane::PlaneMirror::<3>::random(rng)) as Box<dyn JsonSerDyn>,
-                1 => Box::new(mirror::sphere::EuclideanSphereMirror::<3>::random(rng)),
-                2 => Box::new(mirror::cylinder::CylindricalMirror::random(rng)),
-                _ => unreachable!(),
-            })
-            .take(num_mirrors)
-            .collect(),
-        )
-    }
-}
-
-impl mirror::Random for Dynamic3D {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
-    where
-        Self: Sized,
-    {
-        let num_mirrors = rng.gen_range(MIN_RANDOM_MIRRORS..=MAX_RANDOM_MIRRORS);
-
-        Self::random(num_mirrors, rng)
-    }
-}
-
-impl mirror::JsonSer for Dynamic3D {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "type": "[]dynamic",
-            "mirror": Vec::from_iter(
-                self.0.iter().map(|mirror| {
-                    serde_json::json!({
-                        "type": mirror.json_type_dyn(),
-                        "mirror": mirror.to_json(),
-                    })
-                })
-            ),
+impl mirror::Random for Dynamic<3> {
+    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
+        Self(match rng.gen_range(0usize..3) {
+            0 => Box::new(mirror::plane::PlaneMirror::<3>::random(rng)) as Box<dyn JsonSerDyn>,
+            1 => Box::new(mirror::sphere::EuclideanSphereMirror::<3>::random(rng)),
+            2 => Box::new(mirror::cylinder::CylindricalMirror::random(rng)),
+            _ => unreachable!(),
         })
     }
+}
+
+impl<const D: usize> mirror::JsonSer for Dynamic<D> {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "type": self.0.json_type_dyn(),
+            "mirror": self.0.to_json(),
+        })
+    }
+}
+
+impl<const D: usize> mirror::JsonType for Dynamic<D> {
+    fn json_type() -> String {
+        "dynamic".into()
+    }
+}
+
+pub fn gen_rand_mirrors<T: mirror::Random, U: rand::Rng + ?Sized>(n: usize, rng: &mut U) -> Vec<T> {
+    iter::repeat_with(|| T::random(rng)).take(n).collect()
 }
 
 fn generate_random_simulation(
@@ -122,20 +67,20 @@ fn generate_random_simulation(
     let mut rng = rand::thread_rng();
     if dim == 2 {
         Ok(Simulation {
-            mirror: Dynamic2D::random(num_mirrors, &mut rng),
+            mirror: gen_rand_mirrors::<Dynamic<2>, _>(num_mirrors, &mut rng),
             rays: iter::repeat_with(|| mirror::Ray::<2>::random(&mut rng))
                 .take(num_rays)
                 .collect(),
         }
-        .to_json())
+        .to_json_dynamic())
     } else if dim == 3 {
         Ok(Simulation {
-            mirror: Dynamic3D::random(num_mirrors, &mut rng),
+            mirror: gen_rand_mirrors::<Dynamic<3>, _>(num_mirrors, &mut rng),
             rays: iter::repeat_with(|| mirror::Ray::<3>::random(&mut rng))
                 .take(num_rays)
                 .collect(),
         }
-        .to_json())
+        .to_json_dynamic())
     } else {
         Err("dimension must be 2 or 3".into())
     }

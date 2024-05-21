@@ -156,6 +156,19 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
     }
 }
 
+impl<const D: usize, T: mirror::JsonSer + mirror::JsonType> Simulation<T, D> {
+    pub fn to_json_dynamic(&self) -> serde_json::Value {
+        serde_json::json!({
+            "dim": D,
+            "rays": Vec::from_iter(self.rays.iter().map(mirror::Ray::to_json)),
+            "mirror": {
+                "type": T::json_type(),
+                "mirror": self.mirror.to_json(),
+            },
+        })
+    }
+}
+
 impl<const D: usize, T: mirror::JsonSer> Simulation<T, D> {
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
@@ -410,7 +423,6 @@ pub mod util {
         json: &serde_json::Value,
         map: impl FnMut(&serde_json::Value) -> Result<T, Box<dyn Error>>,
     ) -> Result<Vec<T>, Box<dyn Error>> {
-        println!("{json:#}");
         json.as_array()
             .ok_or("json value must be an array")?
             .iter()

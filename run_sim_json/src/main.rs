@@ -70,7 +70,7 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<2>> {
         let deserializers = DESERIALIZERS.get_or_init(|| HashMap::from([
             (
                 // recurse
-                Box::<dyn SimulationMirror<2>>::json_type(),
+                <dyn SimulationMirror<2>>::json_type(),
                 (|value| Box::<dyn SimulationMirror<2>>::from_json(value).map(boxed)) as MirrorDeserializer<2>,
             ),
             (
@@ -79,7 +79,7 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<2>> {
             ),
             (
                 EuclideanSphereMirror::<2>::json_type(),
-                |value| PlaneMirror::<2>::from_json(value).map(boxed),
+                |value| EuclideanSphereMirror::<2>::from_json(value).map(boxed),
             ),
         ]));
 
@@ -88,7 +88,6 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<2>> {
 }
 
 // copy paste lol
-
 impl mirror::JsonDes for Box<dyn SimulationMirror<3>> {
     /// Deserialize a new 3D simulation mirror object from a JSON object.
     ///
@@ -107,7 +106,7 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<3>> {
         let deserializers = DESERIALIZERS.get_or_init(|| HashMap::from([
             (
                 // recurse
-                Box::<dyn SimulationMirror<3>>::json_type(),
+                <dyn SimulationMirror<3>>::json_type(),
                 (|json| Box::<dyn SimulationMirror<3>>::from_json(json).map(boxed)) as MirrorDeserializer<3>,
             ),
             (
@@ -116,7 +115,7 @@ impl mirror::JsonDes for Box<dyn SimulationMirror<3>> {
             ),
             (
                 EuclideanSphereMirror::<3>::json_type(),
-                |json| PlaneMirror::<3>::from_json(json).map(boxed),
+                |json| EuclideanSphereMirror::<3>::from_json(json).map(boxed),
             ),
             (
                 CylindricalMirror::json_type(),
