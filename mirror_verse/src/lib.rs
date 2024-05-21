@@ -200,7 +200,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                         .iter()
                         .filter_map(|tangent| {
                             let d = tangent
-                                .try_intersection_distance(&ray)
+                                .try_ray_intersection(&ray)
                                 .expect("a mirror returned a plane parallel to the ray: aborting");
                             (d > Float::EPSILON * 64.0).then_some((d, tangent))
                         })
@@ -213,7 +213,7 @@ impl<const D: usize, T: mirror::Mirror<D>> Simulation<T, D> {
                         if !ray_path.try_push_point(ray.origin, Float::EPSILON * 16.0) {
                             break;
                         }
-                        ray.reflect_direction(tangent);
+                        ray.reflect_dir(&tangent.direction)
                     } else {
                         ray_path.set_divergence_direction(ray.direction);
                         break;

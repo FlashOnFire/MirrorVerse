@@ -6,12 +6,21 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PlaneMirror<const D: usize> {
     /// The plane this mirror belongs to.
-    plane: Plane<D>,
+    plane: AffineHyperPlane<D>,
+    /// The same plane, but represented with an orthonormalized basis, useful for orthogonal symmetries
+    orthonormalised: AffineHyperPlaneOrtho<D>,
 }
 
-impl<const D: usize> From<Plane<D>> for PlaneMirror<D> {
-    fn from(plane: Plane<D>) -> Self {
-        Self { plane }
+impl<const D: usize> TryFrom<[SVector<Float, D>; D]> for PlaneMirror<D> {
+    type Error = ();
+
+    fn try_from(vectors: [SVector<Float, D>; D]) -> Result<Self, Self::Error> {
+        AffineHyperPlane::new(vectors)
+            .map(|(plane, orthonormalised)| Self {
+                plane,
+                orthonormalised,
+            })
+            .ok_or(())
     }
 }
 
@@ -20,7 +29,7 @@ impl<const D: usize> PlaneMirror<D> {
         const SHIFT: usize = mem::size_of::<Float>() * 8 - 1;
 
         let basis = self.plane.basis();
-        let v_0 = *self.plane.v_0();
+        let v_0 = *self.plane.v0();
 
         (0..1 << (D - 1)).map(move |i| {
             basis
@@ -34,14 +43,16 @@ impl<const D: usize> PlaneMirror<D> {
 }
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
-        if self
+    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<TangentPlane<D>>) {
+        if let Some(t) = self
             .plane
-            .intersection_coordinates(ray)
-            .filter(|v| v.iter().skip(1).all(|mu| mu.abs() < 1.0))
-            .is_some()
+            .intersection_coordinates(ray, self.plane.v0())
+            .and_then(|v| v.iter().skip(1).all(|mu| mu.abs() < 1.0).then(|| v[0]))
         {
-            list.push(Tangent::Plane(self.plane));
+            list.push(TangentPlane {
+                intersection: Intersection::Distance(t),
+                direction: TangentSpace::Plane(self.orthonormalised),
+            });
         }
     }
 }
@@ -58,7 +69,10 @@ impl<const D: usize> JsonDes for PlaneMirror<D> {
     /// The JSON object must follow the same format as that
     /// described in the documentation of [Plane::from_json]
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
-        Plane::from_json(json).map(Self::from)
+        AffineHyperPlane::from_json(json).map(|(plane, orthonormalised)| Self {
+            plane,
+            orthonormalised,
+        })
     }
 }
 
@@ -121,12 +135,18 @@ impl render::OpenGLRenderable for PlaneMirror<3> {
 
 impl<const D: usize> Random for PlaneMirror<D> {
     fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
-        loop {
-            if let Some(plane) = Plane::new(array::from_fn(|_| util::random_vector(rng, 10.0))) {
+        let (plane, orthonormalised) = loop {
+            if let Some(plane) =
+                AffineHyperPlane::new(array::from_fn(|_| util::random_vector(rng, 10.0)))
+            {
                 break plane;
             }
+        };
+
+        Self {
+            plane,
+            orthonormalised,
         }
-        .into()
     }
 }
 
@@ -159,7 +179,7 @@ mod tests {
             panic!("there must be an intersection");
         };
 
-        let d = tangent.try_intersection_distance(&ray);
+        let d = tangent.try_ray_intersection(&ray);
 
         if let Some(t) = d {
             assert!((t - 1.).abs() < Float::EPSILON * 4.0);
@@ -168,7 +188,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(tangent);
+        ray.reflect_dir(&tangent.direction);
 
         assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
@@ -203,7 +223,7 @@ mod tests {
             panic!("there must be an intersection");
         };
 
-        let d = tangent.try_intersection_distance(&ray);
+        let d = tangent.try_ray_intersection(&ray);
 
         if let Some(t) = d {
             assert!((t - 1.).abs() < Float::EPSILON * 4.0);
@@ -212,7 +232,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(&tangent);
+        ray.reflect_dir(&tangent.direction);
 
         assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
@@ -246,7 +266,7 @@ mod tests {
             panic!("there must be an intersection");
         };
 
-        let d = tangent.try_intersection_distance(&ray);
+        let d = tangent.try_ray_intersection(&ray);
 
         if let Some(t) = d {
             assert!((t - 1.4142135623730951).abs() < Float::EPSILON * 4.0);
@@ -255,7 +275,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(&tangent);
+        ray.reflect_dir(&tangent.direction);
 
         assert!((ray.origin - SVector::from([0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
@@ -299,8 +319,8 @@ mod tests {
             panic!("there must be an intersection");
         };
 
-        let d1 = t1.try_intersection_distance(&ray);
-        let d2 = t2.try_intersection_distance(&ray);
+        let d1 = t1.try_ray_intersection(&ray);
+        let d2 = t2.try_ray_intersection(&ray);
 
         if let Some(t) = d1 {
             assert!((t - 10.).abs() < Float::EPSILON * 4.0);
@@ -315,7 +335,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(&t1);
+        ray.reflect_dir(&t1.direction);
 
         assert!((ray.origin - SVector::from([10., 0.5])).norm().abs() < Float::EPSILON * 4.0);
         assert!(

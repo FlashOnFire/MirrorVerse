@@ -10,7 +10,7 @@ pub struct EuclideanSphereMirror<const D: usize> {
 }
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
-    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<Tangent<D>>) {
+    fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<TangentPlane<D>>) {
         let d = &ray.direction;
         let a = d.norm_squared();
 
@@ -32,7 +32,10 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
             for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
                 let origin = ray.at(t);
                 let normal = Unit::new_normalize(origin - v0);
-                list.push(Tangent::Normal { origin, normal });
+                list.push(TangentPlane {
+                    intersection: Intersection::Distance(t),
+                    direction: TangentSpace::Normal(normal),
+                });
             }
         }
     }
@@ -156,7 +159,7 @@ mod tests {
         assert_eq!(intersections.len(), 2);
 
         let tangent = &intersections[0];
-        let d = tangent.try_intersection_distance(&ray);
+        let d = tangent.try_ray_intersection(&ray);
 
         if let Some(t) = d {
             assert!((t - 1.).abs() < Float::EPSILON * 4.0);
@@ -165,7 +168,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(tangent);
+        ray.reflect_dir(&tangent.direction);
 
         assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(
@@ -214,7 +217,7 @@ mod tests {
         assert_eq!(intersections.len(), 2);
 
         let tangent = &intersections[0];
-        let d = tangent.try_intersection_distance(&ray);
+        let d = tangent.try_ray_intersection(&ray);
 
         if let Some(t) = d {
             assert!((t - 1.4142135623730951).abs() < Float::EPSILON * 4.0);
@@ -223,7 +226,7 @@ mod tests {
             panic!("there must be distance");
         }
 
-        ray.reflect_direction(tangent);
+        ray.reflect_dir(&tangent.direction);
 
         assert!((ray.origin - SVector::from([-1., 0., 0.])).norm().abs() < Float::EPSILON * 4.0);
         assert!(

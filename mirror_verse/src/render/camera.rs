@@ -108,6 +108,7 @@ impl CameraController {
         }
     }
 
+    #[rustfmt::skip]
     pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) -> bool {
         let amount = (state == ElementState::Pressed) as u32 as f32;
 
@@ -116,17 +117,19 @@ impl CameraController {
         const SPEED_DECREASE_RATIO: f32 = 0.75;
         const SENSITIVITY_DECREASE_RATIO: f32 = 0.8;
 
+        use VirtualKeyCode::*;
+
         match key {
-            VirtualKeyCode::Z | VirtualKeyCode::W => self.amount_forward = amount,
-            VirtualKeyCode::S => self.amount_backwards = amount,
-            VirtualKeyCode::Q | VirtualKeyCode::A => self.amount_left = amount,
-            VirtualKeyCode::D => self.amount_right = amount,
-            VirtualKeyCode::Space => self.amount_up = amount,
-            VirtualKeyCode::LShift => self.amount_down = amount,
-            VirtualKeyCode::Up => self.speed /= SPEED_DECREASE_RATIO,
-            VirtualKeyCode::Down => self.speed *= SPEED_DECREASE_RATIO,
-            VirtualKeyCode::Right => self.mouse_sensitivity /= SENSITIVITY_DECREASE_RATIO,
-            VirtualKeyCode::Left => self.mouse_sensitivity *= SENSITIVITY_DECREASE_RATIO,
+            Z | W  => self.amount_forward = amount,
+            S      => self.amount_backwards = amount,
+            Q | A  => self.amount_left = amount,
+            D      => self.amount_right = amount,
+            Space  => self.amount_up = amount,
+            LShift => self.amount_down = amount,
+            Up     => self.speed /= SPEED_DECREASE_RATIO,
+            Down   => self.speed *= SPEED_DECREASE_RATIO,
+            Right  => self.mouse_sensitivity /= SENSITIVITY_DECREASE_RATIO,
+            Left   => self.mouse_sensitivity *= SENSITIVITY_DECREASE_RATIO,
             _ => res = false,
         }
 

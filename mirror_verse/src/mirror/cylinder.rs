@@ -32,7 +32,7 @@ impl CylindricalMirror {
 }
 
 impl Mirror<3> for CylindricalMirror {
-    fn append_intersecting_points(&self, ray: &Ray<3>, mut list: List<Tangent<3>>) {
+    fn append_intersecting_points(&self, ray: &Ray<3>, mut list: List<TangentPlane<3>>) {
         let line_coord = |v| self.dist.dot(&v) * self.inv_norm_dist_squared;
         let p = |v| line_coord(v) * self.dist;
 
@@ -64,7 +64,10 @@ impl Mirror<3> for CylindricalMirror {
                     // SAFETY: the length of origin - line_pt is always self.radius
                     let normal = Unit::new_unchecked((origin - line_pt) / self.radius);
 
-                    list.push(Tangent::Normal { origin, normal })
+                    list.push(TangentPlane {
+                        intersection: Intersection::Distance(t),
+                        direction: TangentSpace::Normal(normal),
+                    })
                 }
             }
         }
