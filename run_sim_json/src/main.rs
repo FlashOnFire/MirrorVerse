@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_no_loop_detection() {
-        let simulation = Simulation::<Box<dyn SimulationMirror<3>>, 3>::from_json(
+        let simulation = Simulation::<Box<dyn SimulationMirror<2>>, 2>::from_json(
             &include_str!("../../assets/diamond_of_hell.json")
                 .parse()
                 .expect("invalid json in assets/diamond_of_hell.json"),
