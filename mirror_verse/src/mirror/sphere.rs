@@ -5,12 +5,38 @@ use super::*;
 /// where the distance here is the standard euclidean distance
 // TODO: We can do other distances, can we huh?
 pub struct EuclideanSphereMirror<const D: usize> {
-    center: SVector<Float, D>,
+    pub center: SVector<Float, D>,
     radius: Float,
+}
+
+impl<const D: usize> EuclideanSphereMirror<D> {
+    pub fn new(center: SVector<Float, D>, radius: Float) -> Option<Self> {
+        (radius.abs() >= Float::EPSILON).then_some(Self { center, radius })
+    }
+
+    pub fn radius(&self) -> &Float {
+        &self.radius
+    }
+
+    pub fn set_radius(&mut self, r: Float) -> bool {
+        let ok = r.abs() >= Float::EPSILON;
+
+        if ok {
+            self.radius = r;
+        }
+
+        ok
+    }
 }
 
 impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<TangentPlane<D>>) {
+        // substituting V for P + t * D in the sphere equation: ||V - C||^2 - r^2 = 0
+        // results in a quadratic equation in t, solve it using the discriminant method and
+        // return the vector pointing from the center of the sphere to the point of intersection
+        // as it is orthogonal to the direction space of the tangent to the sphere at that point
+        // the process is almost the same for every quadric shape (see cylinder)
+
         let d = &ray.direction;
         let a = d.norm_squared();
 
@@ -19,7 +45,7 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
         let b = v.dot(d);
 
-        let r = &self.radius;
+        let r = self.radius();
         let s = v.norm_squared();
         let c = s - r * r;
 
@@ -31,7 +57,8 @@ impl<const D: usize> Mirror<D> for EuclideanSphereMirror<D> {
 
             for t in [(neg_b - root_delta) / a, (neg_b + root_delta) / a] {
                 let origin = ray.at(t);
-                let normal = Unit::new_normalize(origin - v0);
+                // SAFETY: the vector `origin - v0` always has length `r = self.radius`
+                let normal = Unit::new_unchecked((origin - v0) / r.abs());
                 list.push(TangentPlane {
                     intersection: Intersection::Distance(t),
                     direction: TangentSpace::Normal(normal),
@@ -55,7 +82,7 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
     /// ```json
     /// {
     ///     "center": [1., 2., 3., ...], // (an array of D floats)
-    ///     "radius": 4., // (must be a float)
+    ///     "radius": 4., // (must be a float of magnitude > Float::EPSILON ~= 10^-16 )
     /// }
     /// ```
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
@@ -71,7 +98,7 @@ impl<const D: usize> JsonDes for EuclideanSphereMirror<D> {
             .and_then(serde_json::Value::as_f64)
             .ok_or("Failed to parse radius")? as Float;
 
-        Ok(Self { center, radius })
+        Self::new(center, radius).ok_or("radius must not be too close to 0.0".into())
     }
 }
 
@@ -82,7 +109,7 @@ impl<const D: usize> JsonSer for EuclideanSphereMirror<D> {
     fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "center": self.center.as_slice(),
-            "radius": self.radius,
+            "radius": self.radius(),
         })
     }
 }
@@ -94,7 +121,7 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
         display: &gl::Display,
         mut list: List<Box<dyn render::RenderData>>,
     ) {
-        let r = self.radius as f32;
+        let r = *self.radius() as f32;
         let [x, y, z] = self.center.map(|s| s as f32).into();
 
         // The default sphere from the SphereBuilder is a unit-sphere (radius of 1) with its center of mass located at the origin.
@@ -110,7 +137,7 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<3> {
     }
 }
 
-// in 2d, the list of vertices of a circle are easy to calculate
+// in 2d, the list of vertices of a circle is easy to calculate
 impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
     fn append_render_data(
         &self,
@@ -119,18 +146,23 @@ impl render::OpenGLRenderable for EuclideanSphereMirror<2> {
     ) {
         list.push(Box::new(render::Circle::new(
             self.center.map(|s| s as f32).into(),
-            self.radius as f32,
+            *self.radius() as f32,
             display,
         )))
     }
 }
 
 impl<const D: usize> Random for EuclideanSphereMirror<D> {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
+    fn random(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
         const MAX_RADIUS: Float = 3.0;
-        Self {
-            center: util::random_vector(rng, 9.0),
-            radius: rng.gen::<Float>() * MAX_RADIUS.abs(),
+
+        loop {
+            if let Some(mirror) = Self::new(
+                util::rand_vect(rng, 9.0),
+                rng.gen::<Float>() * MAX_RADIUS.abs(),
+            ) {
+                break mirror;
+            }
         }
     }
 }
@@ -251,6 +283,6 @@ mod tests {
         let mirror2 = EuclideanSphereMirror::<3>::from_json(&json).expect("json error");
 
         assert_eq!(mirror.center, mirror2.center);
-        assert_eq!(mirror.radius, mirror2.radius);
+        assert_eq!(mirror.radius(), mirror2.radius());
     }
 }

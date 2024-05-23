@@ -69,3 +69,26 @@ You can use the following controls during the visualisation of a simulation:
 ```shell
 cargo run --release -p gen_rand_sim "<path/to/output.json>" [dimension, default=2] [num_mirrors, default=12] [num_rays, default=4]
 ```
+
+## Contributing
+
+There are many ways to contribute to this project:
+
+- Creating unit tests
+- Adding documentation
+- Raising an issue on Github for bugfixes or suggestions
+- Adding new mirror shapes to the library!
+
+### Implementing new Mirror Shapes
+
+First, it is advised to check the documentation, specifically the `mirror_verse` module, using:
+
+```shell
+cargo doc --no-deps -p mirror_verse --open
+```
+
+Most mirror implementations, with all of their functionalities, are simple and compact (< 200 sloc), so you can easily browse the already implemented mirrors in the `mirror_verse/src/mirror` directory, if you need examples.
+
+## Note
+
+This project is currently undergoing (yet another hehe) major refactor, in which the core `Mirror` trait and simulation engine will be seperated into their own crate `mirror_verse` from other exposed functionalities, that will, then, be seen as extensions/integrations.

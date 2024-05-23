@@ -7,8 +7,18 @@ use super::*;
 pub struct PlaneMirror<const D: usize> {
     /// The plane this mirror belongs to.
     plane: AffineHyperPlane<D>,
-    /// The same plane, but represented with an orthonormalized basis, useful for orthogonal symmetries
+    /// The same plane, but represented with an orthonormal basis, useful for orthogonal symmetries
     orthonormalised: AffineHyperPlaneOrtho<D>,
+}
+
+impl<const D: usize> PlaneMirror<D> {
+    pub fn try_new(vectors: [SVector<Float, D>; D]) -> Option<Self> {
+        vectors.try_into().ok()
+    }
+
+    pub fn inner_plane(&self) -> &AffineHyperPlane<D> {
+        &self.plane
+    }
 }
 
 impl<const D: usize> TryFrom<[SVector<Float, D>; D]> for PlaneMirror<D> {
@@ -28,8 +38,8 @@ impl<const D: usize> PlaneMirror<D> {
     pub fn vertices(&self) -> impl Iterator<Item = SVector<Float, D>> + '_ {
         const SHIFT: usize = mem::size_of::<Float>() * 8 - 1;
 
-        let basis = self.plane.basis();
-        let v_0 = *self.plane.v0();
+        let basis = self.inner_plane().basis();
+        let v_0 = *self.inner_plane().v0();
 
         (0..1 << (D - 1)).map(move |i| {
             basis
@@ -44,12 +54,20 @@ impl<const D: usize> PlaneMirror<D> {
 
 impl<const D: usize> Mirror<D> for PlaneMirror<D> {
     fn append_intersecting_points(&self, ray: &Ray<D>, mut list: List<TangentPlane<D>>) {
-        if let Some(t) = self
-            .plane
-            .intersection_coordinates(ray, self.plane.v0())
-            .and_then(|v| v.iter().skip(1).all(|mu| mu.abs() < 1.0).then(|| v[0]))
-        {
+        let p = self.inner_plane();
+
+        let intersection_coords = p.intersection_coordinates(ray, p.v0());
+
+        if let Some(&t) = intersection_coords.as_ref().and_then(|v| {
+            let (distance, plane_coords) = v.as_slice().split_first().unwrap();
+            plane_coords
+                .iter()
+                .all(|mu| mu.abs() < 1.0)
+                .then_some(distance)
+        }) {
             list.push(TangentPlane {
+                // We could return `self.plane.v0()`, but since we already calculated `t`,
+                // we might as well save the simulation runner some work, and return that
                 intersection: Intersection::Distance(t),
                 direction: TangentSpace::Plane(self.orthonormalised),
             });
@@ -67,12 +85,35 @@ impl<const D: usize> JsonDes for PlaneMirror<D> {
     /// Deserialize a new plane mirror from a JSON object.
     ///
     /// The JSON object must follow the same format as that
-    /// described in the documentation of [Plane::from_json]
+    /// described in the documentation of [AffineHyperPlane::from_json]
     fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
-        AffineHyperPlane::from_json(json).map(|(plane, orthonormalised)| Self {
-            plane,
-            orthonormalised,
-        })
+        let mut vectors = [SVector::zeros(); D];
+
+        let (v_0, basis) = vectors.split_first_mut().unwrap();
+
+        *v_0 = json
+            .get("center")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::as_slice)
+            .and_then(util::json_array_to_vector)
+            .ok_or("Failed to parse center")?;
+
+        let basis_json = json
+            .get("basis")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::as_slice)
+            .filter(|l| l.len() == D - 1)
+            .ok_or("Failed to parse basis")?;
+
+        for (value, vector) in basis_json.iter().zip(basis) {
+            *vector = value
+                .as_array()
+                .map(Vec::as_slice)
+                .and_then(util::json_array_to_vector)
+                .ok_or("Failed to parse basis vector")?;
+        }
+
+        Self::try_new(vectors).ok_or("the provided family of vectors must be free".into())
     }
 }
 
@@ -81,7 +122,17 @@ impl<const D: usize> JsonSer for PlaneMirror<D> {
     ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(&self) -> serde_json::Value {
-        self.plane.to_json()
+        let slices = self
+            .inner_plane()
+            .vectors_raw()
+            .each_ref()
+            .map(SVector::as_slice);
+        let (center, basis) = slices.split_first().unwrap();
+
+        serde_json::json!({
+            "center": center,
+            "basis": basis,
+        })
     }
 }
 
@@ -134,18 +185,11 @@ impl render::OpenGLRenderable for PlaneMirror<3> {
 }
 
 impl<const D: usize> Random for PlaneMirror<D> {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self {
-        let (plane, orthonormalised) = loop {
-            if let Some(plane) =
-                AffineHyperPlane::new(array::from_fn(|_| util::random_vector(rng, 10.0)))
-            {
-                break plane;
+    fn random(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
+        loop {
+            if let Some(mirror) = Self::try_new(array::from_fn(|_| util::rand_vect(rng, 10.0))) {
+                break mirror;
             }
-        };
-
-        Self {
-            plane,
-            orthonormalised,
         }
     }
 }
@@ -173,10 +217,10 @@ mod tests {
         };
 
         let mut intersections = vec![];
-        mirror.append_intersecting_points(&ray, List::from(List::from(&mut intersections)));
+        mirror.append_intersecting_points(&ray, List::from(&mut intersections));
 
         let [tangent] = intersections.as_slice() else {
-            panic!("there must be an intersection");
+            panic!("there must be one intersection");
         };
 
         let d = tangent.try_ray_intersection(&ray);

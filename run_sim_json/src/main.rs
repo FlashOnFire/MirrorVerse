@@ -2,6 +2,7 @@ use mirror_verse::{
     mirror::{
         self, cylinder::CylindricalMirror, plane::PlaneMirror, sphere::EuclideanSphereMirror,
         JsonType,
+        JsonDes,
     },
     render, serde_json, util, Simulation,
 };

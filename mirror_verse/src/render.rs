@@ -20,9 +20,6 @@ glium::implement_vertex!(Vertex2D, position);
 pub type Vertex3D = Vertex<3>;
 glium::implement_vertex!(Vertex3D, position);
 
-pub type Vertex4D = Vertex<4>;
-glium::implement_vertex!(Vertex4D, position);
-
 impl<const D: usize> From<nalgebra::SVector<f32, D>> for Vertex<D> {
     fn from(v: nalgebra::SVector<f32, D>) -> Self {
         Self { position: v.into() }

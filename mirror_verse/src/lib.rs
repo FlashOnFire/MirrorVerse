@@ -19,6 +19,8 @@ use render::{
     DrawableSimulation,
 };
 
+use mirror::{JsonDes, JsonSer};
+
 pub type Float = f64;
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -67,7 +69,7 @@ impl<const D: usize> RayPath<D> {
                     // because window.len() is always 2
                     unreachable!()
                 };
-                ((last_pt - this_pt).norm() < epsilon && (pt - next_pt).norm() < epsilon)
+                ((last_pt - this_pt).norm() <= epsilon && (pt - next_pt).norm() < epsilon)
                     .then_some(i)
             })
         })
@@ -129,8 +131,11 @@ pub struct Simulation<T, const D: usize> {
     pub mirror: T,
 }
 
-impl<const D: usize, T: mirror::Random> Simulation<T, D> {
-    pub fn random<U: rand::Rng + ?Sized>(rng: &mut U) -> Self {
+impl<T: mirror::Random, const D: usize> mirror::Random for Simulation<T, D> {
+    fn random(rng: &mut (impl rand::Rng + ?Sized)) -> Self
+    where
+        Self: Sized
+    {
         const MIN_NUM_RAYS: usize = 1;
         const MAX_NUM_RAYS: usize = 32;
         let num_rays = rng.gen_range(MIN_NUM_RAYS..MAX_NUM_RAYS);
@@ -143,8 +148,8 @@ impl<const D: usize, T: mirror::Random> Simulation<T, D> {
     }
 }
 
-impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
-    pub fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
+impl<const D: usize, T: mirror::JsonDes> JsonDes for Simulation<T, D> {
+    fn from_json(json: &serde_json::Value) -> Result<Self, Box<dyn Error>> {
         let mirror = T::from_json(json.get("mirror").ok_or("mirror field expected")?)?;
 
         let rays = util::map_json_array(
@@ -156,21 +161,8 @@ impl<const D: usize, T: mirror::JsonDes> Simulation<T, D> {
     }
 }
 
-impl<const D: usize, T: mirror::JsonSer + mirror::JsonType> Simulation<T, D> {
-    pub fn to_json_dynamic(&self) -> serde_json::Value {
-        serde_json::json!({
-            "dim": D,
-            "rays": Vec::from_iter(self.rays.iter().map(mirror::Ray::to_json)),
-            "mirror": {
-                "type": T::json_type(),
-                "mirror": self.mirror.to_json(),
-            },
-        })
-    }
-}
-
-impl<const D: usize, T: mirror::JsonSer> Simulation<T, D> {
-    pub fn to_json(&self) -> serde_json::Value {
+impl<const D: usize, T: mirror::JsonSer> JsonSer for Simulation<T, D> {
+    fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "dim": D,
             "rays": Vec::from_iter(self.rays.iter().map(mirror::Ray::to_json)),
@@ -388,8 +380,8 @@ pub mod util {
 
     use super::*;
 
-    pub fn random_vector<T: rand::Rng + ?Sized, const D: usize>(
-        rng: &mut T,
+    pub fn rand_vect<const D: usize>(
+        rng: &mut (impl rand::Rng + ?Sized),
         max_coord_mag: Float,
     ) -> SVector<Float, D> {
         // the rng generates floats in 0.0..1.0, scale and translate the range accordingly

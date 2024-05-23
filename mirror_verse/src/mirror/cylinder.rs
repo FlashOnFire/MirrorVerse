@@ -29,6 +29,18 @@ impl CylindricalMirror {
             inv_norm_dist_squared: dist_sq.recip(),
         })
     }
+
+    pub fn segment_length(&self) -> SVector<Float, 3> {
+        self.dist
+    }
+
+    pub fn line_segment(&self) -> [SVector<Float, 3>; 2] {
+        [self.start, self.start + self.dist]
+    }
+
+    pub fn radius(&self) -> Float {
+        self.radius
+    }
 }
 
 impl Mirror<3> for CylindricalMirror {
@@ -122,10 +134,13 @@ impl JsonSer for CylindricalMirror {
     ///
     /// The format of the returned object is explained in [`Self::from_json`]
     fn to_json(&self) -> serde_json::Value {
+        let [start, end] = self.line_segment();
+        let radius = self.radius();
+
         serde_json::json!({
-            "start": self.start.as_slice(),
-            "end": (self.start + self.dist).as_slice(),
-            "radius": self.radius,
+            "start": start.as_slice(),
+            "end": end.as_slice(),
+            "radius": radius,
         })
     }
 }
@@ -154,16 +169,18 @@ impl OpenGLRenderable for CylindricalMirror {
     ) {
         const NUM_POINTS: usize = 360;
 
-        let k = SVector::from([0.0, 0.0, 1.0]) + self.dist.normalize().map(|s| s as f32);
+        let d = self.segment_length().map(|s| s as f32);
 
+        let k = SVector::from([0.0, 0.0, 1.0]) + d.normalize();
+
+        // outer product of d and k
         let m = SMatrix::<_, 3, 3>::from_fn(|i, j| k[i] * k[j]);
 
         // rotation matrix to rotate the circle so it faces the axis formed by our line segment
         let rot = 2.0 / k.norm_squared() * m - SMatrix::identity();
 
-        let r = self.radius as f32;
-        let d = self.dist.map(|s| s as f32);
-        let start = self.start.map(|s| s as f32);
+        let r = self.radius() as f32;
+        let start = self.line_segment()[0].map(|s| s as f32);
 
         use core::f32::consts::TAU;
 
@@ -171,7 +188,7 @@ impl OpenGLRenderable for CylindricalMirror {
             .flat_map(|i| {
                 let [x, y]: [f32; 2] = (i as f32 / NUM_POINTS as f32 * TAU).sin_cos().into();
                 let vertex = [x * r, y * r, 0.0];
-                let v = rot * SVector::<f32, 3>::from(vertex) + start;
+                let v = rot * SVector::from(vertex) + start;
                 [v, v + d]
             })
             .map(render::Vertex3D::from)
@@ -184,16 +201,13 @@ impl OpenGLRenderable for CylindricalMirror {
 }
 
 impl Random for CylindricalMirror {
-    fn random<T: rand::Rng + ?Sized>(rng: &mut T) -> Self
+    fn random(rng: &mut (impl rand::Rng + ?Sized)) -> Self
     where
         Self: Sized,
     {
         loop {
             if let Some(mirror) = Self::new(
-                [
-                    util::random_vector(rng, 10.0),
-                    util::random_vector(rng, 10.0),
-                ],
+                [util::rand_vect(rng, 10.0), util::rand_vect(rng, 10.0)],
                 rng.gen::<Float>() * 4.0,
             ) {
                 break mirror;
